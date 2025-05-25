@@ -20,18 +20,33 @@
       </div>
 
       <!-- 日期/週次/月/自訂範圍選擇器 -->
-      <div class="calendar-selector-container" v-if="currentReportType === 'weekly' || currentReportType === 'daily'">
-         <Datepicker
-            v-model="selectedDateForPicker"
-            :inline="true"
-            :week-start="0"
-            @update:model-value="onDatePicked"
-            :enable-time-picker="false"
-            placeholder="選擇日期"
-            :allowed-dates="allowedDatesFn"
-            :year-range="[2025, 2025]"
-            prevent-min-max-navigation
-            />
+      <div class="calendar-selector-container" v-if="currentReportType === 'daily'">
+        <Datepicker
+          v-model="selectedDateForPicker"
+          :key="'daily-' + selectedDateForPicker"
+          :inline="true"
+          :week-start="0"
+          @update:model-value="onDatePicked"
+          :enable-time-picker="false"
+          placeholder="選擇日期"
+          :allowed-dates="allowedDatesFn"
+          :year-range="[2025, 2025]"
+          prevent-min-max-navigation
+        />
+      </div>
+      <div class="calendar-selector-container" v-if="currentReportType === 'weekly'">
+        <Datepicker
+          v-model="selectedDateForPicker"
+          :key="'weekly-' + selectedDateForPicker"
+          :inline="true"
+          :week-start="0"
+          @update:model-value="onDatePicked"
+          :enable-time-picker="false"
+          placeholder="選擇日期"
+          :allowed-dates="allowedWeekDatesFn"
+          :year-range="[2025, 2025]"
+          prevent-min-max-navigation
+        />
       </div>
       <div class="calendar-selector-container" v-if="currentReportType === 'monthly'">
         <div class="month-picker-label">
@@ -40,6 +55,7 @@
         </div>
         <Datepicker
           v-model="selectedMonth"
+          :key="'monthly-' + selectedMonth"
           type="month"
           :inline="false"
           :year-range="[2025,2025]"
@@ -53,10 +69,11 @@
       <div class="calendar-selector-container" v-if="currentReportType === 'custom'">
         <Datepicker
           v-model="customRange"
+          :key="'custom-' + customRange"
           range
           :inline="true"
           :year-range="[2025,2025]"
-          :allowed-dates="allowedDatesFn"
+          :allowed-dates="allowedCustomDatesFn"
           @update:model-value="onCustomRangePicked"
           placeholder="選擇日期範圍"
           prevent-min-max-navigation
@@ -246,28 +263,52 @@ export default {
     const expenseChartEl = ref(null);
 
     const today = new Date();
-    today.setHours(0,0,0,0); // Normalized today for comparisons
+    today.setHours(0,0,0,0);
+    const thisYear = today.getFullYear();
+    const thisMonth = today.getMonth();
+    // 本週週一
+    const thisWeekMonday = new Date(today);
+    thisWeekMonday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    thisWeekMonday.setHours(0,0,0,0);
+    // 本週週日
+    const thisWeekSunday = new Date(thisWeekMonday);
+    thisWeekSunday.setDate(thisWeekMonday.getDate() + 6);
+    thisWeekSunday.setHours(0,0,0,0);
 
+    // 日報告：只能查到今天
     const allowedDatesFn = (dateToCheck) => {
       const d = new Date(dateToCheck);
       d.setHours(0,0,0,0);
-
-      if (d.getFullYear() !== 2025) {
-        return false; // Must be in 2025
-      }
-      // If current real-world year is 2025, then dateToCheck must be <= today.
-      // Otherwise (current real-world year is not 2025), any date in 2025 is allowed.
-      if (today.getFullYear() === 2025) {
-        return d <= today;
-      }
-      return true; 
+      const todayLocal = new Date();
+      todayLocal.setHours(0,0,0,0);
+      return d <= todayLocal && d.getFullYear() === 2025;
     };
-
+    // 週報告：只能查本週且不超過今天
+    const allowedWeekDatesFn = (dateToCheck) => {
+      const d = new Date(dateToCheck);
+      d.setHours(0,0,0,0);
+      const todayLocal = new Date();
+      todayLocal.setHours(0,0,0,0);
+      // 計算本週週一
+      const monday = new Date(todayLocal);
+      monday.setDate(todayLocal.getDate() - ((todayLocal.getDay() + 6) % 7));
+      monday.setHours(0,0,0,0);
+      return d >= monday && d <= todayLocal && d.getFullYear() === 2025;
+    };
+    // 月報告：只能查本月
     const allowedMonthsFn = (dateToCheck) => {
-      // 只允許2025年1~12月
-      const d = new Date(dateToCheck)
-      return d.getFullYear() === 2025
-    }
+      const d = new Date(dateToCheck);
+      const todayLocal = new Date();
+      return d.getFullYear() === todayLocal.getFullYear() && d.getMonth() === todayLocal.getMonth();
+    };
+    // 自訂：結束日不能超過今天
+    const allowedCustomDatesFn = (dateToCheck) => {
+      const d = new Date(dateToCheck);
+      d.setHours(0,0,0,0);
+      const todayLocal = new Date();
+      todayLocal.setHours(0,0,0,0);
+      return d <= todayLocal && d.getFullYear() === 2025;
+    };
 
     const initializeTargetDate = () => {
       let initialDisplayDate = new Date(); 
