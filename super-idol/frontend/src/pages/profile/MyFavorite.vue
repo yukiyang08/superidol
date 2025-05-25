@@ -2,7 +2,7 @@
   <div class="my-favorite-page">
     <div class="container">
       <h1 class="page-title">我的最愛</h1>
-
+      
       <!-- 載入中狀態 -->
       <div v-if="isLoading" class="loading-state">
         <div class="loading-spinner"></div>
@@ -63,7 +63,7 @@
           </div>
         </div>
       </div>
-
+      
       <!-- 確認刪除 Modal -->
       <div v-if="showConfirmModal" class="modal-overlay">
         <div class="modal">
@@ -207,7 +207,7 @@ export default {
     onMounted(() => {
       fetchFavorites()
     })
-
+    
     return {
       favoriteFoods,
       isLoading,

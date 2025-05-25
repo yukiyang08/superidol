@@ -39,8 +39,8 @@ def summary_report_api():
     except ValueError:
         return jsonify({"error": "Invalid user_id format"}), 400
     
-    if report_type not in ['daily', 'weekly']:
-        return jsonify({"error": "Invalid report_type. Must be 'daily' or 'weekly'"}), 400
+    if report_type not in ['daily', 'weekly', 'monthly', 'custom']:
+        return jsonify({"error": "Invalid report_type. Must be 'daily', 'weekly', 'monthly', or 'custom'"}), 400
 
     start_date_str = request.args.get('start_date')
     end_date_str = request.args.get('end_date')

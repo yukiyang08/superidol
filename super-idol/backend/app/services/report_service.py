@@ -6,6 +6,7 @@ from app.db import get_db_connection
 from datetime import datetime, timedelta, date as dt_date
 import pymysql
 import logging
+import calendar
 
 def get_user_goals(user_id: int, cursor: pymysql.cursors.DictCursor) -> dict:
     """獲取用戶目標"""
@@ -41,21 +42,33 @@ def _determine_date_range(report_type: str, start_date_str: str | None, end_date
             current_day = datetime.strptime(start_date_str, '%Y-%m-%d').date()
         else:
             current_day = today
-        
         actual_start_date = current_day - timedelta(days=current_day.weekday()) # Monday
-        if end_date_str: # If end_date is provided for weekly, respect it if it forms a valid week with start or default start
+        if end_date_str:
             temp_end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            # Ensure it's a sensible range, e.g. end_date is after actual_start_date and within a reasonable week span
             if temp_end_date >= actual_start_date and (temp_end_date - actual_start_date).days <= 6:
                 actual_end_date = temp_end_date
             else:
-                 actual_end_date = actual_start_date + timedelta(days=6) # Default to Sunday if provided end_date is odd
+                actual_end_date = actual_start_date + timedelta(days=6)
         else:
-            actual_end_date = actual_start_date + timedelta(days=6) # Sunday
-    # TODO: Add 'monthly' and 'custom' logic here in the future
+            actual_end_date = actual_start_date + timedelta(days=6)
+    elif report_type == 'monthly':
+        if not start_date_str:
+            raise ValueError("start_date is required for monthly report_type")
+        # start_date_str 應為該月1日
+        actual_start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        year = actual_start_date.year
+        month = actual_start_date.month
+        last_day = calendar.monthrange(year, month)[1]
+        actual_end_date = dt_date(year, month, last_day)
+    elif report_type == 'custom':
+        if not start_date_str or not end_date_str:
+            raise ValueError("start_date and end_date are required for custom report_type")
+        actual_start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        actual_end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        if actual_end_date < actual_start_date:
+            raise ValueError("end_date must be after start_date for custom report_type")
     else:
         raise ValueError(f"Unsupported report_type: {report_type}")
-
     return actual_start_date, actual_end_date
 
 def get_food_summary_for_period(user_id: int, start_date: dt_date, end_date: dt_date, cursor: pymysql.cursors.DictCursor) -> dict:
@@ -154,18 +167,17 @@ def get_daily_trends_for_period(user_id: int, start_date_dt: dt_date, end_date_d
     return daily_trends
 
 def get_summary_report(user_id: int, report_type: str, start_date_str: str | None, end_date_str: str | None) -> dict:
-    """生成指定時間段的摘要報告 (日報/週報)"""
+    """生成指定時間段的摘要報告 (日報/週報/月報/自訂)"""
     conn = get_db_connection()
     try:
         actual_start_date, actual_end_date = _determine_date_range(report_type, start_date_str, end_date_str)
-        
+        weekly_summaries = []
         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             user_goals_data = get_user_goals(user_id, cursor) 
             user_weight_kg = user_goals_data.get("user_weight_kg", 0) 
 
             food_summary = get_food_summary_for_period(user_id, actual_start_date, actual_end_date, cursor)
             exercise_summary = get_exercise_summary_for_period(user_id, actual_start_date, actual_end_date, user_weight_kg, cursor)
-            
             daily_trends = get_daily_trends_for_period(user_id, actual_start_date, actual_end_date, user_weight_kg, cursor)
 
             # Calculate number of days in the report period for averages
@@ -178,6 +190,30 @@ def get_summary_report(user_id: int, report_type: str, start_date_str: str | Non
                 "avg_daily_calories_burned": round(exercise_summary['total_calories_burned'] / num_days_in_period) if num_days_in_period > 0 and exercise_summary['total_calories_burned'] else 0,
                 "avg_daily_exercise_duration_minutes": round(exercise_summary['total_exercise_duration_minutes'] / num_days_in_period) if num_days_in_period > 0 and exercise_summary['total_exercise_duration_minutes'] else 0,
             }
+
+            # 新增：月報告時，計算本月每週 summary
+            if report_type == 'monthly':
+                from datetime import timedelta
+                week_start = actual_start_date
+                while week_start <= actual_end_date:
+                    week_end = min(week_start + timedelta(days=6), actual_end_date)
+                    food_sum = get_food_summary_for_period(user_id, week_start, week_end, cursor)
+                    exercise_sum = get_exercise_summary_for_period(user_id, week_start, week_end, user_weight_kg, cursor)
+                    num_days = (week_end - week_start).days + 1
+                    weekly_summaries.append({
+                        "week_start": week_start.strftime('%Y-%m-%d'),
+                        "week_end": week_end.strftime('%Y-%m-%d'),
+                        "total_calories_intake": food_sum['total_calories_intake'],
+                        "total_food_expense": food_sum['total_food_expense'],
+                        "food_days_logged": food_sum['food_days_logged'],
+                        "total_calories_burned": exercise_sum['total_calories_burned'],
+                        "exercise_count": exercise_sum['exercise_count'],
+                        "total_exercise_duration_minutes": exercise_sum['total_exercise_duration_minutes'],
+                        "avg_daily_calories_intake": round(food_sum['total_calories_intake']/num_days) if num_days > 0 and food_sum['total_calories_intake'] else 0,
+                        "avg_daily_calories_burned": round(exercise_sum['total_calories_burned']/num_days) if num_days > 0 and exercise_sum['total_calories_burned'] else 0,
+                        "avg_daily_exercise_duration_minutes": round(exercise_sum['total_exercise_duration_minutes']/num_days) if num_days > 0 and exercise_sum['total_exercise_duration_minutes'] else 0,
+                    })
+                    week_start = week_end + timedelta(days=1)
 
             report = {
                 "report_info": {
@@ -202,6 +238,8 @@ def get_summary_report(user_id: int, report_type: str, start_date_str: str | Non
                     "建議每週至少150分鐘中等強度運動。"
                 ]
             }
+            if report_type == 'monthly':
+                report["weekly_summaries"] = weekly_summaries
             return report
     except ValueError as ve:
         logging.error(f"ValueError in report generation: {ve}")

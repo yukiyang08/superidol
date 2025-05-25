@@ -2,38 +2,24 @@
   <div class="weekly-report-page">
     <div class="container">
       <h1 class="page-title">
-        <!-- <el-icon><DataAnalysis /></el-icon> --> 健康報告
+        <el-icon><DataAnalysis /></el-icon> 健康報告
       </h1>
-
-      <!-- 新增：報告類型選擇器 -->
       <div class="report-type-selector">
-        <button
-          :class="['btn', currentReportType === 'daily' ? 'btn-primary' : 'btn-secondary']"
-          @click="changeReportType('daily')">
-          <!-- <el-icon><Calendar /></el-icon>  -->日報告
+        <button :class="['btn', currentReportType === 'daily' ? 'btn-primary' : 'btn-secondary']" @click="changeReportType('daily')">
+          <el-icon><Calendar /></el-icon> 日報告
         </button>
-        <button
-          :class="['btn', currentReportType === 'weekly' ? 'btn-primary' : 'btn-secondary']"
-          @click="changeReportType('weekly')">
-          <!-- <el-icon><Collection /></el-icon>  -->週報告
+        <button :class="['btn', currentReportType === 'weekly' ? 'btn-primary' : 'btn-secondary']" @click="changeReportType('weekly')">
+          <el-icon><Collection /></el-icon> 週報告
         </button>
-        <!-- TODO: 月報告按鈕 -->
-      </div>
-
-      <!-- 日期/週次選擇器 -->
-      <div class="time-selector">
-        <button class="btn btn-icon" @click="changePeriod(-1)">
-          <!-- <el-icon><ArrowLeftBold /></el-icon> -->
-          <i class="icon-left-arrow">←</i> <!-- 暫用文字替代圖標 -->
+        <button :class="['btn', currentReportType === 'monthly' ? 'btn-primary' : 'btn-secondary']" @click="changeReportType('monthly')">
+          <el-icon><Calendar /></el-icon> 月報告
         </button>
-        <h2 class="current-period-text">{{ reportDateText }}</h2>
-        <button class="btn btn-icon" @click="changePeriod(1)">
-          <!-- <el-icon><ArrowRightBold /></el-icon> -->
-          <i class="icon-right-arrow">→</i> <!-- 暫用文字替代圖標 -->
+        <button :class="['btn', currentReportType === 'custom' ? 'btn-primary' : 'btn-secondary']" @click="changeReportType('custom')">
+          <el-icon><Calendar /></el-icon> 自訂
         </button>
       </div>
 
-      <!-- 日曆選擇器 -->
+      <!-- 日期/週次/月/自訂範圍選擇器 -->
       <div class="calendar-selector-container" v-if="currentReportType === 'weekly' || currentReportType === 'daily'">
          <Datepicker
             v-model="selectedDateForPicker"
@@ -42,16 +28,53 @@
             @update:model-value="onDatePicked"
             :enable-time-picker="false"
             placeholder="選擇日期"
+            :allowed-dates="allowedDatesFn"
+            :year-range="[2025, 2025]"
+            prevent-min-max-navigation
             />
       </div>
+      <div class="calendar-selector-container" v-if="currentReportType === 'monthly'">
+        <div class="month-picker-label">
+          <el-icon><Calendar /></el-icon>
+          <span>請選擇要查詢的月份</span>
+        </div>
+        <Datepicker
+          v-model="selectedMonth"
+          type="month"
+          :inline="false"
+          :year-range="[2025,2025]"
+          :allowed-dates="allowedMonthsFn"
+          @update:model-value="onMonthPicked"
+          placeholder="選擇月份"
+          :input-class="'month-picker-input'"
+          prevent-min-max-navigation
+        />
+      </div>
+      <div class="calendar-selector-container" v-if="currentReportType === 'custom'">
+        <Datepicker
+          v-model="customRange"
+          range
+          :inline="true"
+          :year-range="[2025,2025]"
+          :allowed-dates="allowedDatesFn"
+          @update:model-value="onCustomRangePicked"
+          placeholder="選擇日期範圍"
+          prevent-min-max-navigation
+        />
+      </div>
 
+      <!-- 新增：日期區間顯示 -->
+      <div class="date-range-display" v-if="dateRangeText">
+        <el-icon><Calendar /></el-icon>
+        <span>{{ dateRangeText }}</span>
+      </div>
 
       <!-- 摘要 (period-summary) -->
       <div class="period-summary" v-if="reportData">
         <div class="summary-row">
           <div class="summary-card">
             <div class="summary-title">
-              <!-- <el-icon><Food /></el-icon>  -->卡路里攝取
+              <el-icon><Food /></el-icon> 卡路里攝取
             </div>
             <div class="summary-value">{{ periodSummary.totalCaloriesIntake }} <span class="unit">大卡</span></div>
             <div class="summary-description" v-if="currentReportType === 'weekly'">
@@ -64,7 +87,7 @@
 
           <div class="summary-card">
             <div class="summary-title">
-              <!-- <el-icon><MostlyCloudy /></el-icon>  -->卡路里消耗
+              <el-icon><MostlyCloudy /></el-icon> 卡路里消耗
             </div>
             <div class="summary-value">{{ periodSummary.totalCaloriesBurned }} <span class="unit">大卡</span></div>
              <div class="summary-description" v-if="currentReportType === 'weekly'">
@@ -77,7 +100,7 @@
 
           <div class="summary-card">
             <div class="summary-title">
-             <!-- <el-icon><Timer /></el-icon>  -->運動時長
+             <el-icon><Timer /></el-icon> 運動時長
             </div>
             <div class="summary-value">{{ periodSummary.total_exercise_duration_minutes }} <span class="unit">分鐘</span></div>
             <div class="summary-description" v-if="currentReportType === 'weekly'">
@@ -85,9 +108,9 @@
             </div>
           </div>
 
-          <div class="summary-card">
+          <div class="summary-card expense-card">
             <div class="summary-title">
-              <!-- <el-icon><Money /></el-icon>  -->總支出
+              <el-icon><Money /></el-icon> 總支出
             </div>
             <div class="summary-value">{{ periodSummary.totalFoodExpense }} <span class="unit">元</span></div>
             <div class="summary-description">
@@ -97,16 +120,39 @@
         </div>
       </div>
       <div v-else-if="isLoading" class="loading-state">
-        <!-- <el-icon class="is-loading"><Loading /></el-icon> -->
+        <el-icon class="is-loading"><Loading /></el-icon>
         載入報告中...
       </div>
 
+      <div v-if="currentReportType==='monthly' && weeklySummaries.length" class="monthly-weekly-summary">
+        <h2 class="section-title"><el-icon><Collection /></el-icon> 本月每週摘要</h2>
+        <table class="weekly-summary-table">
+          <thead>
+            <tr>
+              <th>週期</th>
+              <th>卡路里攝取</th>
+              <th>卡路里消耗</th>
+              <th>運動時長</th>
+              <th>總支出</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(w, idx) in weeklySummaries" :key="idx">
+              <td>{{ w.week_start }} ~ {{ w.week_end }}</td>
+              <td>{{ w.total_calories_intake }}</td>
+              <td>{{ w.total_calories_burned }}</td>
+              <td>{{ w.total_exercise_duration_minutes }}</td>
+              <td>{{ w.total_food_expense }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <!-- 圖表區段 -->
       <div class="report-section-row" v-if="reportData">
         <div class="report-section full-width-section">
           <h2 class="section-title">
-            <!-- <el-icon><TrendCharts /></el-icon> --> 卡路里趨勢
+            <el-icon><TrendCharts /></el-icon> 卡路里趨勢
           </h2>
           <div class="chart-placeholder chart">
             <div class="chart-container">
@@ -119,7 +165,7 @@
       <div class="report-sections-row-grid" v-if="reportData">
         <div class="report-section">
           <h2 class="section-title">
-            <!-- <el-icon><Present /></el-icon>  -->運動紀錄
+            <el-icon><Present /></el-icon> 運動紀錄
           </h2>
           <div class="chart-placeholder">
             <div class="chart-container">
@@ -130,7 +176,7 @@
 
         <div class="report-section">
           <h2 class="section-title">
-            <!-- <el-icon><Tickets /></el-icon>  -->支出紀錄
+            <el-icon><Tickets /></el-icon> 支出紀錄
           </h2>
           <div class="chart-placeholder">
             <div class="chart-container">
@@ -142,19 +188,19 @@
 
       <div class="report-section full-width-section" v-if="reportData">
         <h2 class="section-title">
-          <!-- <el-icon><Opportunity /></el-icon>  -->建議與提示
+          <el-icon><Opportunity /></el-icon> 建議與提示
         </h2>
         <div class="suggestion-card">
           <p v-if="reportData.suggestions && reportData.suggestions.length > 0">
-            根據您這{{ currentReportType === 'daily' ? '日' : '週' }}的飲食和運動記錄，我們有以下建議：
+            根據您這{{ currentReportType === 'daily' ? '日' : currentReportType === 'weekly' ? '週' : currentReportType === 'monthly' ? '月' : '自訂' }}的飲食和運動記錄，我們有以下建議：
           </p>
           <ul class="suggestion-list" v-if="reportData.suggestions && reportData.suggestions.length > 0">
             <li v-for="(suggestion, index) in reportData.suggestions" :key="index">
-             <!-- <el-icon><Star /></el-icon>  -->{{ suggestion }}
+             <el-icon><Star /></el-icon> {{ suggestion }}
             </li>
           </ul>
            <p v-else>
-            <!-- <el-icon><InfoFilled /></el-icon>  -->暫無特別建議，請繼續保持記錄！
+            <el-icon><InfoFilled /></el-icon> 暫無特別建議，請繼續保持記錄！
            </p>
         </div>
       </div>
@@ -163,21 +209,27 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch, nextTick } from 'vue' // Removed watchEffect as it's not used
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Chart } from 'chart.js/auto'
 import Datepicker from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
-import { ElMessage } from 'element-plus'
-// 準備引入圖示，如果已安裝 Element Plus Icons
-// import { DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, Present, Tickets, Opportunity, Star, InfoFilled } from '@element-plus/icons-vue'
+import { ElMessage, ElIcon } from 'element-plus'
+import { 
+  DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, 
+  Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, 
+  Present, Tickets, Opportunity, Star, InfoFilled 
+} from '@element-plus/icons-vue'
+import { formatDate } from '@/utils/date'
 
 
 export default {
   name: 'SummaryReportPage',
   components: {
     Datepicker,
-    // 如果使用 Element Plus Icons，在此註冊
-    // ElIcon, DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, Present, Tickets, Opportunity, Star, InfoFilled
+    ElIcon, 
+    DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, 
+    Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, 
+    Present, Tickets, Opportunity, Star, InfoFilled
   },
   setup() {
     const currentReportType = ref('weekly')
@@ -185,15 +237,71 @@ export default {
     const targetDate = ref(new Date())
     const reportData = ref(null)
     const isLoading = ref(false)
+    const selectedMonth = ref(new Date(2025, 0, 1))
+    const customRange = ref([new Date(2025, 4, 1), new Date(2025, 4, 7)])
+    const weeklySummaries = ref([])
 
     const calorieChartEl = ref(null);
     const exerciseTrendChartEl = ref(null);
     const expenseChartEl = ref(null);
 
-    const initializeTargetDate = () => {
-      targetDate.value = new Date()
-      selectedDateForPicker.value = new Date(targetDate.value)
+    const today = new Date();
+    today.setHours(0,0,0,0); // Normalized today for comparisons
+
+    const allowedDatesFn = (dateToCheck) => {
+      const d = new Date(dateToCheck);
+      d.setHours(0,0,0,0);
+
+      if (d.getFullYear() !== 2025) {
+        return false; // Must be in 2025
+      }
+      // If current real-world year is 2025, then dateToCheck must be <= today.
+      // Otherwise (current real-world year is not 2025), any date in 2025 is allowed.
+      if (today.getFullYear() === 2025) {
+        return d <= today;
+      }
+      return true; 
+    };
+
+    const allowedMonthsFn = (dateToCheck) => {
+      // 只允許2025年1~12月
+      const d = new Date(dateToCheck)
+      return d.getFullYear() === 2025
     }
+
+    const initializeTargetDate = () => {
+      let initialDisplayDate = new Date(); 
+      initialDisplayDate.setHours(0,0,0,0);
+
+      // Clamp initialDisplayDate to 2025, and not in future if current year is 2025
+      if (initialDisplayDate.getFullYear() !== 2025) {
+        if (initialDisplayDate.getFullYear() < 2025) {
+          initialDisplayDate = new Date(2025, 0, 1); // Default to Jan 1, 2025
+        } else { // initialDisplayDate.getFullYear() > 2025
+          initialDisplayDate = new Date(2025, 11, 31); // Default to Dec 31, 2025
+        }
+      } else { // initialDisplayDate.getFullYear() === 2025
+        // If today is also in 2025, make sure initialDisplayDate is not after today
+        if (today.getFullYear() === 2025 && initialDisplayDate > today) {
+          initialDisplayDate = new Date(today); // Clamp to today
+        }
+      }
+      
+      targetDate.value = new Date(initialDisplayDate);
+      selectedDateForPicker.value = new Date(initialDisplayDate);
+    };
+    
+    const canChangePeriod = (direction) => {
+      const newDate = new Date(targetDate.value);
+      if (currentReportType.value === 'daily') {
+        newDate.setDate(newDate.getDate() + direction);
+      } else if (currentReportType.value === 'weekly') {
+        newDate.setDate(newDate.getDate() + direction * 7);
+      }
+      // Ensure the new date is within the allowed range (2025 and not future if today is 2025)
+      return allowedDatesFn(newDate);
+    };
+
 
     const fetchSummaryReport = async () => {
       isLoading.value = true
@@ -207,14 +315,26 @@ export default {
           return
         }
 
-        let startDateStr = ''
+        let apiUrl = `/api/reports/summary?user_id=${userId}`
         if (currentReportType.value === 'daily') {
-          startDateStr = targetDate.value.toISOString().split('T')[0]
+          const startDateStr = formatDate(targetDate.value, 'YYYY-MM-DD');
+          apiUrl += `&report_type=daily&start_date=${startDateStr}`
         } else if (currentReportType.value === 'weekly') {
-          startDateStr = targetDate.value.toISOString().split('T')[0]
+          const startDateStr = formatDate(targetDate.value, 'YYYY-MM-DD');
+          apiUrl += `&report_type=weekly&start_date=${startDateStr}`
+        } else if (currentReportType.value === 'monthly') {
+          const y = selectedMonth.value.getFullYear()
+          const m = selectedMonth.value.getMonth() + 1
+          const startDateStr = `${y}-${String(m).padStart(2, '0')}-01`
+          apiUrl += `&report_type=monthly&start_date=${startDateStr}`
+        } else if (currentReportType.value === 'custom') {
+          const start = customRange.value[0]
+          const end = customRange.value[1]
+          const startDateStr = formatDate(start, 'YYYY-MM-DD');
+          const endDateStr = formatDate(end, 'YYYY-MM-DD');
+          apiUrl += `&report_type=custom&start_date=${startDateStr}&end_date=${endDateStr}`
         }
 
-        const apiUrl = `/api/reports/summary?user_id=${userId}&report_type=${currentReportType.value}&start_date=${startDateStr}`
         const response = await fetch(apiUrl)
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
@@ -222,6 +342,11 @@ export default {
         }
         const data = await response.json()
         reportData.value = data
+        if (currentReportType.value === 'monthly' && data.weekly_summaries) {
+          weeklySummaries.value = data.weekly_summaries;
+        } else {
+          weeklySummaries.value = [];
+        }
       } catch (error) {
         console.error('載入摘要報告數據失敗:', error)
         ElMessage.error(error.message || '載入摘要報告數據失敗，請稍後再試')
@@ -239,21 +364,34 @@ export default {
     })
 
     const reportDateText = computed(() => {
-      if (!reportData.value || !reportData.value.report_info) {
+      if (!targetDate.value) return '選擇日期'; // Should not happen with proper init
+
+      const dateToDisplay = new Date(targetDate.value);
+
+      if (!reportData.value || !reportData.value.report_info || !reportData.value.report_info.actual_start_date) {
+         // Fallback display based on targetDate if reportData is not yet loaded or incomplete
         if (currentReportType.value === 'daily') {
-            return targetDate.value.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+            return dateToDisplay.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
         } else if (currentReportType.value === 'weekly') {
-            const start = new Date(targetDate.value);
+            const start = new Date(dateToDisplay);
             const dayOfWeek = start.getDay() === 0 ? 6 : start.getDay() -1;
             start.setDate(start.getDate() - dayOfWeek);
             const end = new Date(start);
             end.setDate(start.getDate() + 6);
+            
+            // Ensure start and end of week are within 2025
+            if (start.getFullYear() !== 2025) start.setFullYear(2025,0,1);
+            if (end.getFullYear() !== 2025) end.setFullYear(2025,11,31);
+
+
             const startText = start.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
             const endText = end.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
             return `${startText} - ${endText}`;
         }
         return '選擇日期';
       }
+      
+      // Use actual dates from report if available
       const { actual_start_date, actual_end_date } = reportData.value.report_info
       const startDate = new Date(actual_start_date + 'T00:00:00')
       const endDate = new Date(actual_end_date + 'T00:00:00')
@@ -271,7 +409,7 @@ export default {
     const periodSummary = computed(() => {
       const summary = reportData.value?.period_summary
       const reportInfo = reportData.value?.report_info
-      const numDays = reportInfo?.num_days_in_period > 0 ? reportInfo.num_days_in_period : 1; // Avoid division by zero
+      const numDays = reportInfo?.num_days_in_period > 0 ? reportInfo.num_days_in_period : 1; 
 
       return {
         totalCaloriesIntake: summary?.total_calories_intake || 0,
@@ -287,11 +425,25 @@ export default {
     })
 
     const changeReportType = (newType) => {
-      currentReportType.value = newType
-      fetchSummaryReport()
+      currentReportType.value = newType;
+      if (newType === 'monthly') {
+        const now = new Date();
+        if (now.getFullYear() === 2025) {
+          selectedMonth.value = new Date(2025, now.getMonth(), 1);
+        } else {
+          selectedMonth.value = new Date(2025, 0, 1);
+        }
+      } else if (newType === 'custom') {
+        customRange.value = [new Date(2025, 4, 1), new Date(2025, 4, 7)]; // 五月1日~7日
+      } else if (newType === 'daily' || newType === 'weekly') {
+        initializeTargetDate();
+      }
+      fetchSummaryReport();
     }
 
     const changePeriod = (direction) => {
+      if (!canChangePeriod(direction)) return; // Prevent changing if new period is not allowed
+
       const newDate = new Date(targetDate.value)
       if (currentReportType.value === 'daily') {
         newDate.setDate(newDate.getDate() + direction)
@@ -305,8 +457,22 @@ export default {
 
     const onDatePicked = (date) => {
       if (!date) return;
-      targetDate.value = new Date(date)
-      selectedDateForPicker.value = new Date(date)
+      // Datepicker should only allow valid dates due to :allowed-dates
+      // So, 'date' here should already be valid.
+      targetDate.value = new Date(date) 
+      selectedDateForPicker.value = new Date(date) // Sync picker's model explicitly
+      fetchSummaryReport()
+    }
+
+    const onMonthPicked = (date) => {
+      if (!date) return
+      selectedMonth.value = new Date(date)
+      fetchSummaryReport()
+    }
+
+    const onCustomRangePicked = (range) => {
+      if (!range || !Array.isArray(range) || range.length !== 2) return
+      customRange.value = [new Date(range[0]), new Date(range[1])]
       fetchSummaryReport()
     }
 
@@ -334,16 +500,15 @@ export default {
       const chartOptionsBase = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false }},
+        plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
         interaction: { mode: 'index', intersect: false },
       };
 
-      // Calorie Chart
       const intakeData = dailyTrends.map(t => t.calories_intake);
       const burnedData = dailyTrends.map(t => t.calories_burned);
       const netData = dailyTrends.map(t => t.calories_intake - t.calories_burned);
 
-      if (calorieChartEl.value) { // Ensure canvas element is available
+      if (calorieChartEl.value) {
         if (calorieChartInstance) {
           calorieChartInstance.data.labels = labels;
           calorieChartInstance.data.datasets[0].data = intakeData;
@@ -363,10 +528,8 @@ export default {
         }
       }
 
-
-      // Exercise Trend Chart
       const exerciseDurationData = dailyTrends.map(t => t.exercise_duration_minutes);
-      if (exerciseTrendChartEl.value) { // Ensure canvas element is available
+      if (exerciseTrendChartEl.value) { 
         if (exerciseTrendChartInstance) {
           exerciseTrendChartInstance.data.labels = labels;
           exerciseTrendChartInstance.data.datasets[0].data = exerciseDurationData;
@@ -380,10 +543,8 @@ export default {
         }
       }
 
-
-      // Expense Chart
       const expenseData = dailyTrends.map(t => t.food_expense);
-      if (expenseChartEl.value) { // Ensure canvas element is available
+      if (expenseChartEl.value) { 
         if (expenseChartInstance) {
           expenseChartInstance.data.labels = labels;
           expenseChartInstance.data.datasets[0].data = expenseData;
@@ -397,6 +558,19 @@ export default {
         }
       }
     }
+
+    const dateRangeText = computed(() => {
+      if (!reportData.value || !reportData.value.report_info) return '';
+      const { actual_start_date, actual_end_date, type } = reportData.value.report_info;
+      if (type === 'monthly') {
+        const d = new Date(actual_start_date + 'T00:00:00');
+        return `查詢月份：${d.getFullYear()}年${d.getMonth() + 1}月`;
+      }
+      if (actual_start_date === actual_end_date) {
+        return `查詢日期：${actual_start_date}`;
+      }
+      return `查詢區間：${actual_start_date} ~ ${actual_end_date}`;
+    });
 
     onMounted(() => {
       initializeTargetDate()
@@ -425,9 +599,18 @@ export default {
       changeReportType,
       changePeriod,
       onDatePicked,
+      allowedDatesFn, // Expose to template
+      canChangePeriod, // Expose to template
       calorieChartEl,
       exerciseTrendChartEl,
       expenseChartEl,
+      selectedMonth,
+      customRange,
+      allowedMonthsFn,
+      onMonthPicked,
+      onCustomRangePicked,
+      dateRangeText,
+      weeklySummaries,
     }
   }
 }
@@ -439,7 +622,7 @@ export default {
   --primary-color: #409EFF; /* Element Plus 主色藍 */
   --primary-color-dark: #337ecc;
   --success-color: #67C23A;
-  --warning-color: #E6A23C;
+  --warning-color: #E6A23C; /* 橘色 */
   --danger-color: #F56C6C;
   --info-color: #909399;
   --text-primary: #303133;
@@ -458,7 +641,7 @@ export default {
 }
 
 .page-title {
-  font-size: 2.25rem; /* 36px */
+  font-size: 2.25rem; 
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 30px;
@@ -477,7 +660,7 @@ export default {
 .calendar-selector-container,
 .period-summary,
 .report-section-row,
-.report-sections-row-grid, /* Changed class name */
+.report-sections-row-grid, 
 .report-section {
   margin-bottom: 30px;
 }
@@ -486,7 +669,7 @@ export default {
 .report-type-selector {
   display: flex;
   justify-content: center;
-  gap: 15px; /* 按鈕間距 */
+  gap: 15px; 
   margin-bottom: 25px;
 }
 .btn {
@@ -499,7 +682,7 @@ export default {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px; /* 圖標與文字間距 */
+  gap: 8px; 
 }
 .btn .el-icon {
   font-size: 1.1em;
@@ -537,7 +720,7 @@ export default {
   font-weight: 500;
   color: var(--text-primary);
   margin: 0 20px;
-  min-width: 200px; /* 給定最小寬度避免跳動 */
+  min-width: 200px; 
   text-align: center;
 }
 .btn-icon {
@@ -547,42 +730,57 @@ export default {
   color: var(--primary-color);
   cursor: pointer;
 }
-.btn-icon .el-icon, .btn-icon i {
-  font-size: 1.8rem; /* 調整圖標大小 */
+.btn-icon .el-icon {
+  font-size: 1.8rem; 
 }
-.btn-icon:hover {
+.btn-icon:hover:not(:disabled) { /* Apply hover only if not disabled */
   color: var(--primary-color-dark);
 }
+.btn-icon:disabled { /* Style for disabled arrow buttons */
+  color: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 
 /* ----- 日曆選擇器 ----- */
 .calendar-selector-container {
   display: flex;
   justify-content: center;
-  max-width: 360px; /* 限制日曆寬度 */
-  margin-left: auto;
-  margin-right: auto;
+  align-items: center;
+  margin-bottom: 18px;
+  width: 100%;
+  padding: 0;
 }
 
 /* ----- 摘要卡片 ----- */
 .summary-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* 響應式卡片 */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
   gap: 20px;
 }
 .summary-card {
-  background-color: #ffffff;
+  position: relative;
+  background-color: #fff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 20px 20px 20px 28px;
   box-shadow: 0 6px 16px -8px rgba(0,0,0,.08), 0 9px 28px 0 rgba(0,0,0,.05), 0 12px 48px 16px rgba(0,0,0,.03);
   border: 1px solid var(--border-color-light);
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border-left: 6px solid var(--warning-color); /* 橘色強調線 */
 }
 .summary-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 20px -6px rgba(0,0,0,.1), 0 12px 32px 0 rgba(0,0,0,.07), 0 16px 52px 18px rgba(0,0,0,.04);
 }
+.summary-card:not(.expense-card) .summary-title .el-icon {
+  color: var(--primary-color);
+}
+.summary-card.expense-card .summary-title .el-icon {
+  color: var(--warning-color);
+}
 .summary-title {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--text-secondary);
   margin-bottom: 8px;
   font-weight: 500;
@@ -590,8 +788,10 @@ export default {
   align-items: center;
 }
 .summary-title .el-icon {
-  margin-right: 6px;
-  color: var(--text-secondary);
+  font-size: 2.2rem;
+  margin-right: 10px;
+  font-weight: bold;
+  vertical-align: middle;
 }
 .summary-value {
   font-size: 2rem;
@@ -617,6 +817,11 @@ export default {
    color: var(--text-secondary);
 }
 
+/* Specific style for Expense Card */
+.summary-card.expense-card .summary-value {
+  color: var(--warning-color);
+}
+
 
 /* ----- 區塊標題 ----- */
 .report-section {
@@ -640,23 +845,23 @@ export default {
   margin-right: 8px;
   color: var(--primary-color);
 }
-.full-width-section { /* 用於單獨佔一行的區塊 */
-  grid-column: 1 / -1; /* 如果父容器是 grid */
+.full-width-section { 
+  grid-column: 1 / -1; 
 }
 
 /* ----- 圖表區塊網格佈局 ----- */
 .report-sections-row-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* 預設兩欄 */
+  grid-template-columns: 1fr 1fr; 
   gap: 20px;
 }
 
 /* ----- 圖表容器 ----- */
 .chart-container {
   height: 350px;
-  position: relative; /* For Chart.js responsiveness */
+  position: relative; 
 }
-.chart-placeholder { /* 包裹 canvas 的 div */
+.chart-placeholder { 
   width: 100%;
   height: 100%;
 }
@@ -668,7 +873,7 @@ export default {
    border-left: 4px solid var(--primary-color);
    padding: 20px;
    border-radius: 8px;
-   margin-top: 10px; /* 與標題間距 */
+   margin-top: 10px; 
 }
 .suggestion-card p {
   color: var(--text-regular);
@@ -695,7 +900,7 @@ export default {
 }
 .suggestion-list li .el-icon {
   margin-right: 8px;
-  color: var(--warning-color); /* 或 var(--success-color) */
+  color: var(--warning-color); 
   font-size: 1.1em;
 }
 
@@ -703,7 +908,7 @@ export default {
 /* ----- Loading 狀態 ----- */
 .loading-state {
   display: flex;
-  flex-direction: column; /* 讓圖標和文字垂直排列 */
+  flex-direction: column; 
   justify-content: center;
   align-items: center;
   padding: 60px 20px;
@@ -715,13 +920,13 @@ export default {
   margin-bottom: 15px;
   color: var(--primary-color);
 }
-/* Element Plus is-loading class already handles animation */
+
 
 
 /* ----- 響應式調整 ----- */
 @media (max-width: 992px) {
   .report-sections-row-grid {
-    grid-template-columns: 1fr; /* 中螢幕變單欄 */
+    grid-template-columns: 1fr; 
   }
 }
 
@@ -730,7 +935,7 @@ export default {
     font-size: 1.8rem;
   }
   .summary-row {
-    grid-template-columns: 1fr; /* 小螢幕摘要卡片堆疊 */
+    grid-template-columns: 1fr; 
   }
   .current-period-text {
     font-size: 1.2rem;
@@ -744,7 +949,7 @@ export default {
     font-size: 1.3rem;
   }
   .chart-container {
-    height: 300px; /* 稍微降低圖表高度 */
+    height: 300px; 
   }
 }
 
@@ -753,20 +958,168 @@ export default {
     padding: 15px;
   }
   .report-type-selector {
-    flex-direction: column; /* 更小螢幕時按鈕垂直排列 */
+    flex-direction: column; 
     gap: 10px;
   }
   .time-selector {
-    flex-wrap: wrap; /* 允許換行 */
+    flex-wrap: wrap; 
   }
   .current-period-text {
-     order: -1; /* 將日期文字提到最前 */
+     order: -1; 
      width: 100%;
      margin-bottom: 10px;
   }
   .page-title .el-icon {
     font-size: 2rem;
   }
+  .dp__main, .dp__menu {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+  }
+}
+
+.date-range-display {
+  display: flex;
+  align-items: center;
+  background: #fffbe6;
+  border: 1.5px solid var(--warning-color);
+  border-radius: 8px;
+  padding: 10px 18px;
+  margin: 0 auto 18px auto;
+  max-width: 340px;
+  font-size: 1.08rem;
+  color: #b26a00;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(255, 202, 40, 0.08);
+}
+.date-range-display .el-icon {
+  margin-right: 8px;
+  color: var(--warning-color);
+  font-size: 1.3em;
+}
+
+.month-picker-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+.month-picker-label .el-icon {
+  margin-right: 8px;
+  font-size: 1.3em;
+}
+.month-picker-input {
+  font-size: 1.15rem;
+  text-align: center;
+  border-radius: 8px;
+  border: 1.5px solid var(--primary-color);
+  padding: 8px 16px;
+  width: 180px;
+  margin: 0 auto;
+  display: block;
+}
+
+.report-type-hint {
+  text-align: center;
+  color: var(--primary-color);
+  font-size: 1.08rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.monthly-weekly-summary {
+  margin-top: 32px;
+}
+.weekly-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.weekly-summary-table th, .weekly-summary-table td {
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+.weekly-summary-table th {
+  background: #f7fafc;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+.weekly-summary-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Datepicker 主體更融合主題 */
+.dp__main, .dp__menu {
+  border-radius: 12px !important;
+  background: #fff !important;
+  border: 1.5px solid #e0e7ef !important;
+  box-shadow: 0 4px 16px rgba(64,158,255,0.07) !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+}
+.dp__header {
+  background: var(--primary-color);
+  color: #fff;
+  border-radius: 10px 10px 0 0;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.dp__month_year_select {
+  color: #fff !important;
+}
+.dp__input, .month-picker-input {
+  border-radius: 8px !important;
+  border: 1.5px solid #e0e7ef !important;
+  font-size: 1.08rem;
+  padding: 8px 16px 8px 38px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(64,158,255,0.04);
+  background: #fff;
+  transition: border 0.2s;
+}
+.dp__input:focus, .month-picker-input:focus {
+  border-color: var(--primary-color) !important;
+  outline: none;
+}
+/* input icon (如有自訂 icon 字型可啟用)
+.dp__input::before, .month-picker-input::before {
+  content: '\e6a0';
+  font-family: 'element-icons' !important;
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary-color);
+  font-size: 1.2em;
+  pointer-events: none;
+}
+*/
+.dp__cell_inner.dp__active, .dp__cell_inner.dp__range_start, .dp__cell_inner.dp__range_end {
+  background: var(--primary-color) !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+}
+.dp__cell_inner:hover {
+  background: #e3f0fd !important;
+  color: var(--primary-color) !important;
+}
+.dp__cell_inner.dp__today {
+  border: 1.5px solid var(--primary-color) !important;
+  border-radius: 8px !important;
+}
+.dp__cell_inner.dp__disabled {
+  color: #ccc !important;
+  background: #f7f7f7 !important;
+  cursor: not-allowed !important;
 }
 </style>
 
