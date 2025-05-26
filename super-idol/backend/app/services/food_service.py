@@ -7,6 +7,7 @@ from ..schemas.food_item import FoodItemCreate, FoodItemUpdate
 from app.db import get_db_connection
 import logging
 import pymysql
+import decimal
 
 class FoodService:
     @staticmethod
@@ -52,7 +53,9 @@ def search_food(filters):
     try:
         # 基本查詢
         sql = """
-            SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, f.ImageUrl, r.Name AS Restaurant
+            SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, f.ImageUrl, 
+                   f.Protein, f.Fat, f.Sugar, f.Sodium, f.Carb, f.Caffeine, 
+                   r.Name AS Restaurant
             FROM Food f
             LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
             WHERE 1 = 1
@@ -60,33 +63,73 @@ def search_food(filters):
         params = []
 
         # 添加過濾條件
-        if filters.get('priceMin') and filters['priceMin'].strip():
-            sql += " AND f.Price >= %s"
-            params.append(float(filters['priceMin']))
-
-        if filters.get('priceMax') and filters['priceMax'].strip():
-            sql += " AND f.Price <= %s"
-            params.append(float(filters['priceMax']))
-
-        if filters.get('calMin') and filters['calMin'].strip():
-            sql += " AND f.Calories >= %s"
-            params.append(float(filters['calMin']))
-
-        if filters.get('calMax') and filters['calMax'].strip():
-            sql += " AND f.Calories <= %s"
-            params.append(float(filters['calMax']))
-
-        if filters.get('name') and filters['name'].strip():
-            sql += " AND f.Name LIKE %s"
-            params.append(f"%{filters['name']}%")
-
-        if filters.get('restaurant') and filters['restaurant'].strip():
-            sql += " AND r.Name LIKE %s"
-            params.append(f"%{filters['restaurant']}%")
-
-        if filters.get('type') and filters['type'].strip():
-            sql += " AND f.Set_Type = %s"
-            params.append(filters['type'])
+        # priceMin
+        if filters.get('priceMin') is not None:
+            price_min = filters['priceMin']
+            if isinstance(price_min, (int, float, decimal.Decimal)):
+                sql += " AND f.Price >= %s"
+                params.append(float(price_min))
+            elif isinstance(price_min, str) and price_min.strip():
+                sql += " AND f.Price >= %s"
+                params.append(float(price_min.strip()))
+        # priceMax
+        if filters.get('priceMax') is not None:
+            price_max = filters['priceMax']
+            if isinstance(price_max, (int, float, decimal.Decimal)):
+                sql += " AND f.Price <= %s"
+                params.append(float(price_max))
+            elif isinstance(price_max, str) and price_max.strip():
+                sql += " AND f.Price <= %s"
+                params.append(float(price_max.strip()))
+        # calMin
+        if filters.get('calMin') is not None:
+            cal_min = filters['calMin']
+            if isinstance(cal_min, (int, float, decimal.Decimal)):
+                sql += " AND f.Calories >= %s"
+                params.append(float(cal_min))
+            elif isinstance(cal_min, str) and cal_min.strip():
+                sql += " AND f.Calories >= %s"
+                params.append(float(cal_min.strip()))
+        # calMax
+        if filters.get('calMax') is not None:
+            cal_max = filters['calMax']
+            if isinstance(cal_max, (int, float, decimal.Decimal)):
+                sql += " AND f.Calories <= %s"
+                params.append(float(cal_max))
+            elif isinstance(cal_max, str) and cal_max.strip():
+                sql += " AND f.Calories <= %s"
+                params.append(float(cal_max.strip()))
+        # name
+        if filters.get('name') is not None:
+            name = filters['name']
+            if isinstance(name, str) and name.strip():
+                sql += " AND f.Name LIKE %s"
+                params.append(f"%{name.strip()}%")
+        # restaurant
+        if filters.get('restaurant') is not None:
+            restaurant = filters['restaurant']
+            if isinstance(restaurant, str) and restaurant.strip():
+                # 支援多選：逗號分隔
+                names = [n.strip() for n in restaurant.split(',') if n.strip()]
+                if len(names) == 1:
+                    sql += " AND r.Name LIKE %s"
+                    params.append(f"%{names[0]}%")
+                elif len(names) > 1:
+                    placeholders = ','.join(['%s'] * len(names))
+                    sql += f" AND r.Name IN ({placeholders})"
+                    params.extend(names)
+        # food_type
+        if filters.get('food_type') is not None:
+            food_type = filters['food_type']
+            if isinstance(food_type, str) and food_type.strip():
+                types = [t.strip() for t in food_type.split(',') if t.strip()]
+                if len(types) == 1:
+                    sql += " AND f.Food_Type LIKE %s"
+                    params.append(f"%{types[0]}%")
+                elif len(types) > 1:
+                    placeholders = ','.join(['%s'] * len(types))
+                    sql += f" AND f.Food_Type IN ({placeholders})"
+                    params.extend(types)
 
         cursor.execute(sql, params)
         rows = cursor.fetchall()
@@ -102,7 +145,13 @@ def search_food(filters):
                 'food_type': row['Food_Type'],
                 'type': row['Set_Type'],
                 'restaurant': row['Restaurant'],
-                'ImageUrl': row.get('ImageUrl')
+                'ImageUrl': row.get('ImageUrl'),
+                'Protein': row.get('Protein'),
+                'Fat': row.get('Fat'),
+                'Sugar': row.get('Sugar'),
+                'Sodium': row.get('Sodium'),
+                'Carb': row.get('Carb'),
+                'Caffeine': row.get('Caffeine')
             })
         
         return results

@@ -17,10 +17,18 @@
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label">餐廳</label>
-                <div class="input-with-icon">
-                  <i class="el-icon-shop"></i>
-                  <input type="text" class="form-control" placeholder="輸入餐廳名稱" v-model="filters.restaurant" />
+                <label class="form-label">食物類型</label>
+                <div class="foodtype-chip-list">
+                  <button
+                    v-for="type in foodTypes"
+                    :key="type"
+                    type="button"
+                    class="foodtype-chip-btn"
+                    :class="{ active: filters.food_type.includes(type) }"
+                    @click="toggleFoodType(type)"
+                  >
+                    {{ type }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -49,24 +57,19 @@
             
             <!-- 第三行 -->
             <div class="form-row">
-              <div class="form-group type-selector">
-                <label class="form-label">餐點類型</label>
-                <div class="type-buttons">
+              <div class="form-group">
+                <label class="form-label">餐廳</label>
+                <div class="restaurant-logo-list">
                   <button 
+                    v-for="r in restaurants"
+                    :key="r.id"
                     type="button" 
-                    class="type-btn" 
-                    :class="{ active: filters.type === '單點' }"
-                    @click="toggleType('單點')"
+                    class="restaurant-logo-btn"
+                    :class="{ active: filters.restaurants.includes(r.name) }"
+                    @click="toggleRestaurant(r.name)"
                   >
-                    <i class="el-icon-dish"></i> 單點
-                  </button>
-                  <button 
-                    type="button" 
-                    class="type-btn" 
-                    :class="{ active: filters.type === '套餐' }"
-                    @click="toggleType('套餐')"
-                  >
-                    <i class="el-icon-tableware"></i> 套餐
+                    <img :src="r.logo" :alt="r.name" class="restaurant-logo-img" />
+                    <span>{{ r.name }}</span>
                   </button>
                 </div>
               </div>
@@ -86,13 +89,13 @@
         <h2 class="section-title">搜尋結果</h2>
         <div class="food-grid">
           <div class="food-card" v-for="(food, index) in searchResults" :key="index">
-            <div class="food-image-container">
+            <div class="food-image-container" v-if="food.ImageUrl || food.image_url || food.imageUrl">
               <div class="image-loader" 
                    v-if="food && food.id !== undefined && food.id !== null && imageLoaded && typeof imageLoaded === 'object' && !imageLoaded[String(food.id)]">
                 <div class="loading-spinner"></div>
               </div>
               <img
-                :src="food.ImageUrl || food.image_url || food.imageUrl || getDefaultFoodImage(food)"
+                :src="food.ImageUrl || food.image_url || food.imageUrl"
                 @error="setDefaultImageOnError"
                 :alt="food.name"
                 class="food-image"
@@ -110,20 +113,38 @@
                   <span class="food-price-prominent">${{ food.price.toFixed(2) }}</span>
                   <el-tooltip placement="top" effect="dark" :disabled="!hasNutritionInfo(food)">
                     <template #content>
-                      <div class="nutrition-tooltip">
+                      <div class="nutrition-tooltip improved-tooltip">
                         <h4>營養資訊</h4>
-                        <ul>
-                          <li v-if="food.Protein !== null && food.Protein !== undefined">蛋白質: {{ food.Protein }}g</li>
-                          <li v-if="food.Fat !== null && food.Fat !== undefined">脂肪: {{ food.Fat }}g</li>
-                          <li v-if="food.Sugar !== null && food.Sugar !== undefined">糖: {{ food.Sugar }}g</li>
-                          <li v-if="food.Sodium !== null && food.Sodium !== undefined">鈉: {{ food.Sodium }}mg</li>
-                          <li v-if="food.Carb !== null && food.Carb !== undefined">碳水化合物: {{ food.Carb }}g</li>
-                          <li v-if="food.Caffeine !== null && food.Caffeine !== undefined">咖啡因: {{ food.Caffeine }}mg</li>
-                        </ul>
+                        <table class="nutrition-table">
+                          <tr v-if="food.Protein !== null && food.Protein !== undefined">
+                            <td><i class="el-icon-ice-cream"></i> 蛋白質</td>
+                            <td><strong class="nutrient protein">{{ food.Protein }}g</strong></td>
+                          </tr>
+                          <tr v-if="food.Fat !== null && food.Fat !== undefined">
+                            <td><i class="el-icon-milk-tea"></i> 脂肪</td>
+                            <td><strong class="nutrient fat">{{ food.Fat }}g</strong></td>
+                          </tr>
+                          <tr v-if="food.Sugar !== null && food.Sugar !== undefined">
+                            <td><i class="el-icon-sugar"></i> 糖</td>
+                            <td><strong class="nutrient sugar">{{ food.Sugar }}g</strong></td>
+                          </tr>
+                          <tr v-if="food.Sodium !== null && food.Sodium !== undefined">
+                            <td><i class="el-icon-coin"></i> 鈉</td>
+                            <td><strong class="nutrient sodium">{{ food.Sodium }}mg</strong></td>
+                          </tr>
+                          <tr v-if="food.Carb !== null && food.Carb !== undefined">
+                            <td><i class="el-icon-burger"></i> 碳水</td>
+                            <td><strong class="nutrient carb">{{ food.Carb }}g</strong></td>
+                          </tr>
+                          <tr v-if="food.Caffeine !== null && food.Caffeine !== undefined">
+                            <td><i class="el-icon-coffee"></i> 咖啡因</td>
+                            <td><strong class="nutrient caffeine">{{ food.Caffeine }}mg</strong></td>
+                          </tr>
+                        </table>
                         <div v-if="!hasNutritionInfo(food)" class="no-nutrition-data">暫無詳細營養數據</div>
                       </div>
                     </template>
-                    <i class="el-icon-info nutrition-info-icon" v-if="hasNutritionInfo(food)"></i>
+                    <el-icon class="nutrition-info-icon" v-if="hasNutritionInfo(food)"><InfoFilled /></el-icon>
                   </el-tooltip>
                 </div>
                 <div class="food-details">
@@ -150,9 +171,13 @@
                   <i class="el-icon-data-analysis"></i>
                   運動計算
                 </button>
-                <button class="action-btn favorite-btn" @click="addToFavorites(food)">
+                <button class="action-btn favorite-btn" :disabled="favoriteFoodIds.has(food.id)" @click="addToFavorites(food)" v-if="!favoriteFoodIds.has(food.id)">
                   <i class="el-icon-star-off"></i>
                   加入最愛
+                </button>
+                <button class="action-btn favorite-btn" disabled v-else>
+                  <i class="el-icon-star-on" style="color: #E6A23C"></i>
+                  已收藏
                 </button>
                 <button class="action-btn record-btn" @click="openFoodRecordModal(food)">
                   <i class="el-icon-plus"></i>
@@ -165,56 +190,78 @@
       </div>
 
       <!-- 推薦清單 -->
-      <div v-if="!hasSearched && recommendedFoods.length > 0" class="recommended-foods">
+      <div v-if="!hasSearched && recommendedCategories.length > 0" class="recommended-foods">
         <h2 class="section-title">推薦清單</h2>
+        <div v-for="(category, idx) in recommendedCategories" :key="idx" class="recommend-category-block">
+          <div class="recommend-category-header">
+            <h3 class="recommend-category-title">{{ category.title }}</h3>
+            <span class="recommend-category-reason">{{ category.reason }}</span>
+          </div>
         <div class="food-grid">
-          <div class="food-card" v-for="(food, index) in recommendedFoods" :key="index">
-            <div class="food-image-container">
-              <div class="image-loader" 
-                   v-if="food && food.id !== undefined && food.id !== null && imageLoaded && typeof imageLoaded === 'object' && !imageLoaded[String(food.id)]">
-                <div class="loading-spinner"></div>
+            <div class="food-card" v-for="(food, index) in category.foods" :key="food.id || food.food_id || index">
+              <div class="food-image-container" v-if="food.ImageUrl || food.image_url || food.imageUrl">
+                <div class="image-loader" 
+                     v-if="food && food.id !== undefined && food.id !== null && imageLoaded && typeof imageLoaded === 'object' && !imageLoaded[String(food.id)]">
+                  <div class="loading-spinner"></div>
+                </div>
+                <img
+                  :src="food.ImageUrl || food.image_url || food.imageUrl"
+                  @error="setDefaultImageOnError"
+                  :alt="food.name"
+                  class="food-image"
+                  @load="onImageLoad(food)"
+                >
+                <div class="calorie-on-image-button">
+                  <span class="calorie-value">{{ Math.round(food.calories) }}</span>
+                  <span class="calorie-unit">大卡</span>
+                </div>
               </div>
-              <img
-                :src="food.ImageUrl || food.image_url || food.imageUrl || getDefaultFoodImage(food)"
-                @error="setDefaultImageOnError"
-                :alt="food.name"
-                class="food-image"
-                @load="onImageLoad(food)"
-              >
-              <div class="calorie-on-image-button">
-                <span class="calorie-value">{{ Math.round(food.calories) }}</span>
-                <span class="calorie-unit">大卡</span>
-              </div>
-            </div>
             <div class="food-card-content">
               <div class="food-info">
-                <div class="food-name-price-line">
+                  <div class="food-name-price-line">
                 <h3 class="food-name">{{ food.name }}</h3>
-                  <span class="food-price-prominent">${{ food.price.toFixed(2) }}</span>
-                  <el-tooltip placement="top" effect="dark" :disabled="!hasNutritionInfo(food)">
-                    <template #content>
-                      <div class="nutrition-tooltip">
-                        <h4>營養資訊</h4>
-                        <ul>
-                          <li v-if="food.Protein !== null && food.Protein !== undefined">蛋白質: {{ food.Protein }}g</li>
-                          <li v-if="food.Fat !== null && food.Fat !== undefined">脂肪: {{ food.Fat }}g</li>
-                          <li v-if="food.Sugar !== null && food.Sugar !== undefined">糖: {{ food.Sugar }}g</li>
-                          <li v-if="food.Sodium !== null && food.Sodium !== undefined">鈉: {{ food.Sodium }}mg</li>
-                          <li v-if="food.Carb !== null && food.Carb !== undefined">碳水化合物: {{ food.Carb }}g</li>
-                          <li v-if="food.Caffeine !== null && food.Caffeine !== undefined">咖啡因: {{ food.Caffeine }}mg</li>
-                        </ul>
-                        <div v-if="!hasNutritionInfo(food)" class="no-nutrition-data">暫無詳細營養數據</div>
-                      </div>
-                    </template>
-                    <i class="el-icon-info nutrition-info-icon" v-if="hasNutritionInfo(food)"></i>
-                  </el-tooltip>
-                </div>
+                    <span class="food-price-prominent">${{ food.price ? food.price.toFixed(2) : '--' }}</span>
+                    <el-tooltip placement="top" effect="dark" :disabled="!hasNutritionInfo(food)">
+                      <template #content>
+                        <div class="nutrition-tooltip improved-tooltip">
+                          <h4>營養資訊</h4>
+                          <table class="nutrition-table">
+                            <tr v-if="food.Protein !== null && food.Protein !== undefined">
+                              <td><i class="el-icon-ice-cream"></i> 蛋白質</td>
+                              <td><strong class="nutrient protein">{{ food.Protein }}g</strong></td>
+                            </tr>
+                            <tr v-if="food.Fat !== null && food.Fat !== undefined">
+                              <td><i class="el-icon-milk-tea"></i> 脂肪</td>
+                              <td><strong class="nutrient fat">{{ food.Fat }}g</strong></td>
+                            </tr>
+                            <tr v-if="food.Sugar !== null && food.Sugar !== undefined">
+                              <td><i class="el-icon-sugar"></i> 糖</td>
+                              <td><strong class="nutrient sugar">{{ food.Sugar }}g</strong></td>
+                            </tr>
+                            <tr v-if="food.Sodium !== null && food.Sodium !== undefined">
+                              <td><i class="el-icon-coin"></i> 鈉</td>
+                              <td><strong class="nutrient sodium">{{ food.Sodium }}mg</strong></td>
+                            </tr>
+                            <tr v-if="food.Carb !== null && food.Carb !== undefined">
+                              <td><i class="el-icon-burger"></i> 碳水</td>
+                              <td><strong class="nutrient carb">{{ food.Carb }}g</strong></td>
+                            </tr>
+                            <tr v-if="food.Caffeine !== null && food.Caffeine !== undefined">
+                              <td><i class="el-icon-coffee"></i> 咖啡因</td>
+                              <td><strong class="nutrient caffeine">{{ food.Caffeine }}mg</strong></td>
+                            </tr>
+                          </table>
+                          <div v-if="!hasNutritionInfo(food)" class="no-nutrition-data">暫無詳細營養數據</div>
+                        </div>
+                      </template>
+                      <el-icon class="nutrition-info-icon" v-if="hasNutritionInfo(food)"><InfoFilled /></el-icon>
+                    </el-tooltip>
+                  </div>
                 <div class="food-details">
                   <div class="detail-item">
                     <i class="el-icon-shop"></i>
                     <span>{{ food.restaurant || '未知餐廳' }}</span>
                   </div>
-                  
                   <div class="detail-item">
                     <i class="el-icon-food"></i>
                     <span>{{ food.food_type || '未分類' }}</span>
@@ -230,14 +277,19 @@
                   <i class="el-icon-data-analysis"></i>
                   運動計算
                 </button>
-                <button class="action-btn favorite-btn" @click="addToFavorites(food)">
+                <button class="action-btn favorite-btn" :disabled="favoriteFoodIds.has(food.id)" @click="addToFavorites(food)" v-if="!favoriteFoodIds.has(food.id)">
                   <i class="el-icon-star-off"></i>
-                  加入最愛
+                    加入最愛
                 </button>
-                <button class="action-btn record-btn" @click="openFoodRecordModal(food)">
+                <button class="action-btn favorite-btn" disabled v-else>
+                  <i class="el-icon-star-on" style="color: #E6A23C"></i>
+                  已收藏
+                </button>
+                  <button class="action-btn record-btn" @click="openFoodRecordModal(food)">
                   <i class="el-icon-plus"></i>
                   加入記錄
                 </button>
+                </div>
               </div>
             </div>
           </div>
@@ -273,7 +325,7 @@
                 <i class="el-icon-position"></i>
                 <p>{{ type }}：<strong>{{ exerciseResults[type] }}</strong> 分鐘</p>
               </div>
-            </div>
+              </div>
             <div class="exercise-list">
               <div v-for="exercise in filteredExerciseOptions" :key="exercise" class="exercise-item">
                 <span>{{ exercise }}</span>
@@ -296,21 +348,31 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
+import { InfoFilled } from '@element-plus/icons-vue'
 
 const DEFAULT_EXERCISES = ['跑步', '游泳', '騎腳踏車', '健走']
 
+// 新增：常見餐廳與 logo 對照表（如無後端 API 可用）
+const RESTAURANT_LOGOS = [
+  { name: '迷克夏', logo: '/logos/milkshop.png' },
+  { name: '麥當勞', logo: '/logos/mcdonalds.png' },
+  { name: '摩斯漢堡', logo: '/logos/mos.png' },
+  { name: '50嵐', logo: '/logos/50lan.png' }
+];
+
 export default {
   name: 'FoodSearch',
-  components: { FoodRecordModal },
+  components: { FoodRecordModal, InfoFilled },
   setup() {
     const router = useRouter() // 取得 router 實例
 
     const searchResults = ref([])
     const food_from_database = ref([])
-    const recommendedFoods = ref([])
+    const recommendedCategories = ref([])
     const isLoading = ref(false)
     const hasSearched = ref(false)
     const userPreferences = ref(null)
+    const favoriteFoodIds = ref(new Set())
 
     const filters = ref({
       priceMin: '',
@@ -318,8 +380,9 @@ export default {
       calMin: '',
       calMax: '',
       name: '',
-      restaurant: '',
-      type: ''
+      restaurants: [],
+      type: '',
+      food_type: []
     })
 
     const toggleType = (value) => {
@@ -342,7 +405,7 @@ export default {
     }
 
     const handleSearch = async () => {
-      const { priceMin, priceMax, calMin, calMax, name, restaurant, type } = filters.value
+      const { priceMin, priceMax, calMin, calMax, name, restaurants, type, food_type } = filters.value
 
       const allEmpty =
         priceMin === '' &&
@@ -350,8 +413,9 @@ export default {
         calMin === '' &&
         calMax === '' &&
         name.trim() === '' &&
-        restaurant.trim() === '' &&
-        type === ''
+        restaurants.length === 0 &&
+        type === '' &&
+        food_type.length === 0
 
       if (allEmpty) return
 
@@ -367,8 +431,11 @@ export default {
         if (calMin !== '') params.append('calMin', calMin)
         if (calMax !== '') params.append('calMax', calMax)
         if (name.trim() !== '') params.append('name', name.trim())
-        if (restaurant.trim() !== '') params.append('restaurant', restaurant.trim())
+        if (restaurants.length > 0) params.append('restaurant', restaurants.join(','))
         if (type !== '') params.append('type', type)
+        if (filters.value.food_type.length > 0) {
+          params.append('food_type', filters.value.food_type.join(','))
+        }
         
         // 發送請求到後端API
         const response = await fetch(`http://localhost:5000/api/food/?${params.toString()}`)
@@ -378,6 +445,10 @@ export default {
         }
         
         const data = await response.json()
+        // DEBUG: 印出第一筆 food 物件
+        if (data && data.length > 0) {
+          console.log('[DEBUG] 第一筆 food:', data[0]);
+        }
         searchResults.value = data.map(item => ({
           id: item.id,
           name: item.name,
@@ -425,6 +496,7 @@ export default {
         })
         
         ElMessage.success('已添加到我的最愛')
+        favoriteFoodIds.value = new Set([...favoriteFoodIds.value, food.id])
       } catch (error) {
         console.error('添加到最愛失敗:', error)
         ElMessage.error('添加到最愛失敗，請稍後再試')
@@ -547,17 +619,17 @@ export default {
       );
     };
 
-    const userId = localStorage.getItem('userId')
+        const userId = localStorage.getItem('userId')
     const userExercisePreferences = ref([])
     const exerciseOptions = ref([...DEFAULT_EXERCISES])
 
     // 查詢用戶運動偏好
     const fetchExercisePreferences = async () => {
-      if (!userId) {
+        if (!userId) {
         userExercisePreferences.value = [...DEFAULT_EXERCISES]
         exerciseOptions.value = [...DEFAULT_EXERCISES]
-        return
-      }
+          return
+        }
       try {
         const res = await axios.get('/api/preferences/user/exercise-preferences', { params: { user_id: userId } })
         if (res.data && Array.isArray(res.data.exercise_names) && res.data.exercise_names.length > 0) {
@@ -601,75 +673,71 @@ export default {
       return exerciseOptions.value.filter(e => e.includes(exerciseSearch.value))
     })
 
+    // 取得用戶收藏清單
+    const fetchFavorites = async () => {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        favoriteFoodIds.value = new Set()
+        return
+      }
+      try {
+        const res = await axios.get('/api/food/favorites', { params: { user_id: userId } })
+        if (Array.isArray(res.data)) {
+          favoriteFoodIds.value = new Set(res.data.map(f => f.food_id || f.id))
+        }
+      } catch (err) {
+        favoriteFoodIds.value = new Set()
+      }
+    }
+
+    // 新增：食物類型與餐廳
+    const foodTypes = ref([])
+    const restaurants = ref([])
+
     onMounted(async () => {
       isLoading.value = true
       hasSearched.value = false
+      await fetchFavorites()
       await fetchExercisePreferences()
       await loadUserPreferences()
-      
       try {
-        console.log('開始請求食物數據...')
-        // 從後端獲取食物資料
-        const apiUrl = 'http://localhost:5000/api/food/'
-        console.log('請求URL:', apiUrl)
-        
-        const response = await fetch(apiUrl)
-        
-        console.log('API響應狀態:', response.status, response.statusText)
-        console.log('API響應頭:', Object.fromEntries(response.headers.entries()))
-        
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('API響應錯誤內容:', errorText)
-          throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`)
+        // 取得推薦分類
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          recommendedCategories.value = []
+          isLoading.value = false
+          return
         }
-        
-        // 檢查內容類型
-        const contentType = response.headers.get('content-type')
-        console.log('響應內容類型:', contentType)
-        
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text()
-          console.error('非JSON響應內容:', text)
-          throw new Error('伺服器未返回JSON數據')
-        }
-        
+        const response = await fetch(`http://localhost:5000/api/food/recommend?user_id=${userId}`)
+        if (!response.ok) throw new Error('推薦API失敗')
         const data = await response.json()
-        console.log('獲取到食物數據:', data)
-        
-        if (Array.isArray(data)) {
-          // 確保數據格式一致
-          food_from_database.value = data.map(item => ({
-            id: item.id,
-            name: item.name,
-            calories: item.calories,
-            price: item.price,
-            type: item.type || '未分類',
-            food_type: item.food_type || '未分類',
-            restaurant: item.restaurant || '未知餐廳',
-            ImageUrl: item.ImageUrl,
-            Protein: item.Protein,
-            Fat: item.Fat,
-            Sugar: item.Sugar,
-            Sodium: item.Sodium,
-            Carb: item.Carb,
-            Caffeine: item.Caffeine
-          }))
-          // 根據用戶偏好推薦食物
-          generateRecommendations()
-        } else {
-          console.error('回應格式不符預期:', data)
-          ElMessage.warning('無法載入推薦食物，請稍後再試')
-          food_from_database.value = []
-          recommendedFoods.value = []
-        }
+        recommendedCategories.value = Array.isArray(data.categories) ? data.categories : []
       } catch (error) {
-        console.error('載入食物詳細錯誤:', error)
-        ElMessage.error(`無法載入食物資料: ${error.message}`)
-        food_from_database.value = []
-        recommendedFoods.value = []
+        console.error('載入推薦失敗:', error)
+        recommendedCategories.value = []
       } finally {
         isLoading.value = false
+      }
+      // 取得所有 food_type
+      try {
+        const res = await axios.get('/api/food/types')
+        if (Array.isArray(res.data)) {
+          foodTypes.value = res.data
+        }
+      } catch (e) {
+        // fallback: 從現有資料動態生成
+        foodTypes.value = Array.from(new Set((searchResults.value || []).map(f => f.food_type).filter(Boolean)))
+      }
+      try {
+        const res = await axios.get('/api/food/restaurants');
+        if (Array.isArray(res.data)) {
+          restaurants.value = res.data.map(r => ({
+            ...r,
+            logo: `/img/logos/restaurant-${r.id}.png`
+          }));
+        }
+      } catch (e) {
+        restaurants.value = [];
       }
     })
     
@@ -725,7 +793,7 @@ export default {
     // 根據用戶偏好產生推薦
     const generateRecommendations = () => {
       if (!userPreferences.value || food_from_database.value.length === 0) {
-        recommendedFoods.value = food_from_database.value.slice(0, 4) // 如果沒有偏好，顯示前四筆
+        recommendedCategories.value = food_from_database.value.slice(0, 4) // 如果沒有偏好，顯示前四筆
         return
       }
       
@@ -754,18 +822,39 @@ export default {
       
       // 按分數排序並取前面的項目作為推薦
       const sortedFoods = [...foodWithScores].sort((a, b) => b.score - a.score)
-      recommendedFoods.value = sortedFoods.slice(0, 6) // 取前6個作為推薦
+      recommendedCategories.value = sortedFoods.slice(0, 6) // 取前6個作為推薦
+    }
+
+    // 多選 logo 按鈕
+    const toggleRestaurant = (name) => {
+      const idx = filters.value.restaurants.indexOf(name)
+      if (idx === -1) {
+        filters.value.restaurants.push(name)
+      } else {
+        filters.value.restaurants.splice(idx, 1)
+      }
+    }
+
+    // 多選 food_type chip
+    const toggleFoodType = (type) => {
+      const idx = filters.value.food_type.indexOf(type)
+      if (idx === -1) {
+        filters.value.food_type.push(type)
+      } else {
+        filters.value.food_type.splice(idx, 1)
+      }
     }
 
     return {
       filters,
       toggleType,
-      recommendedFoods,
+      recommendedCategories,
       searchResults,
       isLoading,
       hasSearched,
       handleSearch,
       addToFavorites,
+      favoriteFoodIds,
       exerciseModal,
       exerciseResults,
       exerciseSearch,
@@ -786,7 +875,11 @@ export default {
       exerciseOptions,
       fetchExercisePreferences,
       saveExercisePreferences,
-      filteredExerciseOptions
+      filteredExerciseOptions,
+      foodTypes,
+      restaurants,
+      toggleRestaurant,
+      toggleFoodType
     }
   }
 }
@@ -849,12 +942,11 @@ export default {
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
+  margin-bottom: 20px;
 }
 
 .form-label {
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: 500;
   color: var(--text-regular);
   margin-bottom: 8px;
@@ -875,8 +967,8 @@ export default {
 }
 
 .form-control {
-  width: 100%;
-  padding: 10px 12px;
+  width:90%;
+  padding: 12px 12px;
   padding-left: 36px; /*  為圖示留出空間 */
   font-size: 0.95rem;
   border: 1px solid var(--border-color-light);
@@ -1122,50 +1214,52 @@ export default {
 }
 
 .nutrition-info-icon {
-  font-size: 1.2rem;
-  color: #909399; /* Grey icon color */
+  font-size: 1.5rem;
+  color: #ffaa55;
   cursor: pointer;
-  margin-left: 8px;
-  transition: color 0.2s;
+  margin-left: 10px;
+  vertical-align: middle;
+  transition: color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(255, 170, 85, 0.08);
 }
 
 .nutrition-info-icon:hover {
-  color: #E6A23C; /* Orange on hover */
-}
-
-.nutrition-tooltip {
-  min-width: 200px;
-}
-
-.nutrition-tooltip h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
   color: #E6A23C;
-  font-size: 1.1rem;
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.18);
 }
 
-.nutrition-tooltip ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.nutrition-tooltip.improved-tooltip {
+  min-width: 220px;
+  background: #fffdfa;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(230, 162, 60, 0.12);
+  padding: 16px 18px 12px 18px;
+  color: #f1b818;
 }
-
-.nutrition-tooltip li {
-  font-size: 0.9rem;
-  color: #f0f0f0; /* Lighter text for dark tooltip */
-  padding: 3px 0;
-  border-bottom: 1px solid #555; /* Separator for dark tooltip */
+.nutrition-table {
+  width: 100%;
+  border-collapse: collapse;
 }
-
-.nutrition-tooltip li:last-child {
-  border-bottom: none;
+.nutrition-table td {
+  padding: 4px 8px;
+  font-size: 1rem;
+  vertical-align: middle;
 }
-
-.no-nutrition-data {
-  font-size: 0.9rem;
-  color: #aaa;
-  margin-top: 8px;
+.nutrition-table td:first-child {
+  color: #ffaa55;
+  font-weight: 500;
+  width: 80px;
 }
+.nutrient {
+  font-weight: bold;
+  font-size: 1.05em;
+}
+.nutrient.protein { color: #4caf50; }
+.nutrient.fat { color: #e57373; }
+.nutrient.sugar { color: #fbc02d; }
+.nutrient.sodium { color: #64b5f6; }
+.nutrient.carb { color: #8d6e63; }
+.nutrient.caffeine { color: #6d4c41; }
 
 .food-details {
   font-size: 0.88rem;
@@ -1424,19 +1518,75 @@ export default {
   background-color: var(--primary-color-dark);
 }
 
+/* 餐廳 logo 按鈕樣式 */
+.restaurant-logo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.restaurant-logo-btn {
+  border: 1px solid #e4e7ed;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.restaurant-logo-btn.active, .restaurant-logo-btn:hover {
+  border-color: #E6A23C;
+  box-shadow: 0 2px 8px rgba(230,162,60,0.08);
+}
+.restaurant-logo-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #f5f5f5;
+}
+
+/* 食物類型 chip 樣式 */
+.foodtype-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+  margin-bottom: 8px;
+  min-height: 40px;
+}
+.foodtype-chip-btn {
+  border: 1px solid #e4e7ed;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 16px;
+  font-size: 1rem;
+  color: #606266;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.foodtype-chip-btn.active, .foodtype-chip-btn:hover {
+  border-color: #E6A23C;
+  background: #faecd8;
+  color: #d48d1f;
+  box-shadow: 0 2px 8px rgba(230,162,60,0.08);
+}
+
 @media (max-width: 768px) {
   .page-title {
     font-size: 1.8rem;
 }
   .search-form-grid, .form-row {
     grid-template-columns: 1fr;
-  }
+}
   .food-grid {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 }
    .food-image-container {
     height: 160px; 
-  }
+}
   .food-name {
     font-size: 1.1rem;
     min-height: calc(1.1rem * 1.3 * 2); 
@@ -1446,10 +1596,10 @@ export default {
 @media (max-width: 480px) {
   .container {
     padding: 15px;
-}
+  }
   .food-grid {
     grid-template-columns: 1fr;
-}
+  }
   .food-image-container {
     height: 150px; 
   }
@@ -1469,5 +1619,4 @@ export default {
     font-size: 1.3rem;
   }
 }
-
 </style>

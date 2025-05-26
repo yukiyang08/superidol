@@ -6,13 +6,13 @@
       <!-- 日期選擇器 -->
       <div class="date-navigation">
         <button class="date-nav-btn" @click="changeDate(-1)">
-          <i class="el-icon-arrow-left"></i>
+          <el-icon><ArrowLeft /></el-icon>
         </button>
         <div class="date-picker-container">
           <div class="current-date" @click="showDatePicker = true">
-            <i class="el-icon-date"></i>
+            <el-icon><DateIcon /></el-icon>
             <span>{{ formattedDate }}</span>
-            <i class="el-icon-arrow-down"></i>
+            <el-icon><ArrowDown /></el-icon>
           </div>
           <input 
             type="date" 
@@ -25,7 +25,7 @@
           >
         </div>
         <button class="date-nav-btn" @click="changeDate(1)">
-          <i class="el-icon-arrow-right"></i>
+          <el-icon><ArrowRight /></el-icon>
         </button>
       </div>
 
@@ -66,11 +66,11 @@
         <div class="meal-card">
           <div class="meal-header">
             <div class="meal-icon-container">
-              <i class="el-icon-sunrise"></i>
+              <el-icon><Sunrise /></el-icon>
             </div>
             <h3 class="meal-title">早餐</h3>
             <button class="add-food-btn" @click="addFood('breakfast')">
-              <i class="el-icon-plus"></i>
+              <el-icon><Plus /></el-icon>
               添加食物
             </button>
           </div>
@@ -80,7 +80,7 @@
               <div class="loading-spinner"></div>
             </div>
             <div v-else-if="!breakfastItems.length" class="empty-meal">
-              <i class="el-icon-food"></i>
+              <el-icon><FoodIcon /></el-icon>
               <p>尚未添加早餐食物</p>
             </div>
             <div v-else class="food-items">
@@ -112,10 +112,8 @@
                     </div>
                   </div>
                   <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
-                      <i class="el-icon-delete"></i>
-                    </button>
-                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
+                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
                   </div>
                 </div>
               </div>
@@ -127,11 +125,11 @@
         <div class="meal-card">
           <div class="meal-header">
             <div class="meal-icon-container">
-              <i class="el-icon-sunny"></i>
+              <el-icon><Sunny /></el-icon>
             </div>
             <h3 class="meal-title">午餐</h3>
             <button class="add-food-btn" @click="addFood('lunch')">
-              <i class="el-icon-plus"></i>
+              <el-icon><Plus /></el-icon>
               添加食物
             </button>
           </div>
@@ -141,7 +139,7 @@
               <div class="loading-spinner"></div>
             </div>
             <div v-else-if="!lunchItems.length" class="empty-meal">
-              <i class="el-icon-food"></i>
+              <el-icon><FoodIcon /></el-icon>
               <p>尚未添加午餐食物</p>
             </div>
             <div v-else class="food-items">
@@ -173,10 +171,8 @@
                     </div>
                   </div>
                   <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
-                      <i class="el-icon-delete"></i>
-                    </button>
-                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
+                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
                   </div>
                 </div>
               </div>
@@ -188,11 +184,11 @@
         <div class="meal-card">
           <div class="meal-header">
             <div class="meal-icon-container">
-              <i class="el-icon-sunset"></i>
+              <el-icon><Sunset /></el-icon>
             </div>
             <h3 class="meal-title">晚餐</h3>
             <button class="add-food-btn" @click="addFood('dinner')">
-              <i class="el-icon-plus"></i>
+              <el-icon><Plus /></el-icon>
               添加食物
             </button>
           </div>
@@ -202,7 +198,7 @@
               <div class="loading-spinner"></div>
             </div>
             <div v-else-if="!dinnerItems.length" class="empty-meal">
-              <i class="el-icon-food"></i>
+              <el-icon><FoodIcon /></el-icon>
               <p>尚未添加晚餐食物</p>
             </div>
             <div v-else class="food-items">
@@ -234,10 +230,8 @@
                     </div>
                   </div>
                   <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
-                      <i class="el-icon-delete"></i>
-                    </button>
-                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
+                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
                   </div>
                 </div>
               </div>
@@ -249,11 +243,11 @@
         <div class="meal-card">
           <div class="meal-header">
             <div class="meal-icon-container">
-              <i class="el-icon-dessert"></i>
+              <el-icon><Dessert /></el-icon>
             </div>
             <h3 class="meal-title">點心</h3>
             <button class="add-food-btn" @click="addFood('snacks')">
-              <i class="el-icon-plus"></i>
+              <el-icon><Plus /></el-icon>
               添加食物
             </button>
           </div>
@@ -263,7 +257,7 @@
               <div class="loading-spinner"></div>
             </div>
             <div v-else-if="!snackItems.length" class="empty-meal">
-              <i class="el-icon-food"></i>
+              <el-icon><FoodIcon /></el-icon>
               <p>尚未添加點心食物</p>
             </div>
             <div v-else class="food-items">
@@ -295,10 +289,8 @@
                     </div>
                   </div>
                   <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
-                      <i class="el-icon-delete"></i>
-                    </button>
-                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
+                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
                   </div>
                 </div>
               </div>
@@ -309,7 +301,7 @@
 
       <!-- 無結果 -->
       <div v-if="breakfastItems.length === 0 && lunchItems.length === 0 && dinnerItems.length === 0 && snackItems.length === 0 && !isLoading" class="no-records-card">
-        <i class="el-icon-notebook-2"></i>
+        <el-icon><Notebook /></el-icon>
         <h3>今日尚未添加任何食物記錄</h3>
         <p>點擊各餐點區域的"添加食物"按鈕開始記錄您的飲食</p>
       </div>
@@ -950,24 +942,30 @@ export default {
 .food-item-actions {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .delete-btn {
-  width: 36px;
+  width: auto;
   height: 36px;
-  border-radius: 50%;
-  background: white;
-  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fff;
+  border: 1.5px solid #fca5a5;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(252, 165, 165, 0.08);
+  padding: 0 18px;
+  font-size: 1rem;
+  color: #ef4444;
+  font-weight: 600;
 }
-
 .delete-btn:hover {
   background: #fee2e2;
-  color: #ef4444;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
 }
 
 /* 無記錄狀態 */
@@ -1044,14 +1042,25 @@ export default {
   margin-right: 8px;
   background: #e3f2fd;
   color: #1976d2;
-  border: none;
+  border: 1.5px solid #90caf9;
   border-radius: 6px;
   padding: 6px 10px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, border 0.2s;
+  box-shadow: 0 2px 8px rgba(144, 202, 249, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+.edit-btn i {
+  color: #1976d2;
+  font-size: 1.3em;
 }
 .edit-btn:hover {
   background: #bbdefb;
+  border-color: #1976d2;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
 }
 </style>
 
