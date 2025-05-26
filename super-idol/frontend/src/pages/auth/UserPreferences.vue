@@ -55,13 +55,21 @@
             </el-form-item>
 
             <el-form-item label="每週熱量限制 *" prop="calorieLimit">
-              <el-input-number 
-                v-model="calorieLimit" 
-                :min="0" 
-                placeholder="請輸入每週熱量限制（必填）" 
-                controls-position="right"
-                class="calorie-input"
-              />
+              <div class="calorie-input-group">
+                <el-input-number 
+                  v-model="calorieLimit" 
+                  :min="0" 
+                  placeholder="請輸入每週熱量限制（必填）" 
+                  controls-position="right"
+                  class="calorie-input"
+                  style="width: 200px;"
+                />
+                <CalorieCalculator 
+                  v-if="registrationData && registrationData.weight"
+                  v-model="calorieLimit"
+                  :weight="Number(registrationData.weight)"
+                />
+              </div>
               <div class="form-hint">設定每週攝取熱量的最大值</div>
             </el-form-item>
           </div>
@@ -168,10 +176,14 @@ import { useAuthStore } from '../../store/auth'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
 import axios from 'axios'
+import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
 export default {
   name: 'UserPreferences',
-  components: { Loading },
+  components: { 
+    Loading,
+    CalorieCalculator
+  },
   setup() {
     const router = useRouter()
     const route = useRoute()
@@ -183,7 +195,7 @@ export default {
     const budget = ref(200) // 預設值
     const calorieLimit = ref(12000) // 預設值
     const dataLoaded = ref(false)
-    const registrationData = ref({})
+    const registrationData = ref(null)
     
     // 偏好選項
     const restaurants = ref([])
@@ -204,8 +216,8 @@ export default {
     // 從後端取得偏好選項
     const fetchData = async () => {
       try {
-        console.log('即將請求 API: /api/restaurants')
-        const restaurantsRes = await axios.get('/api/restaurants')
+        console.log('即將請求 API: /api/preferences/restaurants')
+        const restaurantsRes = await axios.get('/api/preferences/restaurants')
         console.log('API 回傳餐廳資料:', restaurantsRes.data)
         restaurants.value = restaurantsRes.data
         // 初始化餐廳偏好
@@ -213,8 +225,8 @@ export default {
           preferences.restaurantPreferences[r.id] = false
         })
 
-        console.log('即將請求 API: /api/food-types')
-        const foodTypesRes = await axios.get('/api/food-types')
+        console.log('即將請求 API: /api/preferences/food-types')
+        const foodTypesRes = await axios.get('/api/preferences/food-types')
         console.log('API 回傳食物類型資料:', foodTypesRes.data)
         foodTypes.value = foodTypesRes.data
         // 初始化食物類型偏好（用 name）
@@ -222,8 +234,8 @@ export default {
           preferences.foodTypePreferences[f.name] = false
         })
 
-        console.log('即將請求 API: /api/exercise-items')
-        const exerciseItemsRes = await axios.get('/api/exercise-items')
+        console.log('即將請求 API: /api/preferences/exercise-items')
+        const exerciseItemsRes = await axios.get('/api/preferences/exercise-items')
         console.log('API 回傳運動類型資料:', exerciseItemsRes.data)
         exerciseItems.value = exerciseItemsRes.data
         // 初始化運動偏好（用 name）
@@ -249,7 +261,9 @@ export default {
           router.push('/register')
           return
         }
-        registrationData.value = JSON.parse(storedData)
+        const parsedData = JSON.parse(storedData)
+        console.log('解析後的註冊數據:', parsedData) // 添加日誌
+        registrationData.value = parsedData
         await fetchData()
       } catch (error) {
         console.error('載入註冊數據失敗:', error)
@@ -320,9 +334,9 @@ export default {
         }
         // 2. 送偏好（只要註冊成功且 user_id 存在才送）
         try {
-          await axios.post('/api/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList })
-          await axios.post('/api/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList })
-          await axios.post('/api/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
+          await axios.post('/api/preferences/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList })
+          await axios.post('/api/preferences/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList })
+          await axios.post('/api/preferences/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
         } catch (error) {
           ElMessage.error('偏好設定失敗，請稍後再試')
           isLoading.value = false
@@ -363,7 +377,8 @@ export default {
         get: () => isLoading.value,
         set: v => { isLoading.value = v }
       }),
-      authError: computed(() => localError.value || authStore.error)
+      authError: computed(() => localError.value || authStore.error),
+      registrationData: computed(() => registrationData.value)
     }
   }
 }
@@ -684,5 +699,16 @@ export default {
 
 :deep(.el-checkbox__input.is-focus .el-checkbox__inner) {
   border-color: #f08c00 !important;
+}
+
+.calorie-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.calorie-input {
+  flex-shrink: 0;
 }
 </style>

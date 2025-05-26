@@ -134,15 +134,16 @@
         </div>
 
         <div v-if="filteredExercises.length" class="exercise-list">
-          <div v-for="exercise in filteredExercises" :key="exercise.id" class="exercise-item">
+          <div v-for="exercise in filteredExercises" :key="exercise.id" class="exercise-item" :style="{ borderLeft: `4px solid ${getExerciseColor(exercise.type)}` }">
             <!-- 日期顯示 - 條件渲染，僅在日期範圍篩選時顯示 -->
             <div v-if="isDateRangeActive" class="exercise-date">
               {{ formatShortDate(exercise.date) }}
             </div>
             
-            <!-- 運動圖示 - 新增 -->
-            <div class="exercise-icon">
-              <span class="material-icons">{{ getExerciseIcon(exercise.type) }}</span>
+            <!-- 運動圖示 - 優化 -->
+            <div class="exercise-icon" :style="{ backgroundColor: `${getExerciseColor(exercise.type)}20` }">
+              <div class="emoji-icon">{{ getExerciseEmoji(exercise.type) }}</div>
+              <span class="material-icons icon-backdrop">{{ getExerciseIcon(exercise.type) }}</span>
             </div>
             
             <div class="exercise-details">
@@ -154,7 +155,7 @@
                 </span>
                 <span class="exercise-intensity">
                   <span class="material-icons small-icon">speed</span>
-                  <span class="intensity-level">{{ getIntensityLevel(exercise.type) }}</span>
+                  <span class="intensity-level" :style="{ color: getExerciseColor(exercise.type) }">{{ getIntensityLevel(exercise.type) }}</span>
                   <span class="flame-icons">
                     <span class="material-icons flame-icon" v-for="n in getFlameCount(exercise.type)" :key="n">local_fire_department</span>
                   </span>
@@ -202,13 +203,27 @@
         <div class="modal-body">
           <div class="modal-row">
             <label>運動類型</label>
-            <select v-model="newExercise.type" class="modal-input">
-              <option value="" disabled>請選擇運動類型</option>
-              <option v-for="type in exerciseTypes" :key="type" :value="type">
-                {{ type }} ({{ getIntensityLevel(type) }} 
-                <span v-html="getFlameIconsHTML(type)"></span>)
-              </option>
-            </select>
+            <div class="exercise-type-selector">
+              <div
+                v-for="type in exerciseTypes"
+                :key="type"
+                class="exercise-type-option"
+                :class="{ active: newExercise.type === type }"
+                :style="{ borderColor: newExercise.type === type ? getExerciseColor(type) : 'transparent' }"
+                @click="newExercise.type = type"
+              >
+                <div class="exercise-type-icon" :style="{ backgroundColor: `${getExerciseColor(type)}20` }">
+                  <span class="emoji-display">{{ getExerciseEmoji(type) }}</span>
+                </div>
+                <div class="exercise-type-info">
+                  <div class="exercise-type-name">{{ type }}</div>
+                  <div class="exercise-type-intensity">
+                    <span>{{ getIntensityLevel(type) }}</span>
+                    <span class="flame-display">{{ getFlameIconsHTML(type) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="modal-row">
@@ -250,13 +265,27 @@
         <div class="modal-body">
           <div class="modal-row">
             <label>運動類型</label>
-            <select v-model="editingExercise.type" class="modal-input">
-              <option value="" disabled>請選擇運動類型</option>
-              <option v-for="type in exerciseTypes" :key="type" :value="type">
-                {{ type }} ({{ getIntensityLevel(type) }} 
-                <span v-html="getFlameIconsHTML(type)"></span>)
-              </option>
-            </select>
+            <div class="exercise-type-selector">
+              <div
+                v-for="type in exerciseTypes"
+                :key="type"
+                class="exercise-type-option"
+                :class="{ active: editingExercise.type === type }"
+                :style="{ borderColor: editingExercise.type === type ? getExerciseColor(type) : 'transparent' }"
+                @click="editingExercise.type = type"
+              >
+                <div class="exercise-type-icon" :style="{ backgroundColor: `${getExerciseColor(type)}20` }">
+                  <span class="emoji-display">{{ getExerciseEmoji(type) }}</span>
+                </div>
+                <div class="exercise-type-info">
+                  <div class="exercise-type-name">{{ type }}</div>
+                  <div class="exercise-type-intensity">
+                    <span>{{ getIntensityLevel(type) }}</span>
+                    <span class="flame-display">{{ getFlameIconsHTML(type) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="modal-row">
@@ -604,11 +633,18 @@ export default {
       }
     }
 
+    // === 新增：運動名稱正規化函式 ===
+    function normalizeExerciseName(name) {
+      if (!name) return '';
+      // 去除空白、全形轉半形、全部轉小寫
+      return name.replace(/\s+/g, '').replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).toLowerCase();
+    }
+
     // 從後端資料獲取MET值
     const getMET = (exerciseName) => {
-      // 從已載入的運動項目資料中尋找匹配的MET值
-      const item = exerciseItems.value.find(item => item.Exercise_Name === exerciseName)
-      return item && item.MET ? parseFloat(item.MET) : 0
+      const normName = normalizeExerciseName(exerciseName);
+      const item = exerciseItems.value.find(item => normalizeExerciseName(item.Exercise_Name) === normName);
+      return item && item.MET ? parseFloat(item.MET) : 0;
     }
 
     // 根據 MET 值取得運動強度等級
@@ -637,8 +673,9 @@ export default {
       return '🔥'.repeat(count)
     }
 
-    // 為運動類型提供對應圖示 - 新增
+    // 為運動類型提供對應圖示 - 優化
     const getExerciseIcon = (exerciseType) => {
+      const normType = normalizeExerciseName(exerciseType);
       const iconMap = {
         '籃球': 'sports_basketball',
         '快走': 'directions_walk',
@@ -651,11 +688,73 @@ export default {
         '跑步(10km/hr)': 'directions_run',
         '足球': 'sports_soccer',
         '游泳': 'pool',
-        '打太極': 'self_improvement',
+        '太極': 'self_improvement',
         '慢走': 'directions_walk',
-        '瑜珈': 'self_improvement'
+        '瑜珈': 'self_improvement',
+        '爬山': 'landscape'
+      };
+      for (const key in iconMap) {
+        if (normalizeExerciseName(key) === normType) {
+          return iconMap[key];
+        }
       }
-      return iconMap[exerciseType] || 'fitness_center'
+      return 'fitness_center';
+    }
+    
+    // 獲取運動的emoji圖示
+    const getExerciseEmoji = (exerciseType) => {
+      const normType = normalizeExerciseName(exerciseType);
+      const emojiMap = {
+        '籃球': '🏀',
+        '快走': '🚶',
+        '騎腳踏車': '🚲',
+        '健走': '🚶‍♂️',
+        '伏地挺身': '💪',
+        '攀岩': '🧗',
+        '划船': '🚣',
+        '跑步(8km/hr)': '🏃‍♀️',
+        '跑步(10km/hr)': '🏃',
+        '足球': '⚽',
+        '游泳': '🏊',
+        '太極': '🧘',
+        '慢走': '🚶‍♀️',
+        '瑜珈': '🧘‍♀️',
+        '爬山': '🏔️'
+      };
+      for (const key in emojiMap) {
+        if (normalizeExerciseName(key) === normType) {
+          return emojiMap[key];
+        }
+      }
+      return '🏋️';
+    }
+    
+    // 獲取運動的背景顏色
+    const getExerciseColor = (exerciseType) => {
+      const normType = normalizeExerciseName(exerciseType);
+      const colorMap = {
+        '籃球': '#FF9800',
+        '快走': '#8BC34A',
+        '騎腳踏車': '#009688',
+        '健走': '#8BC34A',
+        '伏地挺身': '#F44336',
+        '攀岩': '#795548',
+        '划船': '#2196F3',
+        '跑步(8km/hr)': '#FF5722',
+        '跑步(10km/hr)': '#E91E63',
+        '足球': '#4CAF50',
+        '游泳': '#03A9F4',
+        '太極': '#9C27B0',
+        '慢走': '#8BC34A',
+        '瑜珈': '#9C27B0',
+        '爬山': '#795548'
+      };
+      for (const key in colorMap) {
+        if (normalizeExerciseName(key) === normType) {
+          return colorMap[key];
+        }
+      }
+      return '#607D8B';
     }
 
     const calculateCalories = (exercise) => {
@@ -886,6 +985,8 @@ export default {
       getFlameCount,
       getFlameIconsHTML,
       getExerciseIcon,
+      getExerciseEmoji,
+      getExerciseColor,
       today,
       isToday,
       startDateFilter,
@@ -1225,14 +1326,18 @@ export default {
   display: flex;
   align-items: center;
   padding: 16px;
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: #fff;
   border-radius: 12px;
   transition: transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-left: 4px solid transparent;
+  overflow: hidden;
 }
 
 .exercise-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
 }
 
 .exercise-date {
@@ -1246,18 +1351,34 @@ export default {
 }
 
 .exercise-icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  background-color: rgba(255, 165, 0, 0.1);
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   margin-right: 16px;
+  transition: transform 0.3s;
+  overflow: hidden;
 }
 
-.exercise-icon .material-icons {
-  color: orange;
+.exercise-item:hover .exercise-icon {
+  transform: scale(1.1);
+}
+
+.emoji-icon {
+  position: relative;
+  font-size: 24px;
+  z-index: 2;
+}
+
+.icon-backdrop {
+  position: absolute;
+  font-size: 40px;
+  opacity: 0.15;
+  z-index: 1;
+  color: rgba(0, 0, 0, 0.5);
 }
 
 .exercise-details {
@@ -1691,5 +1812,80 @@ export default {
 .btn-filter-mode.active {
   background-color: orange;
   color: white;
+}
+
+/* 運動類型選擇器樣式 */
+.exercise-type-selector {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  border-radius: 8px;
+}
+
+.exercise-type-option {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+.exercise-type-option:hover {
+  background-color: #f5f5f5;
+  transform: translateY(-2px);
+}
+
+.exercise-type-option.active {
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.exercise-type-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+
+.emoji-display {
+  font-size: 22px;
+}
+
+.exercise-type-info {
+  flex: 1;
+}
+
+.exercise-type-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.exercise-type-intensity {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.flame-display {
+  letter-spacing: -2px;
+}
+
+@media (max-width: 600px) {
+  .exercise-type-selector {
+    grid-template-columns: 1fr;
+  }
 }
 </style>  

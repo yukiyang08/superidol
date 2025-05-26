@@ -10,6 +10,7 @@ from app.services.exercise_service import (
     update_exercise_record,
     delete_exercise_record
 )
+from app.services.auth_service import get_user_weight
 
 exercise_bp = Blueprint('exercise', __name__)
 
@@ -144,4 +145,32 @@ def delete_exercise_record_api(record_id):
             return jsonify(result), 400
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500 
+        return jsonify({"error": str(e)}), 500
+
+@exercise_bp.route('/food/exercise/calculator', methods=['GET'])
+def exercise_calculator_api():
+    """
+    根據卡路里計算所有運動所需分鐘數，動態抓 ExerciseItem 表。
+    Query: calories=xxx&user_id=xxx
+    回傳: {exercises: [{type, duration}, ...]}
+    """
+    from app.db import get_db_connection
+    calories = float(request.args.get('calories', 0))
+    user_id = request.args.get('user_id', type=int)
+    weight = 60
+    if user_id:
+        w = get_user_weight(user_id)
+        if w:
+            weight = w
+    conn = get_db_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT Exercise_Name, MET FROM ExerciseItem")
+        items = cursor.fetchall()
+    conn.close()
+    exercises = []
+    for item in items:
+        met = float(item['MET'])
+        if met > 0:
+            minutes = round((calories / (met * weight)) * 60)
+            exercises.append({'type': item['Exercise_Name'], 'duration': minutes})
+    return jsonify({'exercises': exercises}) 

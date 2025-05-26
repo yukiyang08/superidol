@@ -89,3 +89,22 @@ def login_user(data):
         return {"error": f"Database error: {str(e)}"}
     finally:
         conn.close()
+
+def get_user_weight(user_id: int) -> float:
+    """
+    根據 user_id 查詢用戶體重。
+    Args:
+        user_id (int): 用戶ID
+    Returns:
+        float: 體重，查不到則回傳 None
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT Weight FROM Users WHERE UserID = %s", (user_id,))
+            row = cursor.fetchone()
+            if row and 'Weight' in row:
+                return float(row['Weight'])
+            return None
+    finally:
+        conn.close()

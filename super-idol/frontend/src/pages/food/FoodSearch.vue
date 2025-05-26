@@ -58,7 +58,7 @@
                     :class="{ active: filters.type === '單點' }"
                     @click="toggleType('單點')"
                   >
-                    單點
+                    <i class="el-icon-dish"></i> 單點
                   </button>
                   <button 
                     type="button" 
@@ -66,7 +66,7 @@
                     :class="{ active: filters.type === '套餐' }"
                     @click="toggleType('套餐')"
                   >
-                    套餐
+                    <i class="el-icon-tableware"></i> 套餐
                   </button>
                 </div>
               </div>
@@ -86,17 +86,50 @@
         <h2 class="section-title">搜尋結果</h2>
         <div class="food-grid">
           <div class="food-card" v-for="(food, index) in searchResults" :key="index">
+            <div class="food-image-container">
+              <div class="image-loader" 
+                   v-if="food && food.id !== undefined && food.id !== null && imageLoaded && typeof imageLoaded === 'object' && !imageLoaded[String(food.id)]">
+                <div class="loading-spinner"></div>
+              </div>
+              <img
+                :src="food.ImageUrl || food.image_url || food.imageUrl || getDefaultFoodImage(food)"
+                @error="setDefaultImageOnError"
+                :alt="food.name"
+                class="food-image"
+                @load="onImageLoad(food)"
+              >
+              <div class="calorie-on-image-button">
+                <span class="calorie-value">{{ Math.round(food.calories) }}</span>
+                <span class="calorie-unit">大卡</span>
+              </div>
+            </div>
             <div class="food-card-content">
               <div class="food-info">
+                <div class="food-name-price-line">
                 <h3 class="food-name">{{ food.name }}</h3>
+                  <span class="food-price-prominent">${{ food.price.toFixed(2) }}</span>
+                  <el-tooltip placement="top" effect="dark" :disabled="!hasNutritionInfo(food)">
+                    <template #content>
+                      <div class="nutrition-tooltip">
+                        <h4>營養資訊</h4>
+                        <ul>
+                          <li v-if="food.Protein !== null && food.Protein !== undefined">蛋白質: {{ food.Protein }}g</li>
+                          <li v-if="food.Fat !== null && food.Fat !== undefined">脂肪: {{ food.Fat }}g</li>
+                          <li v-if="food.Sugar !== null && food.Sugar !== undefined">糖: {{ food.Sugar }}g</li>
+                          <li v-if="food.Sodium !== null && food.Sodium !== undefined">鈉: {{ food.Sodium }}mg</li>
+                          <li v-if="food.Carb !== null && food.Carb !== undefined">碳水化合物: {{ food.Carb }}g</li>
+                          <li v-if="food.Caffeine !== null && food.Caffeine !== undefined">咖啡因: {{ food.Caffeine }}mg</li>
+                        </ul>
+                        <div v-if="!hasNutritionInfo(food)" class="no-nutrition-data">暫無詳細營養數據</div>
+                      </div>
+                    </template>
+                    <i class="el-icon-info nutrition-info-icon" v-if="hasNutritionInfo(food)"></i>
+                  </el-tooltip>
+                </div>
                 <div class="food-details">
                   <div class="detail-item">
                     <i class="el-icon-shop"></i>
                     <span>{{ food.restaurant || '未知餐廳' }}</span>
-                  </div>
-                  <div class="detail-item">
-                    <i class="el-icon-money"></i>
-                    <span>{{ food.price }} 元</span>
                   </div>
                   <div class="detail-item">
                     <i class="el-icon-data-line"></i>
@@ -136,22 +169,52 @@
         <h2 class="section-title">推薦清單</h2>
         <div class="food-grid">
           <div class="food-card" v-for="(food, index) in recommendedFoods" :key="index">
+            <div class="food-image-container">
+              <div class="image-loader" 
+                   v-if="food && food.id !== undefined && food.id !== null && imageLoaded && typeof imageLoaded === 'object' && !imageLoaded[String(food.id)]">
+                <div class="loading-spinner"></div>
+              </div>
+              <img
+                :src="food.ImageUrl || food.image_url || food.imageUrl || getDefaultFoodImage(food)"
+                @error="setDefaultImageOnError"
+                :alt="food.name"
+                class="food-image"
+                @load="onImageLoad(food)"
+              >
+              <div class="calorie-on-image-button">
+                <span class="calorie-value">{{ Math.round(food.calories) }}</span>
+                <span class="calorie-unit">大卡</span>
+              </div>
+            </div>
             <div class="food-card-content">
               <div class="food-info">
+                <div class="food-name-price-line">
                 <h3 class="food-name">{{ food.name }}</h3>
+                  <span class="food-price-prominent">${{ food.price.toFixed(2) }}</span>
+                  <el-tooltip placement="top" effect="dark" :disabled="!hasNutritionInfo(food)">
+                    <template #content>
+                      <div class="nutrition-tooltip">
+                        <h4>營養資訊</h4>
+                        <ul>
+                          <li v-if="food.Protein !== null && food.Protein !== undefined">蛋白質: {{ food.Protein }}g</li>
+                          <li v-if="food.Fat !== null && food.Fat !== undefined">脂肪: {{ food.Fat }}g</li>
+                          <li v-if="food.Sugar !== null && food.Sugar !== undefined">糖: {{ food.Sugar }}g</li>
+                          <li v-if="food.Sodium !== null && food.Sodium !== undefined">鈉: {{ food.Sodium }}mg</li>
+                          <li v-if="food.Carb !== null && food.Carb !== undefined">碳水化合物: {{ food.Carb }}g</li>
+                          <li v-if="food.Caffeine !== null && food.Caffeine !== undefined">咖啡因: {{ food.Caffeine }}mg</li>
+                        </ul>
+                        <div v-if="!hasNutritionInfo(food)" class="no-nutrition-data">暫無詳細營養數據</div>
+                      </div>
+                    </template>
+                    <i class="el-icon-info nutrition-info-icon" v-if="hasNutritionInfo(food)"></i>
+                  </el-tooltip>
+                </div>
                 <div class="food-details">
                   <div class="detail-item">
                     <i class="el-icon-shop"></i>
                     <span>{{ food.restaurant || '未知餐廳' }}</span>
                   </div>
-                  <div class="detail-item">
-                    <i class="el-icon-money"></i>
-                    <span>{{ food.price }} 元</span>
-                  </div>
-                  <div class="detail-item">
-                    <i class="el-icon-data-line"></i>
-                    <span>{{ food.calories }} 大卡</span>
-                  </div>
+                  
                   <div class="detail-item">
                     <i class="el-icon-food"></i>
                     <span>{{ food.food_type || '未分類' }}</span>
@@ -206,21 +269,15 @@
               <button type="button" class="search-exercise-btn">搜尋</button>
             </div>
             <div class="exercise-results">
-              <div v-if="exerciseResults.running !== undefined" class="exercise-item">
+              <div v-for="type in (userExercisePreferences.length > 0 ? userExercisePreferences : DEFAULT_EXERCISES)" :key="type" class="exercise-item">
                 <i class="el-icon-position"></i>
-                <p>跑步：<strong>{{ exerciseResults.running }}</strong> 分鐘</p>
+                <p>{{ type }}：<strong>{{ exerciseResults[type] }}</strong> 分鐘</p>
               </div>
-              <div v-if="exerciseResults.swimming !== undefined" class="exercise-item">
-                <i class="el-icon-ship"></i>
-                <p>游泳：<strong>{{ exerciseResults.swimming }}</strong> 分鐘</p>
-              </div>
-              <div v-if="exerciseResults.cycling !== undefined" class="exercise-item">
-                <i class="el-icon-bicycle"></i>
-                <p>騎腳踏車：<strong>{{ exerciseResults.cycling }}</strong> 分鐘</p>
-              </div>
-              <div v-if="exerciseResults.walking !== undefined" class="exercise-item">
-                <i class="el-icon-guide"></i>
-                <p>健走：<strong>{{ exerciseResults.walking }}</strong> 分鐘</p>
+            </div>
+            <div class="exercise-list">
+              <div v-for="exercise in filteredExerciseOptions" :key="exercise" class="exercise-item">
+                <span>{{ exercise }}</span>
+                <button @click="() => saveExercisePreferences([exercise])">儲存為偏好</button>
               </div>
             </div>
           </div>
@@ -239,6 +296,8 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
+
+const DEFAULT_EXERCISES = ['跑步', '游泳', '騎腳踏車', '健走']
 
 export default {
   name: 'FoodSearch',
@@ -268,12 +327,7 @@ export default {
     }
 
     const exerciseModal = ref(false)
-    const exerciseResults = ref({
-      running: undefined,
-      swimming: undefined,
-      cycling: undefined,
-      walking: undefined
-    })
+    const exerciseResults = ref({})
     const exerciseSearch = ref('')
 
     const showRecordModal = ref(false)
@@ -331,7 +385,14 @@ export default {
           price: item.price,
           type: item.type || '未分類',
           food_type: item.food_type || '未分類',
-          restaurant: item.restaurant || '未知餐廳'
+          restaurant: item.restaurant || '未知餐廳',
+          ImageUrl: item.ImageUrl,
+          Protein: item.Protein,
+          Fat: item.Fat,
+          Sugar: item.Sugar,
+          Sodium: item.Sodium,
+          Carb: item.Carb,
+          Caffeine: item.Caffeine
         }))
       } catch (error) {
         console.error('搜尋食物失敗:', error)
@@ -376,52 +437,174 @@ export default {
       calculateExercise(food.calories)
     }
 
+    // 運動名稱正規化（同 ExerciseRecord.vue）
+    function normalizeExerciseName(name) {
+      if (!name) return '';
+      return name.replace(/\s+/g, '').replace(/[Ａ-Ｚａ-ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).toLowerCase();
+    }
+
     const calculateExercise = async (calories) => {
       try {
-        // 呼叫後端API
-        const response = await fetch(`http://localhost:5000/api/food/exercise/calculator?calories=${calories}`)
-        
-        if (!response.ok) {
-          throw new Error(`API 請求失敗: ${response.status}`)
-        }
-        
+        const userId = localStorage.getItem('userId')
+        const response = await fetch(`http://localhost:5000/api/food/exercise/calculator?calories=${calories}&user_id=${userId}`)
+        if (!response.ok) throw new Error(`API 請求失敗: ${response.status}`)
         const data = await response.json()
-        
-        // 從API回傳的資料中提取各種運動所需的時間
-        const running = data.exercises.find(e => e.type === '跑步')
-        const swimming = data.exercises.find(e => e.type === '游泳')
-        const cycling = data.exercises.find(e => e.type === '騎腳踏車')
-        const walking = data.exercises.find(e => e.type === '健走')
-        
-        exerciseResults.value = {
-          running: running ? running.duration : undefined,
-          swimming: swimming ? swimming.duration : undefined,
-          cycling: cycling ? cycling.duration : undefined,
-          walking: walking ? walking.duration : undefined
-        }
+        // 依照用戶偏好組合結果
+        const showExercises = userExercisePreferences.value.length > 0
+          ? userExercisePreferences.value
+          : DEFAULT_EXERCISES
+        const result = {}
+        showExercises.forEach(type => {
+          const normType = normalizeExerciseName(type)
+          // 找到第一個 normalize 後開頭一樣的（如「跑步」能對到「跑步(8km/hr)」）
+          const found = data.exercises.find(e => normalizeExerciseName(e.type).startsWith(normType))
+          result[type] = found ? found.duration : undefined
+        })
+        exerciseResults.value = result
       } catch (error) {
-        console.error('計算運動時間失敗:', error)
         ElMessage.error('無法計算運動時間，請稍後再試')
-        exerciseResults.value = { running: '計算失敗', swimming: '計算失敗' }
+        const showExercises = userExercisePreferences.value.length > 0
+          ? userExercisePreferences.value
+          : DEFAULT_EXERCISES
+        const result = {}
+        showExercises.forEach(type => {
+          result[type] = '計算失敗'
+        })
+        exerciseResults.value = result
       }
     }
 
     const closeExerciseModal = () => {
       exerciseModal.value = false
-      exerciseResults.value = { 
-        running: undefined, 
-        swimming: undefined,
-        cycling: undefined,
-        walking: undefined
-      }
+      exerciseResults.value = {}
       exerciseSearch.value = ''
     }
 
+    const foodImagePlaceholderLibrary = [
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop', // Salad
+      'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=500&auto=format&fit=crop', // Pancakes
+      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=500&auto=format&fit=crop', // Pizza
+      'https://images.unsplash.com/photo-1565958011703-44f9829ba187?q=80&w=500&auto=format&fit=crop', // Cake
+      'https://images.unsplash.com/photo-1482049016688-2d3e1b311543?q=80&w=500&auto=format&fit=crop', // Breakfast
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=500&auto=format&fit=crop', // Healthy meal
+      'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?q=80&w=500&auto=format&fit=crop', // Pasta
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=500&auto=format&fit=crop'  // Main course
+    ];
+
+    const getDefaultFoodImage = (food) => {
+      // Ensure food is an object and has id or name for pseudo-random selection
+      if (food && typeof food === 'object' && (food.id || food.name)) {
+        // Create a seed from food.id (if it's a number or string) or food.name length
+        let seedValue = 0;
+        if (typeof food.id === 'number' || (typeof food.id === 'string' && food.id.length > 0) ) {
+          // Simple hash from id: sum of char codes or number itself
+          seedValue = String(food.id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        } else if (food.name && typeof food.name === 'string') {
+          seedValue = food.name.length;
+        }
+        const randomIndex = seedValue % foodImagePlaceholderLibrary.length;
+        return foodImagePlaceholderLibrary[randomIndex];
+      }
+      // Fallback to pure random if no consistent seed can be generated
+      return foodImagePlaceholderLibrary[Math.floor(Math.random() * foodImagePlaceholderLibrary.length)];
+    };
+
+    const setDefaultImageOnError = (event) => {
+      // On error, also pick a random image from the library
+      event.target.src = foodImagePlaceholderLibrary[Math.floor(Math.random() * foodImagePlaceholderLibrary.length)];
+    };
+
+    const logImageDebug = (food) => {
+      console.log('[DEBUG] food:', food);
+      console.log('[DEBUG] food.ImageUrl:', food.ImageUrl);
+      console.log('[DEBUG] food.image_url:', food.image_url);
+      console.log('[DEBUG] food.imageUrl:', food.imageUrl);
+    };
+
+    const imageLoaded = ref({});
+
+    const onImageLoad = (food) => {
+      if (food && food.id !== undefined && food.id !== null) {
+        if (typeof imageLoaded.value !== 'object' || imageLoaded.value === null) {
+          imageLoaded.value = {};
+        }
+        imageLoaded.value = {
+          ...imageLoaded.value,
+          [String(food.id)]: true // Use String(food.id) for safer object key
+        };
+      }
+      // logImageDebug(food); // Assuming logImageDebug is defined elsewhere if used
+    };
+
+    const hasNutritionInfo = (food) => {
+      return (
+        (food.Protein !== null && food.Protein !== undefined) ||
+        (food.Fat !== null && food.Fat !== undefined) ||
+        (food.Sugar !== null && food.Sugar !== undefined) ||
+        (food.Sodium !== null && food.Sodium !== undefined) ||
+        (food.Carb !== null && food.Carb !== undefined) ||
+        (food.Caffeine !== null && food.Caffeine !== undefined)
+      );
+    };
+
+    const userId = localStorage.getItem('userId')
+    const userExercisePreferences = ref([])
+    const exerciseOptions = ref([...DEFAULT_EXERCISES])
+
+    // 查詢用戶運動偏好
+    const fetchExercisePreferences = async () => {
+      if (!userId) {
+        userExercisePreferences.value = [...DEFAULT_EXERCISES]
+        exerciseOptions.value = [...DEFAULT_EXERCISES]
+        return
+      }
+      try {
+        const res = await axios.get('/api/preferences/user/exercise-preferences', { params: { user_id: userId } })
+        if (res.data && Array.isArray(res.data.exercise_names) && res.data.exercise_names.length > 0) {
+          userExercisePreferences.value = res.data.exercise_names
+          exerciseOptions.value = res.data.exercise_names
+        } else {
+          userExercisePreferences.value = []
+          exerciseOptions.value = [...DEFAULT_EXERCISES]
+        }
+      } catch (err) {
+        userExercisePreferences.value = []
+        exerciseOptions.value = [...DEFAULT_EXERCISES]
+      }
+    }
+
+    // 儲存用戶運動偏好
+    const saveExercisePreferences = async (newPrefs) => {
+      if (!userId) return
+      try {
+        await axios.post('/api/preferences/user/exercise-preferences', {
+          user_id: userId,
+          exercise_names: newPrefs
+        })
+        userExercisePreferences.value = [...newPrefs]
+        exerciseOptions.value = [...newPrefs]
+        ElMessage.success('運動偏好已儲存')
+      } catch (err) {
+        ElMessage.error('儲存運動偏好失敗')
+      }
+    }
+
+    // 運動搜尋功能
+    const filteredExerciseOptions = computed(() => {
+      // 若有用戶偏好，僅顯示用戶偏好
+      if (userExercisePreferences.value.length > 0) {
+        if (!exerciseSearch.value) return userExercisePreferences.value
+        return userExercisePreferences.value.filter(e => e.includes(exerciseSearch.value))
+      }
+      // 否則顯示 default
+      if (!exerciseSearch.value) return exerciseOptions.value
+      return exerciseOptions.value.filter(e => e.includes(exerciseSearch.value))
+    })
+
     onMounted(async () => {
       isLoading.value = true
-      hasSearched.value = false // 重置搜尋狀態
-      
-      // 獲取用戶的偏好設置
+      hasSearched.value = false
+      await fetchExercisePreferences()
       await loadUserPreferences()
       
       try {
@@ -463,7 +646,14 @@ export default {
             price: item.price,
             type: item.type || '未分類',
             food_type: item.food_type || '未分類',
-            restaurant: item.restaurant || '未知餐廳'
+            restaurant: item.restaurant || '未知餐廳',
+            ImageUrl: item.ImageUrl,
+            Protein: item.Protein,
+            Fat: item.Fat,
+            Sugar: item.Sugar,
+            Sodium: item.Sodium,
+            Carb: item.Carb,
+            Caffeine: item.Caffeine
           }))
           // 根據用戶偏好推薦食物
           generateRecommendations()
@@ -585,97 +775,123 @@ export default {
       showRecordModal,
       currentFood,
       openFoodRecordModal,
-      onRecordSaved
+      onRecordSaved,
+      getDefaultFoodImage,
+      setDefaultImageOnError,
+      logImageDebug,
+      imageLoaded,
+      onImageLoad,
+      hasNutritionInfo,
+      userExercisePreferences,
+      exerciseOptions,
+      fetchExercisePreferences,
+      saveExercisePreferences,
+      filteredExerciseOptions
     }
   }
 }
 </script>
 
 <style scoped>
-.food-search-page {
-  padding: 20px 0;
-  color: #333;
+/* ----- 全局變量 (理想情況下在 main.css 或 App.vue style) ----- */
+:root {
+  --primary-color: #409EFF; /* Element Plus 主色藍 */
+  --primary-color-light: #79bbff;
+  --primary-color-dark: #337ecc;
+  --warning-color: #E6A23C; /* 橘色 */
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --border-color-light: #e4e7ed;
+  --border-color-lighter: #ebeef5;
+  --bg-color: #f5f7fa;
+  --card-shadow: 0 6px 16px -8px rgba(0,0,0,.08), 0 9px 28px 0 rgba(0,0,0,.05), 0 12px 48px 16px rgba(0,0,0,.03);
+  --card-shadow-hover: 0 8px 20px -6px rgba(0,0,0,.1), 0 12px 32px 0 rgba(0,0,0,.07), 0 16px 52px 18px rgba(0,0,0,.04);
 }
 
-.container {
+.food-search-page .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 20px;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
 }
 
 .page-title {
-  margin-bottom: 24px;
-  font-size: 28px;
-  font-weight: 700;
-  color: #333;
+  font-size: 2.25rem; 
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 30px;
   text-align: center;
 }
 
-/* 搜尋表單樣式 */
 .search-form-container {
   margin-bottom: 30px;
 }
 
 .search-form-card {
-  background: white;
+  background-color: #fff;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   padding: 24px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--border-color-lighter);
 }
 
 .search-form-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 20px;
 }
 
 .form-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
+  align-items: flex-end; /*  讓按鈕和輸入框底部對齊 */
 }
 
 .form-group {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .form-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-regular);
+  margin-bottom: 8px;
 }
 
 .input-with-icon {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
-.input-with-icon i {
+.input-with-icon .el-icon-food,
+.input-with-icon .el-icon-shop {
   position: absolute;
   left: 12px;
-  color: #aaa;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 1.1em;
 }
 
 .form-control {
   width: 100%;
-  padding: 12px 12px 12px 36px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 15px;
-  transition: all 0.3s;
+  padding: 10px 12px;
+  padding-left: 36px; /*  為圖示留出空間 */
+  font-size: 0.95rem;
+  border: 1px solid var(--border-color-light);
+  border-radius: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-
 .form-control:focus {
-  border-color: #ffaa55;
-  box-shadow: 0 0 0 3px rgba(255, 170, 85, 0.2);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
   outline: none;
 }
-
 .form-control-sm {
-  padding: 8px 12px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 0.9rem;
 }
 
 .range-inputs {
@@ -683,64 +899,34 @@ export default {
   align-items: center;
   gap: 8px;
 }
-
-.range-separator {
-  color: #666;
-  font-weight: 600;
+.range-inputs .form-control {
+  padding-left: 12px; /*  範圍輸入不需要圖示 */
 }
-
+.range-separator {
+  color: var(--text-secondary);
+}
 .unit {
-  color: #666;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
   margin-left: 4px;
 }
 
-.type-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.type-selector .form-label {
+  margin-bottom: 10px; /*  稍微增加類型選擇器的標籤間距 */
 }
-
 .type-buttons {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
-
 .type-btn {
-  flex: 1;
-  padding: 10px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  color: #666;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.type-btn.active {
-  background: #ffaa55;
-  color: white;
-  border-color: #ffaa55;
-}
-
-.type-btn:hover:not(.active) {
-  background: #f5f5f5;
-}
-
-.search-btn-container {
-  display: flex;
-  align-items: flex-end;
-}
-
-.search-btn {
-  width: 100%;
-  padding: 12px;
-  background: #ffaa55;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 16px;
+  flex-grow: 1;
+  padding: 9px 15px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid #dcdfe6; /* Default grey border */
+  background-color: #f5f7fa; /* Light grey background */
+  color: #333; /* Dark text */
   cursor: pointer;
   transition: all 0.3s;
   display: flex;
@@ -748,412 +934,540 @@ export default {
   justify-content: center;
   gap: 8px;
 }
+.type-btn i {
+  font-size: 1.1em;
+  color: #909399; /* Default grey icon */
+}
+.type-btn:not(.active):hover {
+  border-color: #E6A23C;
+  color: #E6A23C;
+  background-color: #fff7e6; /* Light orange background on hover */
+}
+.type-btn:not(.active):hover i {
+  color: #E6A23C;
+}
+.type-btn.active {
+  background-color: #E6A23C; /* Orange background when active */
+  color: #fff;
+  border-color: #E6A23C;
+  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.3);
+}
+.type-btn.active i {
+  color: #fff;
+}
 
+.search-btn-container {
+  display: flex;
+  align-items: flex-end; /*  確保按鈕與其他輸入框底部對齊 */
+}
+.search-btn {
+  width: 100%;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background-color: #E6A23C;
+  border: 1px solid #E6A23C;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 .search-btn:hover {
-  background: #ff9933;
+  background-color: #cf9236;
+  border-color: #cf9236;
+  color: #fff;
+  transform: translateY(-2px);
+}
+.search-btn .el-icon-search {
+  font-size: 1.1em;
+  color: #fff;
 }
 
-/* 食物卡片樣式 */
+/* ----- 搜尋結果 & 推薦清單 ----- */
+.search-results, .recommended-foods {
+  margin-top: 40px;
+}
+
 .section-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin: 30px 0 20px;
-  color: #333;
-  position: relative;
-  padding-left: 16px;
-}
-
-.section-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 24px;
-  background: #ffaa55;
-  border-radius: 3px;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 25px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color-lighter);
 }
 
 .food-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 24px;
-  margin-bottom: 40px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
 }
 
 .food-card {
-  background: white;
+  background-color: #fff;
   border-radius: 12px;
+  box-shadow: var(--card-shadow);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border: 1px solid var(--border-color-lighter);
 }
-
 .food-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--card-shadow-hover);
+}
+
+.food-image-container {
+  width: 100%;
+  height: 200px;
+  background-color: var(--bg-color);
+  position: relative;
+  overflow: hidden;
+}
+
+.food-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.food-card:hover .food-image {
+  transform: scale(1.05);
+}
+
+.calorie-on-image-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 68px; 
+  height: 68px;
+  background-color: rgba(230, 162, 60, 0.9);
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25), 0 0 0 2px rgba(255,255,255,0.5);
+  cursor: default;
+  text-align: center;
+  line-height: 1.1;
+  transition: transform 0.2s ease-out;
+}
+
+.calorie-on-image-button:hover {
+  transform: scale(1.05);
+}
+
+.calorie-on-image-button .calorie-value {
+  font-size: 1.2rem; 
+  display: block;
+}
+
+.calorie-on-image-button .calorie-unit {
+  font-size: 0.7rem; 
+  display: block;
+  margin-top: 1px;
+  opacity: 0.9;
 }
 
 .food-card-content {
-  padding: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.food-info {
+  flex-grow: 1;
+  margin-bottom: 15px;
+}
+
+.food-name-price-line {
+  display: flex;
+  align-items: center; /* Align items vertically */
+  justify-content: space-between; /* Space out name, price and icon */
+  margin-bottom: 8px; /* Adjust as needed */
 }
 
 .food-name {
-  font-size: 18px;
+  font-size: 1.25rem; /* Existing style */
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin-right: 10px; /* Space between name and price/icon */
+  flex-grow: 1; /* Allow name to take available space */
+  /* Text overflow properties from before, if still desired */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: calc(1.25rem * 1.3 * 2); 
+}
+
+.food-price-prominent {
+  font-size: 1.2rem;
   font-weight: 700;
-  margin: 0 0 16px;
-  color: #333;
+  color: #E6A23C; /* Orange color for price */
+  margin-left: auto; /* Push price to the right if name is short */
+  padding-left:10px; /* Add some space if it's next to the icon */
+}
+
+.nutrition-info-icon {
+  font-size: 1.2rem;
+  color: #909399; /* Grey icon color */
+  cursor: pointer;
+  margin-left: 8px;
+  transition: color 0.2s;
+}
+
+.nutrition-info-icon:hover {
+  color: #E6A23C; /* Orange on hover */
+}
+
+.nutrition-tooltip {
+  min-width: 200px;
+}
+
+.nutrition-tooltip h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #E6A23C;
+  font-size: 1.1rem;
+}
+
+.nutrition-tooltip ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nutrition-tooltip li {
+  font-size: 0.9rem;
+  color: #f0f0f0; /* Lighter text for dark tooltip */
+  padding: 3px 0;
+  border-bottom: 1px solid #555; /* Separator for dark tooltip */
+}
+
+.nutrition-tooltip li:last-child {
+  border-bottom: none;
+}
+
+.no-nutrition-data {
+  font-size: 0.9rem;
+  color: #aaa;
+  margin-top: 8px;
 }
 
 .food-details {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+  font-size: 0.88rem;
+  color: var(--text-regular);
 }
 
 .detail-item {
   display: flex;
   align-items: center;
+  margin-bottom: 8px;
   gap: 8px;
-  color: #666;
+}
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+.detail-item i {
+  color: var(--primary-color-light);
+  font-size: 1.1em;
 }
 
-.detail-item i {
-  color: #ffaa55;
+.detail-item .el-icon-money,
+.detail-item .el-icon-data-line {
+  color: var(--warning-color);
 }
 
 .food-actions {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color-lighter);
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  justify-content: space-between;
 }
 
 .action-btn {
-  padding: 10px;
-  border: none;
+  flex-grow: 1;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
   border-radius: 8px;
-  font-weight: 600;
+  border: 1px solid #dcdfe6;
+  background-color: #f5f7fa;
+  color: #606266;
   cursor: pointer;
-  transition: all 0.3s;
-  display: flex;
+  transition: all 0.2s ease;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.calculator-btn {
-  background: #f0f0f0;
-  color: #666;
+.action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.calculator-btn:hover {
-  background: #e0e0e0;
+.action-btn i {
+  font-size: 1.2em;
+  color: #909399;
 }
 
-.favorite-btn {
-  background: #fff3e0;
-  color: #ff9800;
+/* 運動計算按鈕樣式 */
+.action-btn.calculator-btn {
+  border-color: #dcdfe6;
+}
+.action-btn.calculator-btn:hover {
+  border-color: #c0c4cc;
+  background-color: #ebeef5;
+  color: #303133;
+}
+.action-btn.calculator-btn:hover i {
+  color: #303133;
 }
 
-.favorite-btn:hover {
-  background: #ffe0b2;
+/* 收藏按鈕樣式 */
+.action-btn.favorite-btn {
+  border-color: #f0c78a;
+  background-color: #fdf6ec;
+  color: #e6a23c;
+}
+.action-btn.favorite-btn i {
+  color: #e6a23c;
+}
+.action-btn.favorite-btn:hover {
+  border-color: #e6a23c;
+  background-color: #faecd8;
+  color: #d48d1f;
+}
+.action-btn.favorite-btn:hover i {
+  color: #d48d1f;
 }
 
-.record-btn {
-  background: #ffaa55;
-  color: white;
+/* 記錄按鈕樣式 - 主要按鈕 */
+.action-btn.record-btn {
+  background-color: #e6a23c;
+  border-color: #e6a23c;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.3);
+}
+.action-btn.record-btn i {
+  color: #fff;
+}
+.action-btn.record-btn:hover {
+  background-color: #d48d1f;
+  border-color: #ca8309;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(230, 162, 60, 0.4);
+}
+.action-btn.record-btn:hover i {
+  color: #fff;
 }
 
-.record-btn:hover {
-  background: #ff9933;
-}
-
-/* 無結果和載入狀態 */
-.no-results,
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 40px;
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  margin: 40px 0;
+.no-results, .loading-state {
   text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
 }
-
 .no-results-icon {
-  font-size: 48px;
-  color: #ccc;
-  margin-bottom: 16px;
+  font-size: 4rem;
+  margin-bottom: 20px;
+  color: var(--text-secondary);
 }
-
-.no-results p,
-.loading-state p {
-  color: #666;
-  font-size: 18px;
-  margin: 16px 0 0;
-}
-
 .loading-spinner {
+  border: 4px solid var(--bg-color);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #ffaa55;
-  border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin: 0 auto 20px auto;
 }
-
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-/* Modal 樣式 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
 
 .modal {
-  background: white;
-  border-radius: 12px;
+  background-color: #fff;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.2);
   width: 90%;
   max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+.modal-exercise {
+ max-width: 400px;
 }
 
 .modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color-lighter);
 }
-
 .modal-header h3 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: #333;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
-
 .close-button {
   background: none;
   border: none;
-  font-size: 24px;
-  color: #999;
+  font-size: 1.8rem;
   cursor: pointer;
-  transition: color 0.3s;
+  color: var(--text-secondary);
+  padding: 0;
+  line-height: 1;
 }
-
 .close-button:hover {
-  color: #333;
+  color: var(--text-primary);
 }
 
-.modal-body {
-  padding: 20px;
-}
-
-/* Exercise Modal 樣式 */
-.search-box {
+.modal-body .search-box {
   display: flex;
-  gap: 8px;
   margin-bottom: 20px;
+  gap:10px;
 }
-
-.search-box input {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+.modal-body .search-box input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid var(--border-color-light);
+  border-radius: 6px;
 }
-
 .search-exercise-btn {
-  padding: 10px 16px;
-  background: #ffaa55;
+  padding: 10px 15px;
+  background-color: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
 }
-
-.exercise-results {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.search-exercise-btn:hover{
+   background-color: var(--primary-color-dark);
 }
 
-.exercise-item {
+.exercise-results .exercise-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #f9f9f9;
-  border-radius: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color-lighter);
 }
-
-.exercise-item i {
-  font-size: 24px;
-  color: #ffaa55;
+.exercise-results .exercise-item:last-child {
+  border-bottom: none;
 }
-
-.exercise-item p {
-  margin: 0;
-  font-size: 16px;
+.exercise-results .exercise-item i {
+  margin-right: 12px;
+  color: var(--primary-color);
+  font-size: 1.3em;
 }
-
-/* 餐點類型選擇器 */
-.meal-type-selector,
-.quantity-selector {
-  margin-bottom: 24px;
-}
-
-.meal-type-selector h4,
-.quantity-selector h4 {
-  margin: 0 0 12px;
-  font-size: 16px;
+.exercise-results .exercise-item p strong {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
-.meal-type-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.meal-type-option {
-  position: relative;
-  cursor: pointer;
-}
-
-.meal-type-option input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.meal-type-label {
+.exercise-list .exercise-item {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 8px;
-  transition: all 0.3s;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color-lighter);
 }
-
-.meal-type-option input:checked + .meal-type-label {
-  background: #fff3e0;
-  color: #ff9800;
+.exercise-list .exercise-item:last-child {
+  border-bottom: none;
 }
-
-.meal-type-label i {
-  font-size: 24px;
+.exercise-list .exercise-item span {
+  font-size: 0.9rem;
+  color: var(--text-primary);
 }
-
-/* 數量選擇器 */
-.quantity-controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.quantity-btn {
-  width: 40px;
-  height: 40px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  font-size: 18px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.quantity-btn:hover {
-  background: #f5f5f5;
-}
-
-.quantity-input {
-  width: 60px;
-  padding: 8px;
-  text-align: center;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 16px;
-}
-
-/* Modal 按鈕 */
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.modal-btn {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.cancel-btn {
-  background: #f5f5f5;
-  color: #666;
-  border: none;
-}
-
-.cancel-btn:hover {
-  background: #e0e0e0;
-}
-
-.save-btn {
-  background: #ffaa55;
+.exercise-list .exercise-item button {
+  padding: 8px 15px;
+  background-color: var(--primary-color);
   color: white;
   border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.exercise-list .exercise-item button:hover {
+  background-color: var(--primary-color-dark);
 }
 
-.save-btn:hover {
-  background: #ff9933;
-}
-
-/* 響應式設計 */
 @media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-    gap: 16px;
+  .page-title {
+    font-size: 1.8rem;
+}
+  .search-form-grid, .form-row {
+    grid-template-columns: 1fr;
   }
+  .food-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+   .food-image-container {
+    height: 160px; 
+  }
+  .food-name {
+    font-size: 1.1rem;
+    min-height: calc(1.1rem * 1.3 * 2); 
+}
+}
 
+@media (max-width: 480px) {
+  .container {
+    padding: 15px;
+}
   .food-grid {
     grid-template-columns: 1fr;
+}
+  .food-image-container {
+    height: 150px; 
   }
-
-  .meal-type-options {
-    grid-template-columns: 1fr;
+   .food-name {
+    font-size: 1.05rem;
+    min-height: calc(1.05rem * 1.3 * 2);
+}
+  .action-btn {
+    font-size: 0.85rem;
+    padding: 8px 10px;
+}
+  .modal {
+    width: 95%;
+    padding: 20px;
+  }
+  .modal-header h3 {
+    font-size: 1.3rem;
   }
 }
+
 </style>

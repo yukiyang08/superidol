@@ -10,7 +10,7 @@ import FoodRecord from '../pages/food/FoodRecord.vue'
 import ExerciseRecord from '../pages/exercise/ExerciseRecord.vue'
 import WeeklyReport from '../pages/reports/WeeklyReport.vue'
 import ApiTest from '../pages/ApiTest.vue'
-
+  
 const routes = [
   {
     path: '/',

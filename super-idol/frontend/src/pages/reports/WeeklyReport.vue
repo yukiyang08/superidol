@@ -163,7 +163,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
+            </div>
 
       <!-- 圖表區段 -->
       <div class="report-section-row" v-if="reportData">
@@ -171,8 +171,8 @@
           <h2 class="section-title">
             <el-icon><TrendCharts /></el-icon> 卡路里趨勢
           </h2>
-          <div class="chart-placeholder chart">
-            <div class="chart-container">
+            <div class="chart-placeholder chart">
+              <div class="chart-container">
               <canvas ref="calorieChartEl" id="calorieChart"></canvas>
             </div>
           </div>
@@ -184,8 +184,8 @@
           <h2 class="section-title">
             <el-icon><Present /></el-icon> 運動紀錄
           </h2>
-          <div class="chart-placeholder">
-            <div class="chart-container">
+            <div class="chart-placeholder">
+              <div class="chart-container">
               <canvas ref="exerciseTrendChartEl" id="exerciseTrendChart"></canvas>
             </div>
           </div>
@@ -195,7 +195,7 @@
           <h2 class="section-title">
             <el-icon><Tickets /></el-icon> 支出紀錄
           </h2>
-          <div class="chart-placeholder">
+            <div class="chart-placeholder">
             <div class="chart-container">
               <canvas ref="expenseChartEl" id="expenseChart"></canvas>
             </div>
@@ -558,7 +558,7 @@ export default {
           calorieChartInstance.update();
         } else {
           calorieChartInstance = new Chart(calorieChartEl.value, {
-            type: 'bar',
+        type: 'bar',
             data: { labels, datasets: [
                 { type: 'bar', label: '卡路里攝取', data: intakeData, backgroundColor: 'rgba(66, 165, 245, 0.7)', borderColor: '#42a5f5', order: 2 },
                 { type: 'bar', label: '卡路里消耗', data: burnedData, backgroundColor: 'rgba(102, 187, 106, 0.7)', borderColor: '#66bb6a', order: 3 },
@@ -999,7 +999,7 @@ export default {
     padding: 15px;
   }
   .report-type-selector {
-    flex-direction: column; 
+    flex-direction: column;
     gap: 10px;
   }
   .time-selector {

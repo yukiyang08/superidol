@@ -133,7 +133,7 @@ def update_profile():
                     'email': 'Email',
                     'budget': 'Budget',
                     'weekcalorielimit': 'WeekCalorieLimit',
-                    'weight': 'weight'
+                    'weight': 'Weight'
                 }[key]
                 fields.append(f"{db_key} = %s")
                 values.append(data[key])

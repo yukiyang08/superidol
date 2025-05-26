@@ -58,6 +58,25 @@
             />
             <div class="form-hint">您的體重資訊將用於計算健康目標和熱量建議</div>
           </el-form-item>
+          
+          <el-form-item label="每週熱量限制 *" prop="weekcalorielimit">
+            <div class="calorie-input-group">
+              <el-input-number 
+                v-model="form.weekcalorielimit" 
+                :min="0" 
+                placeholder="請輸入每週熱量限制（必填）" 
+                controls-position="right"
+                class="calorie-input"
+                style="width: 200px;"
+              />
+              <CalorieCalculator 
+                v-if="form.weight"
+                v-model="form.weekcalorielimit"
+                :weight="form.weight"
+              />
+            </div>
+            <div class="form-hint">設定每週攝取熱量的最大值</div>
+          </el-form-item>
         </div>
         
         <div class="preference-card">
@@ -144,10 +163,11 @@ import { isValidEmail, validatePassword, isValidName, doPasswordsMatch } from '.
 import api from '../../services/api'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
 export default {
   name: 'RegisterPage',
-  components: { User, Message, Lock },
+  components: { User, Message, Lock, CalorieCalculator },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
@@ -166,6 +186,7 @@ export default {
       password: '',       // 必填
       confirmPassword: '',
       weight: null,       // 必填
+      weekcalorielimit: 12000, // 設定預設值
     })
     
     const localError = ref('')
@@ -345,7 +366,8 @@ export default {
         name: form.name,
         email: form.email,
         password: form.password,
-        weight: form.weight
+        weight: form.weight,
+        weekcalorielimit: form.weekcalorielimit
       }
       
       // 將註冊資料保存到會話存儲
@@ -704,5 +726,16 @@ export default {
     left: 15%;
     right: 15%;
   }
+}
+
+.calorie-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.calorie-input {
+  flex-shrink: 0;
 }
 </style>

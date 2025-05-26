@@ -52,7 +52,7 @@ def search_food(filters):
     try:
         # 基本查詢
         sql = """
-            SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, r.Name AS Restaurant
+            SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, f.ImageUrl, r.Name AS Restaurant
             FROM Food f
             LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
             WHERE 1 = 1
@@ -101,7 +101,8 @@ def search_food(filters):
                 'price': row['Price'],
                 'food_type': row['Food_Type'],
                 'type': row['Set_Type'],
-                'restaurant': row['Restaurant']
+                'restaurant': row['Restaurant'],
+                'ImageUrl': row.get('ImageUrl')
             })
         
         return results
