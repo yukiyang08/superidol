@@ -145,7 +145,7 @@ def delete_exercise_record_api(record_id):
             return jsonify(result), 400
         return jsonify(result), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 500 
 
 @exercise_bp.route('/food/exercise/calculator', methods=['GET'])
 def exercise_calculator_api():

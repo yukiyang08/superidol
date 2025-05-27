@@ -315,22 +315,39 @@
             <h3>運動計算機</h3>
             <button class="close-button" @click="closeExerciseModal">&times;</button>
           </div>
-          <div class="modal-body">
-            <div class="search-box">
-              <input type="text" placeholder="搜尋運動" v-model="exerciseSearch" />
-              <button type="button" class="search-exercise-btn">搜尋</button>
+          <div class="modal-body exercise-modal-body">
+            <h4 class="section-title">收藏的運動</h4>
+            <div v-if="userExercisePreferences.length > 0" class="exercise-pref-list">
+              <div v-for="type in userExercisePreferences" :key="type" class="exercise-pref-item">
+                <span class="exercise-icon">{{ getExerciseIcon(type) }}</span>
+                <span class="exercise-name">{{ type }}</span>
+                <span class="exercise-intensity">{{ getIntensityFlames(type) }}</span>
+                <span class="exercise-intensity-text">{{ getExerciseIntensity(type) }}</span>
+                <span class="exercise-minutes">
+                  需 <strong>{{ exerciseResults[type] !== undefined && exerciseResults[type] !== null && exerciseResults[type] !== '' ? Number(exerciseResults[type]).toFixed(1) : '--' }}</strong> 分鐘
+                </span>
+              </div>
             </div>
-            <div class="exercise-results">
-              <div v-for="type in (userExercisePreferences.length > 0 ? userExercisePreferences : DEFAULT_EXERCISES)" :key="type" class="exercise-item">
-                <i class="el-icon-position"></i>
-                <p>{{ type }}：<strong>{{ exerciseResults[type] }}</strong> 分鐘</p>
-              </div>
-              </div>
-            <div class="exercise-list">
-              <div v-for="exercise in filteredExerciseOptions" :key="exercise" class="exercise-item">
-                <span>{{ exercise }}</span>
-                <button @click="() => saveExercisePreferences([exercise])">儲存為偏好</button>
-              </div>
+            <div v-else class="empty-pref-tip">尚未設定偏好運動，可於下方查詢並加入！</div>
+            <hr class="exercise-divider" />
+            <h4 class="section-title">查詢所有運動</h4>
+            <div class="all-exercise-row">
+              <select v-model="selectedExercise" class="all-exercise-select">
+                <option disabled value="">請選擇運動</option>
+                <option v-for="ex in allExerciseNames" :key="ex" :value="ex">
+                  {{ getExerciseIcon(ex) }} {{ ex }}
+                </option>
+              </select>
+              <span v-if="selectedExercise" class="exercise-intensity">{{ getIntensityFlames(selectedExercise) }}</span>
+              <span v-if="selectedExercise" class="exercise-intensity-text">{{ getExerciseIntensity(selectedExercise) }}</span>
+              <span v-if="selectedExercise" class="exercise-minutes">
+                需 <strong>{{ getSelectedExerciseMinutes }}</strong> 分鐘
+              </span>
+              <button
+                v-if="selectedExercise && !userExercisePreferences.includes(selectedExercise)"
+                @click="addToPreference(selectedExercise)"
+                class="add-pref-btn"
+              >加入偏好</button>
             </div>
           </div>
         </div>
@@ -533,6 +550,11 @@ export default {
           result[type] = found ? found.duration : undefined
         })
         exerciseResults.value = result
+        // 新增：整理所有運動
+        allExerciseNames.value = data.exercises.map(e => e.type)
+        allExerciseMap.value = Object.fromEntries(data.exercises.map(e => [e.type, e.duration]))
+        // 預設選第一個
+        if (allExerciseNames.value.length > 0) selectedExercise.value = allExerciseNames.value[0]
       } catch (error) {
         ElMessage.error('無法計算運動時間，請稍後再試')
         const showExercises = userExercisePreferences.value.length > 0
@@ -543,6 +565,9 @@ export default {
           result[type] = '計算失敗'
         })
         exerciseResults.value = result
+        allExerciseNames.value = []
+        allExerciseMap.value = {}
+        selectedExercise.value = ''
       }
     }
 
@@ -845,6 +870,75 @@ export default {
       }
     }
 
+    const allExerciseNames = ref([]) // 所有運動名稱
+    const allExerciseMap = ref({})   // 名稱對應分鐘數
+    const selectedExercise = ref('')
+
+    // 顯示分鐘數
+    const getSelectedExerciseMinutes = computed(() => {
+      const min = allExerciseMap.value[selectedExercise.value]
+      return min !== undefined ? Number(min).toFixed(1) : '--'
+    })
+
+    // 加入偏好
+    const addToPreference = async (exercise) => {
+      if (!userId) return
+      await saveExercisePreferences([...userExercisePreferences.value, exercise])
+    }
+
+    // 運動 icon 與強度對照表
+    const exerciseIconMap = {
+      '伏地挺身': '💪',
+      '划船': '🚣',
+      '太極': '🧘',
+      '快走': '🚶',
+      '慢走': '🚶‍♀️',
+      '攀岩': '🧗',
+      '游泳': '🏊',
+      '爬山': '🏔️',
+      '瑜珈': '🧘‍♀️',
+      '籃球': '🏀',
+      '足球': '⚽',
+      '跑步(10km/hr)': '🏃',
+      '跑步(8km/hr)': '🏃‍♀️',
+      '騎腳踏車': '🚲'
+    }
+    const exerciseFlamesMap = {
+      '伏地挺身': '🔥🔥',
+      '划船': '🔥🔥🔥',
+      '太極': '🔥🔥',
+      '快走': '🔥🔥',
+      '慢走': '🔥',
+      '攀岩': '🔥🔥🔥',
+      '游泳': '🔥🔥🔥',
+      '爬山': '🔥🔥',
+      '瑜珈': '🔥🔥',
+      '籃球': '🔥🔥🔥',
+      '足球': '🔥🔥🔥',
+      '跑步(10km/hr)': '🔥🔥🔥🔥',
+      '跑步(8km/hr)': '🔥🔥🔥',
+      '騎腳踏車': '🔥🔥'
+    }
+    const exerciseIntensityMap = {
+      '伏地挺身': '中度',
+      '划船': '高度',
+      '太極': '中度',
+      '快走': '中度',
+      '慢走': '輕度',
+      '攀岩': '高度',
+      '游泳': '高度',
+      '爬山': '中度',
+      '瑜珈': '中度',
+      '籃球': '高度',
+      '足球': '高度',
+      '跑步(10km/hr)': '高度',
+      '跑步(8km/hr)': '高度',
+      '騎腳踏車': '中度'
+    }
+    const getExerciseIcon = (name) => exerciseIconMap[name] || '🏋️'
+    const getIntensityFlames = (name) => exerciseFlamesMap[name] || ''
+    const getExerciseIntensity = (name) => exerciseIntensityMap[name] || ''
+
     return {
       filters,
       toggleType,
@@ -879,7 +973,15 @@ export default {
       foodTypes,
       restaurants,
       toggleRestaurant,
-      toggleFoodType
+      toggleFoodType,
+      allExerciseNames,
+      allExerciseMap,
+      selectedExercise,
+      getSelectedExerciseMinutes,
+      addToPreference,
+      getExerciseIcon,
+      getIntensityFlames,
+      getExerciseIntensity
     }
   }
 }
@@ -1617,6 +1719,99 @@ export default {
   }
   .modal-header h3 {
     font-size: 1.3rem;
+  }
+}
+
+.exercise-modal-body {
+  padding: 10px 0 0 0;
+}
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #131618;
+  margin-bottom: 8px;
+  margin-top: 12px;
+}
+.exercise-pref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.exercise-pref-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f4faff;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+.exercise-icon {
+  font-size: 1.3em;
+}
+.exercise-name {
+  font-weight: 500;
+  color: #333;
+}
+.exercise-intensity {
+  margin-left: 8px;
+  color: #e6a23c;
+  font-size: 1.1em;
+}
+.exercise-intensity-text {
+  margin-left: 2px;
+  color: #888;
+  font-size: 0.95em;
+}
+.exercise-minutes {
+  margin-left: auto;
+  color: #e6a23c;
+  font-weight: 400;
+}
+.empty-pref-tip {
+  color: #aaa;
+  font-size: 0.95em;
+  margin-bottom: 8px;
+}
+.exercise-divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 12px 0;
+}
+.all-exercise-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.all-exercise-select {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #dcdfe6;
+  font-size: 1em;
+}
+.add-pref-btn {
+  background: #409eff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.add-pref-btn:hover {
+  background: #337ecc;
+}
+@media (max-width: 600px) {
+  .exercise-pref-item, .all-exercise-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 10px 8px;
+  }
+  .exercise-minutes {
+    margin-left: 0;
+    margin-top: 4px;
   }
 }
 </style>

@@ -56,19 +56,19 @@
 
             <el-form-item label="每週熱量限制 *" prop="calorieLimit">
               <div class="calorie-input-group">
-                <el-input-number 
-                  v-model="calorieLimit" 
-                  :min="0" 
-                  placeholder="請輸入每週熱量限制（必填）" 
-                  controls-position="right"
-                  class="calorie-input"
+              <el-input-number 
+                v-model="calorieLimit" 
+                :min="0" 
+                placeholder="請輸入每週熱量限制（必填）" 
+                controls-position="right"
+                class="calorie-input"
                   style="width: 200px;"
                 />
                 <CalorieCalculator 
                   v-if="registrationData && registrationData.weight"
                   v-model="calorieLimit"
                   :weight="Number(registrationData.weight)"
-                />
+              />
               </div>
               <div class="form-hint">設定每週攝取熱量的最大值</div>
             </el-form-item>

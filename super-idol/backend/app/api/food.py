@@ -195,52 +195,60 @@ def remove_favorite():
 @food_bp.route('/exercise/calculator', methods=['GET'])
 def calculate_exercise():
     """
-    計算消耗卡路里需要的運動量
-    ---
+    計算消耗卡路里需要的運動量（根據 MET 與體重動態計算）
     查詢參數:
       calories: 要消耗的卡路里
+      user_id: 用戶ID（可選，無則預設 60kg）
     回應:
       200: 運動量建議
     """
     try:
         calories = request.args.get('calories')
-        
+        user_id = request.args.get('user_id')
         if not calories:
             return jsonify({"error": "Missing required parameter: calories"}), 400
-            
         calories = float(calories)
         
-        # 簡易的運動消耗計算
-        exercises = [
-            {
-                "type": "跑步",
-                "duration": round(calories / 10),  # 假設跑步消耗10大卡/分鐘
-                "met": 10
-            },
-            {
-                "type": "游泳",
-                "duration": round(calories / 8),  # 假設游泳消耗8大卡/分鐘
-                "met": 8
-            },
-            {
-                "type": "騎腳踏車",
-                "duration": round(calories / 7),  # 假設騎車消耗7大卡/分鐘
-                "met": 7
-            },
-            {
-                "type": "健走",
-                "duration": round(calories / 5),  # 假設健走消耗5大卡/分鐘
-                "met": 5
-            }
-        ]
+        # 1. 取得體重
+        weight = 60.0
+        if user_id:
+            conn = get_db_connection()
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT Weight FROM Users WHERE UserID = %s", (user_id,))
+                row = cursor.fetchone()
+                if row and (row.get('Weight') or row.get('weight')):
+                    weight = float(row.get('Weight') or row.get('weight'))
+            conn.close()
+
+        # 2. 查詢所有運動及 MET
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT Exercise_Name, MET FROM ExerciseItem")
+            items = cursor.fetchall()
+        conn.close()
+
+        # 3. 計算每種運動所需分鐘數
+        # 消耗卡路里公式: Cal = MET × 體重(kg) × 時間(hr) × 1.05
+        # => 時間(分鐘) = (calories / (MET × 體重 × 1.05)) × 60
+        exercises = []
+        for item in items:
+            met = float(item['MET'])
+            if met > 0:
+                minutes = (calories / (met * weight * 1.05)) * 60
+                exercises.append({
+                    "type": item['Exercise_Name'],
+                    "met": met,
+                    "duration": int(round(minutes))
+                })
         
         return jsonify({
             "calories": calories,
+            "weight": weight,
             "exercises": exercises
         }), 200
-    except ValueError:
-        return jsonify({"error": "Invalid calories value"}), 400
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 @food_bp.route('/record/<int:record_id>', methods=['PUT'])
@@ -275,7 +283,7 @@ def update_food_record(record_id):
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 500 
 
 @food_bp.route('/recommend', methods=['GET'])
 def recommend_foods():
