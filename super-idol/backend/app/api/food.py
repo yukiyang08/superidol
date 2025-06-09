@@ -11,10 +11,11 @@ from ..services.food_service import (
     get_user_favorites, 
     add_to_favorites, 
     remove_from_favorites,
-    update_food_record as update_food_record_service
+    update_food_record as update_food_record_service,
+    cached_search_food, cached_search_food_precise, filters_to_tuple
 )
 from flask_cors import CORS
-from app.db import get_db_connection
+from app.db import get_db_connection, return_db_connection
 from app.services.preference_service import get_restaurants, get_food_types
 
 food_bp = Blueprint('food', __name__)
@@ -288,7 +289,7 @@ def update_food_record(record_id):
 @food_bp.route('/recommend', methods=['GET'])
 def recommend_foods():
     """
-    根據用戶資料推薦食物（分類推薦，含推薦原因）
+    根據用戶資料推薦食物
     查詢參數: user_id
     """
     user_id = request.args.get('user_id')
@@ -298,152 +299,280 @@ def recommend_foods():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # 1. 取得用戶基本資料
+            # 1. 一次性取得所有用戶相關資料
             cursor.execute("SELECT * FROM Users WHERE UserID = %s", (user_id,))
             user = cursor.fetchone()
             if not user:
                 return jsonify({"error": "User not found"}), 404
 
-            # 2. 取得偏好
-            cursor.execute("SELECT Food_Type FROM Food_Preference WHERE UserID = %s", (user_id,))
-            food_types = [row['Food_Type'] for row in cursor.fetchall()]
-            cursor.execute("SELECT r.Name FROM Restaurant_Preference rp JOIN Restaurant r ON rp.RestaurantID = r.RestaurantID WHERE rp.UserID = %s", (user_id,))
-            restaurants = [row['Name'] for row in cursor.fetchall()]
+            # 取得所有偏好資料
+            cursor.execute("""
+                SELECT 'food_type' as type, Food_Type as value FROM Food_Preference WHERE UserID = %s
+                UNION ALL
+                SELECT 'restaurant' as type, r.Name as value 
+                FROM Restaurant_Preference rp 
+                JOIN Restaurant r ON rp.RestaurantID = r.RestaurantID 
+                WHERE rp.UserID = %s
+            """, (user_id, user_id))
+            
+            preferences = cursor.fetchall()
+            food_types = [p['value'] for p in preferences if p['type'] == 'food_type']
+            restaurants = [p['value'] for p in preferences if p['type'] == 'restaurant']
 
-            # 3. 取得歷史紀錄
-            records = get_user_food_records(user_id)
+            # 一次性取得歷史紀錄和收藏（限制數量）
+            records = get_user_food_records(user_id)[-10:]  # 只取最近10筆記錄
             favorites = get_user_favorites(user_id)
+            
+            # 分析用戶習慣
+            historical_food_ids = set()
+            favorite_food_ids = set()
+            price_range = {'min': float('inf'), 'max': 0, 'avg': 0}
+            calorie_range = {'min': float('inf'), 'max': 0, 'avg': 0}
+            
+            total_price = 0
+            total_calories = 0
+            count = 0
+            
+            for record in records:
+                if record.get('food_id'):
+                    historical_food_ids.add(record['food_id'])
+                    if record.get('price'):
+                        price = float(record['price'])
+                        price_range['min'] = min(price_range['min'], price)
+                        price_range['max'] = max(price_range['max'], price)
+                        total_price += price
+                        count += 1
+                    if record.get('calories'):
+                        calories = float(record['calories'])
+                        calorie_range['min'] = min(calorie_range['min'], calories)
+                        calorie_range['max'] = max(calorie_range['max'], calories)
+                        total_calories += calories
+            
+            if count > 0:
+                price_range['avg'] = total_price / count
+                calorie_range['avg'] = total_calories / count
+            
+            for fav in favorites:
+                if fav.get('food_id'):
+                    favorite_food_ids.add(fav['food_id'])
 
-            # 4. 推薦邏輯
-            categories = []
+            # 2. 計算推薦參數（更智能的預算和卡路里計算）
+            budget_limit = user.get('Budget')
+            calorie_limit = None
+            if user.get('WeekCalorieLimit'):
+                calorie_limit = int(user['WeekCalorieLimit']) // 21
+
+            # 根據歷史數據調整推薦範圍
+            if count > 5:  # 有足夠歷史數據時使用用戶習慣
+                if not budget_limit or budget_limit > price_range['avg'] * 1.5:
+                    budget_limit = int(price_range['avg'] * 1.3)  # 比平均消費高30%
+                if not calorie_limit or calorie_limit > calorie_range['avg'] * 1.5:
+                    calorie_limit = int(calorie_range['avg'] * 1.2)  # 比平均卡路里高20%
+
+            # 3. 高精準度推薦策略
+            recommendation_strategies = []
             seen_food_ids = set()
 
-            # (0) 多條件綜合推薦（優化：直接用 SQL 多條件查詢）
-            multi_filters = {}
-            if restaurants:
-                multi_filters['restaurant'] = restaurants[0] if len(restaurants) == 1 else restaurants
-            if food_types:
-                multi_filters['type'] = food_types[0] if len(food_types) == 1 else food_types
-            if user.get('Budget'):
-                multi_filters['priceMax'] = user['Budget']
-            if user.get('WeekCalorieLimit'):
-                per_meal = int(user['WeekCalorieLimit']) // 21
-                multi_filters['calMax'] = per_meal
-            # 只查出前 200 筆
-            candidate_foods = search_food(multi_filters)[:200]
-            scored_foods = []
-            for food in candidate_foods:
-                score = 0
-                reasons = []
-                if restaurants and (food['restaurant'] in restaurants):
-                    score += 2
-                    reasons.append(f"餐廳({food['restaurant']})")
-                if food_types and (food['type'] in food_types or food['food_type'] in food_types):
-                    score += 2
-                    reasons.append(f"類型({food['type'] or food['food_type']})")
-                if user.get('Budget') and food['price'] is not None and float(food['price']) <= float(user['Budget']):
-                    score += 1
-                    reasons.append(f"預算({user['Budget']}元內)")
-                if user.get('WeekCalorieLimit') and food['calories'] is not None:
-                    if float(food['calories']) <= per_meal:
-                        score += 1
-                        reasons.append(f"卡路里({per_meal}大卡內)")
-                if any(f.get('food_id', -1) == food['id'] for f in records):
-                    score += 1
-                    reasons.append("你曾記錄過")
-                if any(f.get('food_id', -1) == food['id'] for f in favorites):
-                    score += 1
-                    reasons.append("你收藏過")
-                if score >= 3:
-                    scored_foods.append({"food": food, "score": score, "reasons": reasons})
-            scored_foods = sorted(scored_foods, key=lambda x: -x['score'])[:6]
-            if scored_foods:
-                categories.append({
-                    "title": "多條件綜合推薦",
-                    "reason": "同時符合多項偏好條件：" + ", ".join(sorted({r for f in scored_foods for r in f['reasons']})),
-                    "foods": [f["food"] for f in scored_foods]
-                })
-                seen_food_ids.update(f["food"]["id"] for f in scored_foods)
+            # 策略1: 超精準個人化推薦（最嚴格的篩選）
+            if (food_types and restaurants) or len(historical_food_ids) >= 3:
+                filters = {}
+                if restaurants:
+                    filters['restaurant'] = restaurants[0] if len(restaurants) == 1 else ','.join(restaurants[:2])
+                if food_types:
+                    filters['food_type'] = food_types[0] if len(food_types) == 1 else ','.join(food_types[:2])
+                if budget_limit:
+                    filters['priceMax'] = budget_limit
+                if calorie_limit:
+                    filters['calMax'] = calorie_limit
 
-            # (1) 餐廳偏好推薦
-            for rest in restaurants:
-                foods = search_food({'restaurant': rest})[:6]
-                foods = [f for f in foods if f['id'] not in seen_food_ids]
-                seen_food_ids.update(f['id'] for f in foods)
-                if foods:
-                    categories.append({
-                        "title": f"根據你常吃的餐廳推薦",
-                        "reason": f"你常在 {rest} 用餐",
-                        "foods": foods
+                candidate_foods = cached_search_food_precise(filters_to_tuple(filters), 50)  # 使用精準搜尋
+                
+                # 高精準度評分算法
+                high_score_foods = []
+                for food in candidate_foods:
+                    if food['id'] in seen_food_ids:
+                        continue
+                        
+                    score = 0
+                    reasons = []
+                    
+                    # 偏好匹配 (高權重)
+                    if restaurants and food.get('restaurant') in restaurants:
+                        score += 5
+                        reasons.append("最愛餐廳")
+                    
+                    if food_types and (food.get('type') in food_types or food.get('food_type') in food_types):
+                        score += 5
+                        reasons.append("偏愛類型")
+                    
+                    # 收藏和歷史加分 (超高權重)
+                    if food['id'] in favorite_food_ids:
+                        score += 8
+                        reasons.append("已收藏")
+                    
+                    if food['id'] in historical_food_ids:
+                        score += 4
+                        reasons.append("常吃")
+                    
+                    # 價格匹配度
+                    if food.get('price') and budget_limit:
+                        price = float(food['price'])
+                        if count > 0 and price_range['avg'] > 0:
+                            # 根據歷史價格偏好評分
+                            price_diff = abs(price - price_range['avg']) / price_range['avg']
+                            if price_diff <= 0.2:  # 價格差異在20%內
+                                score += 3
+                                reasons.append("符合消費習慣")
+                            elif price <= budget_limit * 0.8:
+                                score += 2
+                                reasons.append("經濟實惠")
+                        elif price <= budget_limit:
+                            score += 2
+                            reasons.append("符合預算")
+                    
+                    # 卡路里匹配度
+                    if food.get('calories') and calorie_limit:
+                        calories = float(food['calories'])
+                        if count > 0 and calorie_range['avg'] > 0:
+                            cal_diff = abs(calories - calorie_range['avg']) / calorie_range['avg']
+                            if cal_diff <= 0.3:  # 卡路里差異在30%內
+                                score += 2
+                                reasons.append("熱量適中")
+                        elif calories <= calorie_limit:
+                            score += 1
+                            reasons.append("健康選擇")
+                    
+                    # 高分門檻確保精準度
+                    if score >= 8:  # 提高門檻
+                        high_score_foods.append({"food": food, "score": score, "reasons": reasons})
+
+                if high_score_foods:
+                    high_score_foods.sort(key=lambda x: (-x['score'], -len(x['reasons'])))
+                    top_foods = high_score_foods[:3]  # 只推薦3個
+                    recommendation_strategies.append({
+                        "title": "🎯 專屬精選",
+                        "reason": "根據你的喜好和習慣精心挑選",
+                        "foods": [f["food"] for f in top_foods]
+                    })
+                    seen_food_ids.update(f["food"]["id"] for f in top_foods)
+
+            # 策略2: 餐廳精選（只選最符合的）
+            if restaurants and len(recommendation_strategies) < 2:
+                # 選擇用戶最常去的餐廳
+                primary_restaurant = restaurants[0]
+                filters = {'restaurant': primary_restaurant}
+                if budget_limit:
+                    filters['priceMax'] = budget_limit
+                
+                restaurant_foods = cached_search_food(filters_to_tuple(filters))
+                scored_restaurant_foods = []
+                
+                for food in restaurant_foods:
+                    if food['id'] in seen_food_ids:
+                        continue
+                    
+                    score = 3  # 基礎分數
+                    if food['id'] in favorite_food_ids:
+                        score += 4
+                    if food['id'] in historical_food_ids:
+                        score += 2
+                    if food_types and (food.get('type') in food_types or food.get('food_type') in food_types):
+                        score += 2
+                    
+                    scored_restaurant_foods.append({"food": food, "score": score})
+                
+                if scored_restaurant_foods:
+                    scored_restaurant_foods.sort(key=lambda x: -x['score'])
+                    top_restaurant_foods = [f["food"] for f in scored_restaurant_foods[:3]]
+                    
+                    recommendation_strategies.append({
+                        "title": f"🏪 {primary_restaurant} 精選",
+                        "reason": f"你最愛的 {primary_restaurant} 優質推薦",
+                        "foods": top_restaurant_foods
+                    })
+                    seen_food_ids.update(f['id'] for f in top_restaurant_foods)
+
+            # 策略3: 健康精選（如果有卡路里限制）
+            if calorie_limit and len(recommendation_strategies) < 3:
+                health_filters = {'calMax': int(calorie_limit * 0.8)}  # 控制在80%以內
+                if budget_limit:
+                    health_filters['priceMax'] = budget_limit
+                
+                healthy_foods = cached_search_food(filters_to_tuple(health_filters))
+                healthy_foods = [f for f in healthy_foods if f['id'] not in seen_food_ids]
+                
+                # 選擇營養均衡的食物
+                balanced_foods = []
+                for food in healthy_foods:
+                    if food.get('Protein') and food.get('Carb'):
+                        protein = float(food['Protein'] or 0)
+                        carb = float(food['Carb'] or 0)
+                        if protein >= 10 and carb <= 50:  # 高蛋白低碳水
+                            balanced_foods.append(food)
+                
+                if balanced_foods:
+                    recommendation_strategies.append({
+                        "title": "💪 健康精選",
+                        "reason": f"控制在 {int(calorie_limit * 0.8)} 大卡以內的健康選擇",
+                        "foods": balanced_foods[:3]
+                    })
+                    seen_food_ids.update(f['id'] for f in balanced_foods[:3])
+
+            # 策略4: 探索新品（只在前面推薦不足時添加）
+            if len(recommendation_strategies) < 2:
+                # 尋找用戶從未嘗試過的食物
+                explore_filters = {}
+                if budget_limit:
+                    explore_filters['priceMax'] = budget_limit
+                if restaurants:
+                    explore_filters['restaurant'] = ','.join(restaurants)
+                
+                all_foods = cached_search_food(filters_to_tuple(explore_filters))
+                new_foods = [f for f in all_foods if f['id'] not in historical_food_ids and f['id'] not in favorite_food_ids and f['id'] not in seen_food_ids]
+                
+                if new_foods:
+                    # 選擇評分較高的新食物
+                    scored_new_foods = []
+                    for food in new_foods:
+                        score = 1  # 基礎探索分數
+                        if food_types and (food.get('type') in food_types or food.get('food_type') in food_types):
+                            score += 2
+                        if restaurants and food.get('restaurant') in restaurants:
+                            score += 2
+                        scored_new_foods.append({"food": food, "score": score})
+                    
+                    scored_new_foods.sort(key=lambda x: -x['score'])
+                    recommendation_strategies.append({
+                        "title": "🌟 發現新美味",
+                        "reason": "為你推薦從未嘗試過的美食",
+                        "foods": [f["food"] for f in scored_new_foods[:3]]
                     })
 
-            # (2) 食物類型偏好推薦
-            for ftype in food_types:
-                foods = search_food({'type': ftype})[:6]
-                foods = [f for f in foods if f['id'] not in seen_food_ids]
-                seen_food_ids.update(f['id'] for f in foods)
-                if foods:
-                    categories.append({
-                        "title": f"根據你最愛的食物類型推薦",
-                        "reason": f"你偏好 {ftype} 類型",
-                        "foods": foods
+            # 確保至少有一個推薦類別
+            if not recommendation_strategies:
+                # 降級推薦：直接推薦收藏或歷史記錄
+                if favorites:
+                    recommendation_strategies.append({
+                        "title": "❤️ 經典回味",
+                        "reason": "你的收藏美食",
+                        "foods": favorites[:3]
+                    })
+                elif records:
+                    recommendation_strategies.append({
+                        "title": "🕒 再次品嚐",
+                        "reason": "你最近吃過的美食",
+                        "foods": records[:3]
                     })
 
-            # (3) 預算推薦
-            if user.get('Budget'):
-                foods = search_food({'priceMax': user['Budget']})[:6]
-                foods = [f for f in foods if f['id'] not in seen_food_ids]
-                seen_food_ids.update(f['id'] for f in foods)
-                if foods:
-                    categories.append({
-                        "title": f"根據你每餐預算推薦",
-                        "reason": f"你設定每餐預算為 {user['Budget']} 元",
-                        "foods": foods
-                    })
-
-            # (4) 卡路里推薦
-            if user.get('WeekCalorieLimit'):
-                per_meal = int(user['WeekCalorieLimit']) // 21  # 7天3餐
-                foods = search_food({'calMax': per_meal})[:6]
-                foods = [f for f in foods if f['id'] not in seen_food_ids]
-                seen_food_ids.update(f['id'] for f in foods)
-                if foods:
-                    categories.append({
-                        "title": f"根據你每餐卡路里建議推薦",
-                        "reason": f"你每週卡路里上限，建議每餐不超過 {per_meal} 大卡",
-                        "foods": foods
-                    })
-
-            # (5) 歷史紀錄
-            if records:
-                foods = [f for f in records if f['food_id'] not in seen_food_ids]
-                seen_food_ids.update(f['food_id'] for f in foods)
-                if foods:
-                    categories.append({
-                        "title": "你曾經記錄過的食物",
-                        "reason": "你過去有記錄過這些食物",
-                        "foods": foods[:6]
-                    })
-
-            # (6) 最愛
-            if favorites:
-                foods = [f for f in favorites if f['food_id'] not in seen_food_ids]
-                seen_food_ids.update(f['food_id'] for f in foods)
-                if foods:
-                    categories.append({
-                        "title": "你收藏的最愛",
-                        "reason": "你收藏過這些食物",
-                        "foods": foods[:6]
-                    })
-
-            return jsonify({"categories": categories}), 200
+            return jsonify({"categories": recommendation_strategies}), 200
 
     except Exception as e:
         import traceback
+        print(f"推薦系統錯誤: {e}")
         print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
     finally:
-        conn.close()
+        return_db_connection(conn)
 
 @food_bp.route('/restaurants', methods=['GET'])
 def api_get_restaurants():

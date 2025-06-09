@@ -32,4 +32,9 @@ pnpm-debug.log*
 
 # 系統
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# 新增的目錄
+__pycache__/
+.venv/
+assets/ 

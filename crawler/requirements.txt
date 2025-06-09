@@ -1,9 +1,0 @@
-requests
-beautifulsoup4
-pandas
-lxml
-html5lib
-certifi
-chardet
-idna
-urllib3 

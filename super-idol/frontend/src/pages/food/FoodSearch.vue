@@ -1079,7 +1079,7 @@ export default {
 }
 .form-control:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(199, 83, 12, 0.2);
   outline: none;
 }
 .form-control-sm {
@@ -1334,7 +1334,7 @@ export default {
   min-width: 220px;
   background: #fffdfa;
   border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(230, 162, 60, 0.12);
+  box-shadow: 0 4px 16px rgba(208, 202, 193, 0.12);
   padding: 16px 18px 12px 18px;
   color: #f1b818;
 }

@@ -58,7 +58,7 @@ def save_food_preferences(user_id: int, food_types: list[str], cursor) -> None:
     儲存用戶食物偏好（會先清空再新增）。
     Args:
         user_id (int): 用戶 ID。
-        food_types (list[str]): 食物類型名稱列表。
+        food_types (list[str]): 食物類型名稱列表。 
         cursor: 資料庫 cursor，由外部傳入。
     """
     print(f'[DEBUG] save_food_preferences: user_id={user_id}, food_types={food_types}')

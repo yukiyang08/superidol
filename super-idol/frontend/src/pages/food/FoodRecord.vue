@@ -8,21 +8,21 @@
         <button class="date-nav-btn" @click="changeDate(-1)">
           <el-icon><ArrowLeft /></el-icon>
         </button>
-        <div class="date-picker-container">
-          <div class="current-date" @click="showDatePicker = true">
+        <div class="date-picker-container" style="position: relative;">
+          <div class="current-date" style="position: relative;">
             <el-icon><DateIcon /></el-icon>
             <span>{{ formattedDate }}</span>
             <el-icon><ArrowDown /></el-icon>
+            <input
+              ref="dateInputRef"
+              type="date"
+              v-model="selectedDateString"
+              class="date-picker-overlay"
+              :max="todayString"
+              @change="onDateChange"
+              tabindex="0"
+            >
           </div>
-          <input 
-            type="date" 
-            v-model="selectedDateString" 
-            class="date-picker" 
-            :class="{ 'visible': showDatePicker }"
-            :max="todayString"
-            @change="showDatePicker = false; loadFoodRecords()"
-            @blur="showDatePicker = false"
-          >
         </div>
         <button class="date-nav-btn" @click="changeDate(1)">
           <el-icon><ArrowRight /></el-icon>
@@ -59,6 +59,32 @@
           </div>
         </div>
       </div>
+      <!-- 全局自訂食物表單 -->
+      <div class="custom-food-form-card">
+        <h3 class="custom-form-title">自訂飲食紀錄</h3>
+        <form class="custom-food-form" @submit.prevent="submitCustomFood">
+          <div class="form-row">
+            <input v-model="customForm.custom_name" type="text" placeholder="食物名稱*" required />
+            <input v-model.number="customForm.custom_calories" type="number" min="0" placeholder="熱量(大卡)*" required />
+            <input v-model.number="customForm.custom_price" type="number" min="0" placeholder="價格(元)" />
+          </div>
+          <div class="form-row">
+            <input v-model="customForm.custom_type" type="text" placeholder="類型(如主食/飲料)" />
+            <input v-model="customForm.custom_restaurant" type="text" placeholder="餐廳" />
+            <input v-model.number="customForm.quantity" type="number" min="1" placeholder="數量*" required />
+          </div>
+          <div class="form-row">
+            <select v-model="customForm.mealtime" required>
+              <option value="">選擇餐別*</option>
+              <option value="早餐">早餐</option>
+              <option value="午餐">午餐</option>
+              <option value="晚餐">晚餐</option>
+              <option value="點心">點心</option>
+            </select>
+            <button class="submit-btn" type="submit">新增自訂紀錄</button>
+          </div>
+        </form>
+      </div>
 
       <!-- 餐點記錄 -->
       <div class="meals-container">
@@ -86,6 +112,13 @@
             <div v-else class="food-items">
               <div v-for="(item, index) in breakfastItems" :key="index" class="food-item-card">
                 <div class="food-item-content">
+                  <div v-if="item.ImageUrl" class="food-image-container">
+                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
+                    <div class="calorie-on-image-button">
+                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
+                      <span class="calorie-unit">大卡</span>
+                    </div>
+                  </div>
                   <div class="food-item-info">
                     <h4 class="food-item-name">{{ item.name }}</h4>
                     <div class="food-item-details">
@@ -110,6 +143,17 @@
                         <span class="detail-value">{{ item.quantity }}</span>
                       </div>
                     </div>
+                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
+                      <table class="nutrition-table">
+                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
+                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
+                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
+                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
+                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
+                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
+                      </table>
+                    </div>
+                    <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
                   </div>
                   <div class="food-item-actions">
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
@@ -145,6 +189,13 @@
             <div v-else class="food-items">
               <div v-for="(item, index) in lunchItems" :key="index" class="food-item-card">
                 <div class="food-item-content">
+                  <div v-if="item.ImageUrl" class="food-image-container">
+                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
+                    <div class="calorie-on-image-button">
+                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
+                      <span class="calorie-unit">大卡</span>
+                    </div>
+                  </div>
                   <div class="food-item-info">
                     <h4 class="food-item-name">{{ item.name }}</h4>
                     <div class="food-item-details">
@@ -169,6 +220,17 @@
                         <span class="detail-value">{{ item.quantity }}</span>
                       </div>
                     </div>
+                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
+                      <table class="nutrition-table">
+                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
+                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
+                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
+                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
+                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
+                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
+                      </table>
+                    </div>
+                    <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
                   </div>
                   <div class="food-item-actions">
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
@@ -204,6 +266,13 @@
             <div v-else class="food-items">
               <div v-for="(item, index) in dinnerItems" :key="index" class="food-item-card">
                 <div class="food-item-content">
+                  <div v-if="item.ImageUrl" class="food-image-container">
+                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
+                    <div class="calorie-on-image-button">
+                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
+                      <span class="calorie-unit">大卡</span>
+                    </div>
+                  </div>
                   <div class="food-item-info">
                     <h4 class="food-item-name">{{ item.name }}</h4>
                     <div class="food-item-details">
@@ -228,6 +297,17 @@
                         <span class="detail-value">{{ item.quantity }}</span>
                       </div>
                     </div>
+                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
+                      <table class="nutrition-table">
+                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
+                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
+                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
+                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
+                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
+                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
+                      </table>
+                    </div>
+                    <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
                   </div>
                   <div class="food-item-actions">
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
@@ -263,6 +343,13 @@
             <div v-else class="food-items">
               <div v-for="(item, index) in snackItems" :key="index" class="food-item-card">
                 <div class="food-item-content">
+                  <div v-if="item.ImageUrl" class="food-image-container">
+                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
+                    <div class="calorie-on-image-button">
+                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
+                      <span class="calorie-unit">大卡</span>
+                    </div>
+                  </div>
                   <div class="food-item-info">
                     <h4 class="food-item-name">{{ item.name }}</h4>
                     <div class="food-item-details">
@@ -287,6 +374,17 @@
                         <span class="detail-value">{{ item.quantity }}</span>
                       </div>
                     </div>
+                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
+                      <table class="nutrition-table">
+                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
+                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
+                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
+                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
+                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
+                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
+                      </table>
+                    </div>
+                    <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
                   </div>
                   <div class="food-item-actions">
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
@@ -329,13 +427,20 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
+import axios from 'axios'
+import { ArrowLeft, ArrowRight, ArrowDown, Sunrise, Sunny, Sunset, Dessert, Notebook, Calendar as DateIcon, Food as FoodIcon } from '@element-plus/icons-vue'
 // TODO: 導入相關 store 和工具函數
 // import { useFoodStore } from '../../store/food'
 // import { formatDate } from '../../utils/date'
 
 export default {
   name: 'FoodRecord',
-  components: { FoodRecordModal },
+  components: {
+    FoodRecordModal,
+    ArrowLeft, ArrowRight, ArrowDown,
+    Sunrise, Sunny, Sunset, Dessert, Notebook,
+    DateIcon, FoodIcon
+  },
   setup() {
     // const foodStore = useFoodStore()
     const router = useRouter()
@@ -344,7 +449,7 @@ export default {
     // 當前選中的日期
     const selectedDate = ref(new Date())
     const selectedDateString = ref('')
-    const showDatePicker = ref(false)
+    const dateInputRef = ref(null)
     const today = new Date()
     const todayString = computed(() => {
       const year = today.getFullYear()
@@ -353,7 +458,7 @@ export default {
       return `${year}-${month}-${day}`
     })
 
-    // 卡路里目標 (實際應從用戶設置獲取)
+    // 卡路里目標 (從 API 取得 weekCalorieLimit/7)
     const calorieGoal = ref(2000)
 
     // 載入狀態
@@ -397,7 +502,15 @@ export default {
     const showEditModal = ref(false)
     const editingRecord = ref(null)
 
-    // 監聽 selectedDate 的變化，更新 selectedDateString
+    // 選擇日期時同步更新 selectedDate 並載入資料
+    const onDateChange = (e) => {
+      const newDate = new Date(selectedDateString.value)
+      if (!isNaN(newDate)) {
+        selectedDate.value = newDate
+        loadFoodRecords()
+      }
+    }
+
     watch(selectedDate, (newDate) => {
       if (newDate instanceof Date) {
         const year = newDate.getFullYear()
@@ -406,6 +519,24 @@ export default {
         selectedDateString.value = `${year}-${month}-${day}`
       }
     }, { immediate: true })
+
+    // 取得用戶每日熱量目標
+    const fetchCalorieGoal = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+        const res = await axios.get('/api/auth/user', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const weekLimit = res.data.weekCalorieLimit
+        if (weekLimit && !isNaN(Number(weekLimit))) {
+          calorieGoal.value = Math.round(Number(weekLimit) / 7)
+        }
+      } catch (err) {
+        // fallback 預設 2000
+        calorieGoal.value = 2000
+      }
+    }
 
     // 加載食物記錄
     const loadFoodRecords = async () => {
@@ -570,16 +701,70 @@ export default {
       loadFoodRecords()
     }
 
+    // 全局自訂食物表單
+    const customForm = ref({
+      custom_name: '',
+      custom_calories: '',
+      custom_price: '',
+      custom_type: '',
+      custom_restaurant: '',
+      quantity: 1,
+      mealtime: ''
+    })
+    const submitCustomFood = async () => {
+      // 驗證
+      if (!customForm.value.custom_name || !customForm.value.custom_calories || !customForm.value.mealtime) {
+        ElMessage.error('請填寫必填欄位')
+        return
+      }
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          ElMessage.warning('請先登入')
+          return
+        }
+        const payload = {
+          user_id: userId,
+          food_id: null,
+          custom_name: customForm.value.custom_name,
+          custom_calories: customForm.value.custom_calories,
+          custom_type: customForm.value.custom_type,
+          custom_price: customForm.value.custom_price,
+          custom_restaurant: customForm.value.custom_restaurant,
+          quantity: customForm.value.quantity,
+          mealtime: customForm.value.mealtime,
+          date: selectedDateString.value
+        }
+        await axios.post('/api/food/record', payload)
+        ElMessage.success('自訂飲食紀錄已新增')
+        // 清空表單
+        customForm.value = {
+          custom_name: '',
+          custom_calories: '',
+          custom_price: '',
+          custom_type: '',
+          custom_restaurant: '',
+          quantity: 1,
+          mealtime: ''
+        }
+        // 重新載入紀錄
+        loadFoodRecords()
+      } catch (err) {
+        ElMessage.error('新增失敗，請稍後再試')
+      }
+    }
+
     // 初始化
     onMounted(() => {
       // 加載當前日期的食物記錄
       loadFoodRecords()
+      fetchCalorieGoal()
     })
 
     return {
       selectedDate,
       selectedDateString,
-      showDatePicker,
+      dateInputRef,
       formattedDate,
       todayString,
       calorieGoal,
@@ -599,7 +784,10 @@ export default {
       editingRecord,
       openEditRecord,
       closeEditModal,
-      handleEditSaved
+      handleEditSaved,
+      onDateChange,
+      customForm,
+      submitCustomFood,
     }
   }
 }
@@ -678,6 +866,15 @@ export default {
 
 .current-date i {
   color: #ffaa55;
+}
+
+.date-picker-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .date-picker {
@@ -779,10 +976,17 @@ export default {
 
 /* 餐點卡片 */
 .meals-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
   margin-bottom: 40px;
+}
+
+@media (max-width: 900px) {
+  .meals-container {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
 }
 
 .meal-card {
@@ -1061,6 +1265,118 @@ export default {
   background: #bbdefb;
   border-color: #1976d2;
   box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
+}
+
+.custom-food-form-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  margin-bottom: 30px;
+  padding: 24px 20px 18px 20px;
+}
+.custom-form-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ff7940;
+  margin-bottom: 12px;
+}
+.custom-food-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.custom-food-form .form-row {
+  display: flex;
+  gap: 12px;
+}
+.custom-food-form input,
+.custom-food-form select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  font-size: 15px;
+  background: #f9f9f9;
+  transition: border 0.2s;
+}
+.custom-food-form input:focus,
+.custom-food-form select:focus {
+  border-color: #ff8640;
+  outline: none;
+}
+.submit-btn {
+  background: #ffb340;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.submit-btn:hover {
+  background: #cc6933;
+}
+
+.food-image-container {
+  width: 120px;
+  height: 120px;
+  background-color: #f5f5f5;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-right: 18px;
+  position: relative;
+  flex-shrink: 0;
+}
+.food-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.calorie-on-image-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 48px;
+  height: 48px;
+  background-color: rgba(230, 162, 60, 0.9);
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(230,162,60,0.12);
+  cursor: default;
+  text-align: center;
+  line-height: 1.1;
+  font-size: 1rem;
+}
+.nutrition-info-block {
+  margin-top: 10px;
+}
+.nutrition-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.nutrition-table td {
+  padding: 2px 8px 2px 0;
+  color: #666;
+}
+.nutrition-table td:first-child {
+  color: #ffaa55;
+  font-weight: 500;
+  width: 60px;
+}
+.no-nutrition-data {
+  color: #bbb;
+  font-size: 0.95em;
+  margin-top: 8px;
 }
 </style>
 

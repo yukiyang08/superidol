@@ -1,13 +1,14 @@
 """食物服務模塊"""
-from typing import Optional, List
+from typing import Optional, List, Any, Tuple
 from datetime import datetime
 from ..database.models import FoodItem
 from ..extensions import db
 from ..schemas.food_item import FoodItemCreate, FoodItemUpdate
-from app.db import get_db_connection
+from app.db import get_db_connection, return_db_connection
 import logging
 import pymysql
 import decimal
+import functools
 
 class FoodService:
     @staticmethod
@@ -43,15 +44,49 @@ class FoodService:
         db.session.delete(food)
         db.session.commit()
 
+def filters_to_tuple(filters: dict) -> Tuple[Tuple[str, Any], ...]:
+    """
+    將 dict 轉為可 hash 的 tuple，作為 lru_cache key。
+    會自動將 type 轉 food_type，並排序 key。
+    list 會自動轉 tuple。
+    """
+    filters = dict(filters)  # 複製避免副作用
+    if 'type' in filters:
+        filters['food_type'] = filters.pop('type')
+    # 將所有 list 轉 tuple
+    for k, v in filters.items():
+        if isinstance(v, list):
+            filters[k] = tuple(v)
+    return tuple(sorted(filters.items()))
+
+@functools.lru_cache(maxsize=512)  # 進一步增加快取大小
+def cached_search_food(filters_tuple: Tuple[Tuple[str, Any], ...]):
+    """
+    lru_cache 包裝的 search_food，filters_tuple 需為 tuple。
+    為精準推薦優化的快取系統。
+    """
+    # 還原 dict
+    filters = dict(filters_tuple)
+    return search_food(filters)
+
+# 針對小數量精準推薦的特殊快取
+@functools.lru_cache(maxsize=128)
+def cached_search_food_precise(filters_tuple: Tuple[Tuple[str, Any], ...], limit: int = 50):
+    """
+    精準推薦專用的搜尋函數，限制返回數量以提高精準度
+    """
+    filters = dict(filters_tuple)
+    results = search_food(filters)
+    return results[:limit]  # 限制返回數量
+
 def search_food(filters):
     """
-    搜尋符合條件的食物清單
+    搜尋符合條件的食物清單（優化版本）
     """
     conn = get_db_connection()
-    # 強制用 DictCursor
     cursor = conn.cursor(pymysql.cursors.DictCursor)
     try:
-        # 基本查詢
+        # 基本查詢 - 添加 LIMIT 以提升性能
         sql = """
             SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, f.ImageUrl, 
                    f.Protein, f.Fat, f.Sugar, f.Sodium, f.Carb, f.Caffeine, 
@@ -62,7 +97,7 @@ def search_food(filters):
         """
         params = []
 
-        # 添加過濾條件
+        # 優化過濾條件 - 使用更高效的查詢方式
         # priceMin
         if filters.get('priceMin') is not None:
             price_min = filters['priceMin']
@@ -72,6 +107,7 @@ def search_food(filters):
             elif isinstance(price_min, str) and price_min.strip():
                 sql += " AND f.Price >= %s"
                 params.append(float(price_min.strip()))
+        
         # priceMax
         if filters.get('priceMax') is not None:
             price_max = filters['priceMax']
@@ -81,6 +117,7 @@ def search_food(filters):
             elif isinstance(price_max, str) and price_max.strip():
                 sql += " AND f.Price <= %s"
                 params.append(float(price_max.strip()))
+        
         # calMin
         if filters.get('calMin') is not None:
             cal_min = filters['calMin']
@@ -90,6 +127,7 @@ def search_food(filters):
             elif isinstance(cal_min, str) and cal_min.strip():
                 sql += " AND f.Calories >= %s"
                 params.append(float(cal_min.strip()))
+        
         # calMax
         if filters.get('calMax') is not None:
             cal_max = filters['calMax']
@@ -99,13 +137,15 @@ def search_food(filters):
             elif isinstance(cal_max, str) and cal_max.strip():
                 sql += " AND f.Calories <= %s"
                 params.append(float(cal_max.strip()))
-        # name
+        
+        # name - 使用索引友好的查詢
         if filters.get('name') is not None:
             name = filters['name']
             if isinstance(name, str) and name.strip():
                 sql += " AND f.Name LIKE %s"
                 params.append(f"%{name.strip()}%")
-        # restaurant
+        
+        # restaurant - 優化多選查詢
         if filters.get('restaurant') is not None:
             restaurant = filters['restaurant']
             if isinstance(restaurant, str) and restaurant.strip():
@@ -118,7 +158,8 @@ def search_food(filters):
                     placeholders = ','.join(['%s'] * len(names))
                     sql += f" AND r.Name IN ({placeholders})"
                     params.extend(names)
-        # food_type
+        
+        # food_type - 優化多選查詢
         if filters.get('food_type') is not None:
             food_type = filters['food_type']
             if isinstance(food_type, str) and food_type.strip():
@@ -131,10 +172,13 @@ def search_food(filters):
                     sql += f" AND f.Food_Type IN ({placeholders})"
                     params.extend(types)
 
+        # 添加排序和限制以提升性能
+        sql += " ORDER BY f.FoodID LIMIT 500"  # 限制返回結果數量
+
         cursor.execute(sql, params)
         rows = cursor.fetchall()
         
-        # 將資料庫結果轉換為 JSON 格式
+        # 將資料庫結果轉換為 JSON 格式（優化版本）
         results = []
         for row in rows:
             results.append({
@@ -161,16 +205,14 @@ def search_food(filters):
         raise Exception(f"Database error: {str(e)}")
     finally:
         cursor.close()
-        conn.close()
+        return_db_connection(conn)
 
 def add_food_record(user_id, food_data):
     """
     添加食物消費記錄
-    
     Args:
         user_id (int): 用戶ID
-        food_data (dict): 包含 food_id, mealtime, quantity, date 的字典
-        
+        food_data (dict): 包含 food_id, mealtime, quantity, date, 以及 custom 欄位
     Returns:
         dict: 包含操作結果和新增記錄的ID
     """
@@ -180,40 +222,58 @@ def add_food_record(user_id, food_data):
         mealtime = food_data.get('mealtime')
         quantity = food_data.get('quantity', 1)
         date = food_data.get('date')
-        
+        # 新增自訂欄位
+        custom_name = food_data.get('custom_name')
+        custom_calories = food_data.get('custom_calories')
+        custom_type = food_data.get('custom_type')
+        custom_price = food_data.get('custom_price')
+        custom_restaurant = food_data.get('custom_restaurant')
         # 驗證必要參數
-        if not all([food_id, mealtime, date]):
-            raise ValueError("Missing required fields: food_id, mealtime, date")
-        
+        if not all([mealtime, date, quantity]):
+            raise ValueError("Missing required fields: mealtime, date, quantity")
         # 檢查用戶是否存在
         with conn.cursor() as cursor:
             cursor.execute("SELECT UserID FROM Users WHERE UserID = %s", (user_id,))
             user = cursor.fetchone()
             if not user:
                 raise ValueError(f"User with ID {user_id} not found")
-        
-        # 檢查食物是否存在
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT FoodID FROM Food WHERE FoodID = %s", (food_id,))
-            food = cursor.fetchone()
-            if not food:
-                raise ValueError(f"Food with ID {food_id} not found")
-        
-        # 插入食物記錄
-        with conn.cursor() as cursor:
-            sql = """
-                INSERT INTO Food_Records (UserID, FoodID, Mealtime, Quantity, Date) 
-                VALUES (%s, %s, %s, %s, %s)
-            """
-            cursor.execute(sql, (user_id, food_id, mealtime, quantity, date))
-            record_id = cursor.lastrowid
-            conn.commit()
-            
-            return {
-                "record_id": record_id,
-                "message": "Food record added successfully"
-            }
-            
+        # 判斷是自訂還是關聯食物
+        if food_id:
+            # 檢查食物是否存在
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT FoodID FROM Food WHERE FoodID = %s", (food_id,))
+                food = cursor.fetchone()
+                if not food:
+                    raise ValueError(f"Food with ID {food_id} not found")
+            # 插入關聯食物
+            with conn.cursor() as cursor:
+                sql = """
+                    INSERT INTO Food_Records (UserID, FoodID, Mealtime, Quantity, Date)
+                    VALUES (%s, %s, %s, %s, %s)
+                """
+                cursor.execute(sql, (user_id, food_id, mealtime, quantity, date))
+                record_id = cursor.lastrowid
+                conn.commit()
+                return {
+                    "record_id": record_id,
+                    "message": "Food record added successfully"
+                }
+        else:
+            # 自訂食物必填 custom 欄位
+            if not all([custom_name, custom_calories]):
+                raise ValueError("Custom food must have name and calories")
+            with conn.cursor() as cursor:
+                sql = """
+                    INSERT INTO Food_Records (UserID, FoodID, CustomName, CustomCalories, CustomType, CustomPrice, CustomRestaurant, Mealtime, Quantity, Date)
+                    VALUES (%s, NULL, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(sql, (user_id, custom_name, custom_calories, custom_type, custom_price, custom_restaurant, mealtime, quantity, date))
+                record_id = cursor.lastrowid
+                conn.commit()
+                return {
+                    "record_id": record_id,
+                    "message": "Custom food record added successfully"
+                }
     except Exception as e:
         conn.rollback()
         raise Exception(f"Error adding food record: {str(e)}")
@@ -223,23 +283,26 @@ def add_food_record(user_id, food_data):
 def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None):
     """
     獲取用戶的食物記錄
-    
     Args:
         user_id (int): 用戶ID
         start_date (str, optional): 開始日期 (YYYY-MM-DD)
         end_date (str, optional): 結束日期 (YYYY-MM-DD)
         mealtime (str, optional): 餐點類型篩選 (早餐、午餐、晚餐、宵夜)
-        
     Returns:
         list: 食物記錄列表
     """
     conn = get_db_connection()
     try:
-        with conn.cursor() as cursor:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             sql = """
                 SELECT 
                     fr.RecordID,
                     fr.FoodID,
+                    fr.CustomName,
+                    fr.CustomCalories,
+                    fr.CustomType,
+                    fr.CustomPrice,
+                    fr.CustomRestaurant,
                     f.Name,
                     r.Name AS Restaurant,
                     f.Price,
@@ -250,48 +313,56 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
                     fr.Quantity,
                     fr.Date
                 FROM Food_Records fr
-                JOIN Food f ON fr.FoodID = f.FoodID
+                LEFT JOIN Food f ON fr.FoodID = f.FoodID
                 LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
                 WHERE fr.UserID = %s
             """
             params = [user_id]
-            
             if start_date:
                 sql += " AND fr.Date >= %s"
                 params.append(start_date)
-            
             if end_date:
                 sql += " AND fr.Date <= %s"
                 params.append(end_date)
-            
             if mealtime:
                 sql += " AND fr.Mealtime = %s"
                 params.append(mealtime)
-                
             sql += " ORDER BY fr.Date DESC, fr.Mealtime"
-            
             cursor.execute(sql, params)
             records = cursor.fetchall()
-            
-            # 處理結果為 JSON 格式
             results = []
             for record in records:
-                results.append({
-                    'record_id': record['RecordID'],
-                    'food_id': record['FoodID'],
-                    'name': record['Name'],
-                    'restaurant': record['Restaurant'],
-                    'price': record['Price'],
-                    'calories': record['Calories'],
-                    'food_type': record['Food_Type'],
-                    'type': record['Set_Type'],
-                    'mealtime': record['Mealtime'],
-                    'quantity': record['Quantity'],
-                    'date': record['Date'].strftime('%Y-%m-%d') if record['Date'] else None
-                })
-            
+                if record['FoodID']:
+                    # 關聯食物
+                    results.append({
+                        'record_id': record['RecordID'],
+                        'food_id': record['FoodID'],
+                        'name': record['Name'],
+                        'restaurant': record['Restaurant'],
+                        'price': record['Price'],
+                        'calories': record['Calories'],
+                        'food_type': record['Food_Type'],
+                        'type': record['Set_Type'],
+                        'mealtime': record['Mealtime'],
+                        'quantity': record['Quantity'],
+                        'date': record['Date'].strftime('%Y-%m-%d') if record['Date'] else None
+                    })
+                else:
+                    # 自訂食物
+                    results.append({
+                        'record_id': record['RecordID'],
+                        'food_id': None,
+                        'name': record['CustomName'],
+                        'restaurant': record['CustomRestaurant'],
+                        'price': record['CustomPrice'],
+                        'calories': record['CustomCalories'],
+                        'food_type': record['CustomType'],
+                        'type': None,
+                        'mealtime': record['Mealtime'],
+                        'quantity': record['Quantity'],
+                        'date': record['Date'].strftime('%Y-%m-%d') if record['Date'] else None
+                    })
             return results
-            
     except Exception as e:
         raise Exception(f"Error retrieving food records: {str(e)}")
     finally:
