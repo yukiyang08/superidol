@@ -1,0 +1,243 @@
+services:
+  - type: web
+    name: super-idol
+    env: python
+    public: true
+    buildCommand: >
+      echo "開始構建流程" &&
+      # 檢查當前目錄結構和絕對路徑
+      pwd && ls -la && 
+      echo "RENDER_PROJECT_DIR=$RENDER_PROJECT_DIR" &&
+      echo "嘗試找到正確的項目目錄" &&
+      # 檢查更多可能的目錄結構
+      if [ -d "DBMS_11302/super-idol" ]; then
+        echo "找到 DBMS_11302/super-idol 目錄結構" &&
+        cd DBMS_11302/super-idol &&
+        PROJECT_ROOT=$(pwd)
+      elif [ -d "super-idol" ]; then
+        echo "找到標準 super-idol 目錄結構" &&
+        cd super-idol &&
+        PROJECT_ROOT=$(pwd)
+      else
+        echo "在當前目錄下操作" &&
+        PROJECT_ROOT=$(pwd)
+      fi &&
+      echo "項目根目錄: $PROJECT_ROOT" &&
+      # 檢查完整目錄結構
+      echo "完整目錄結構:" &&
+      find $PROJECT_ROOT -type d | sort &&
+      # 檢查前端目錄是否存在
+      if [ -d "$PROJECT_ROOT/frontend" ]; then
+        echo "前端目錄存在，進行構建" &&
+        cd $PROJECT_ROOT/frontend &&
+        npm install --no-optional --prefer-offline &&
+        npm run build
+      else
+        echo "前端目錄不存在，創建應急頁面" &&
+        echo "創建應急靜態頁面到各個可能的位置"
+        # 確保各位置都有靜態目錄
+        mkdir -p $PROJECT_ROOT/backend/static/
+        mkdir -p $PROJECT_ROOT/static/
+        mkdir -p /opt/render/project/src/static/
+        mkdir -p /opt/render/project/src/super-idol/backend/static/
+        mkdir -p /opt/render/project/src/backend/static/
+        
+        # 為各位置創建應急頁面
+        for static_dir in "$PROJECT_ROOT/backend/static/" "$PROJECT_ROOT/static/" "/opt/render/project/src/static/" "/opt/render/project/src/super-idol/backend/static/" "/opt/render/project/src/backend/static/"; do
+          echo "創建應急頁面到 $static_dir"
+          cat > "${static_dir}index.html" << 'EOL'
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Idol 健康管理系統</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 20px; 
+      background-color: #f5f8fa;
+    }
+    h1 { 
+      color: #2c3e50; 
+      text-align: center;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .card { 
+      background-color: white;
+      padding: 20px; 
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+      margin: 20px 0; 
+      border-radius: 8px;
+    }
+    .info { color: #3498db; }
+    .error { color: #e74c3c; }
+    .btn {
+      display: inline-block;
+      padding: 10px 15px;
+      background: #3498db;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Super Idol 健康管理系統</h1>
+  <div class="card">
+    <h2>應用已成功啟動</h2>
+    <p>API 服務運行正常，這是應急靜態頁面。</p>
+    <p>訪問路徑: ${static_dir}</p>
+    <p>訪問 <code>/api</code> 端點可使用後端服務。</p>
+  </div>
+  <div class="center">
+    <a href="/api/debug/static-info" class="btn">查看系統狀態</a>
+  </div>
+</body>
+</html>
+EOL
+        done &&
+        echo "應急頁面創建完成"
+      fi &&
+      # 複製靜態文件到各個位置
+      echo "複製靜態文件到各個可能的位置:" &&
+      # 確保後端靜態目錄存在
+      mkdir -p $PROJECT_ROOT/backend/static/ &&
+      # 檢查前端構建是否成功
+      if [ -d "$PROJECT_ROOT/frontend/dist" ]; then
+        # 複製前端文件到後端靜態目錄
+        cp -rv $PROJECT_ROOT/frontend/dist/* $PROJECT_ROOT/backend/static/ &&
+        echo "前端文件已複製到後端靜態目錄" &&
+        # 複製到根目錄靜態文件夾
+        mkdir -p $PROJECT_ROOT/static/ &&
+        cp -rv $PROJECT_ROOT/frontend/dist/* $PROJECT_ROOT/static/ &&
+        echo "前端文件已複製到項目根目錄靜態目錄" &&
+        # 複製到 render 特定目錄
+        mkdir -p /opt/render/project/src/static/ &&
+        cp -rv $PROJECT_ROOT/frontend/dist/* /opt/render/project/src/static/ &&
+        echo "前端文件已複製到 Render src/static 目錄" &&
+        # 複製到 /opt/render/project/src/super-idol/backend/static
+        mkdir -p /opt/render/project/src/super-idol/backend/static/ &&
+        cp -rv $PROJECT_ROOT/frontend/dist/* /opt/render/project/src/super-idol/backend/static/ &&
+        echo "前端文件已複製到 Render super-idol/backend/static 目錄" &&
+        # 複製到 /opt/render/project/src/backend/static
+        mkdir -p /opt/render/project/src/backend/static/ &&
+        cp -rv $PROJECT_ROOT/frontend/dist/* /opt/render/project/src/backend/static/ &&
+        echo "前端文件已複製到 Render backend/static 目錄"
+      else
+        echo "前端構建目錄不存在，跳過複製步驟"
+      fi &&
+      # 檢查靜態文件是否已經成功複製
+      echo "檢查靜態目錄內容:" &&
+      ls -la $PROJECT_ROOT/backend/static/ || echo "後端靜態目錄不存在" &&
+      # 安裝後端依賴
+      cd $PROJECT_ROOT/backend &&
+      echo "安裝後端依賴:" &&
+      pip install -r requirements.txt
+    startCommand: >
+      echo "啟動應用，當前目錄：" && pwd && ls -la &&
+      if [ -d "super-idol" ]; then
+        echo "找到super-idol目錄，進入backend目錄" &&
+        cd super-idol/backend
+      elif [ -d "backend" ]; then
+        echo "找到backend目錄，直接進入" &&
+        cd backend
+      else
+        echo "在當前目錄下尋找run.py" &&
+        find . -name "run.py" | sort
+      fi &&
+      echo "當前工作目錄: $(pwd)" &&
+      echo "檢查靜態目錄:" &&
+      ls -la static/ || (echo "靜態目錄不存在，創建應急頁面" &&
+      mkdir -p static &&
+      cat > static/index.html << 'EOL'
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Idol 健康管理系統</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      max-width: 800px; 
+      margin: 0 auto; 
+      padding: 20px; 
+      background-color: #f5f8fa;
+    }
+    h1 { 
+      color: #2c3e50; 
+      text-align: center;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+    }
+    .card { 
+      background-color: white;
+      padding: 20px; 
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+      margin: 20px 0; 
+      border-radius: 8px;
+    }
+    .info { color: #3498db; }
+    .error { color: #e74c3c; }
+    .btn {
+      display: inline-block;
+      padding: 10px 15px;
+      background: #3498db;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-top: 15px;
+    }
+    .center { text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Super Idol 健康管理系統</h1>
+  <div class="card">
+    <h2>應用已成功啟動</h2>
+    <p>API 服務運行正常，這是自動創建的應急頁面。</p>
+    <p>訪問 <code>/api</code> 端點可使用後端服務。</p>
+  </div>
+  <div class="center">
+    <a href="/api/debug/static-info" class="btn">查看系統狀態</a>
+  </div>
+</body>
+</html>
+EOL
+      ) &&
+      echo "檢查環境變數:" &&
+      echo "SECRET_KEY存在: $(if [ -n \"$SECRET_KEY\" ]; then echo '是'; else echo '否'; fi)" &&
+      echo "JWT_SECRET_KEY存在: $(if [ -n \"$JWT_SECRET_KEY\" ]; then echo '是'; else echo '否'; fi)" &&
+      echo "開始啟動Flask應用" &&
+      export SECRET_KEY=${SECRET_KEY:-"render-auto-generated-key"} &&
+      export JWT_SECRET_KEY=${JWT_SECRET_KEY:-"render-auto-generated-jwt-key"} &&
+      gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
+    envVars:
+      - key: DB_USER
+        value: DBMS11302
+      - key: DB_PASSWORD
+        value: ilovedbms
+      - key: DB_HOST
+        value: superidol.c9i82eygu8mk.ap-southeast-2.rds.amazonaws.com
+      - key: DB_PORT
+        value: 3306
+      - key: DB_NAME
+        value: superidol
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: CORS_ORIGINS
+        value: "https://super-idol.onrender.com"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RENDER
+        value: "true"

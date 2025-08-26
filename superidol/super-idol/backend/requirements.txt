@@ -1,0 +1,24 @@
+# Database
+#sqlalchemy==2.0.25
+pymysql==1.1.0
+python-dotenv==1.0.0
+
+
+# Authentication
+passlib==1.7.4
+bcrypt==4.0.1
+
+# Utilities
+pytest==7.4.0
+python-dateutil==2.8.2
+gunicorn==21.2.0
+
+# Flask
+Flask==2.3.2
+Werkzeug<3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.5
+Flask-Cors==4.0.0
+PyJWT==2.8.0 
+
+
