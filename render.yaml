@@ -2,7 +2,6 @@ services:
   - type: web
     name: super-idol
     env: python
-    public: true
 
     buildCommand: |
       set -e
