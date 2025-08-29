@@ -8,21 +8,6 @@
       
       <el-alert v-if="authError" type="error" :title="authError" show-icon />
       
-      <div class="progress-steps">
-        <div class="step active">
-          <div class="step-icon">1</div>
-          <div class="step-label">基本資訊</div>
-        </div>
-        <div class="step">
-          <div class="step-icon">2</div>
-          <div class="step-label">偏好設定</div>
-        </div>
-        <div class="step">
-          <div class="step-icon">3</div>
-          <div class="step-label">完成</div>
-        </div>
-      </div>
-      
       <el-form 
         @submit.native.prevent="handleRegister" 
         class="auth-form" 
@@ -31,43 +16,45 @@
         ref="registerForm"
         status-icon
       >
-        <div class="preference-card">
-          <div class="card-header">
+        <!-- 基本資訊區塊 -->
+        <div class="form-section">
+          <div class="section-header">
             <i class="el-icon-user"></i>
-            <h3>個人資料</h3>
+            <h3>基本資訊</h3>
           </div>
           
-          <el-form-item label="姓名 *" prop="name">
-            <el-input 
-              v-model="form.name"
-              placeholder="請輸入您的姓名"
-              prefix-icon="User"
-              style="font-size: 18px;"
-            />
-          </el-form-item>
-          
-          <el-form-item label="體重 (kg) *" prop="weight">
-            <el-input-number 
-              v-model="form.weight" 
-              :min="30" 
-              :max="200"
-              placeholder="請輸入您的體重（必填）" 
-              controls-position="right"
-              class="weight-input"
-              style="font-size: 18px;"
-            />
-            <div class="form-hint">您的體重資訊將用於計算健康目標和熱量建議</div>
-          </el-form-item>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="姓名 *" prop="name">
+                <el-input 
+                  v-model="form.name"
+                  placeholder="請輸入您的姓名"
+                  prefix-icon="User"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="體重 (kg) *" prop="weight">
+                <el-input-number 
+                  v-model="form.weight" 
+                  :min="30" 
+                  :max="200"
+                  placeholder="體重" 
+                  controls-position="right"
+                  style="width: 100%"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
           
           <el-form-item label="每週熱量限制 *" prop="weekcalorielimit">
             <div class="calorie-input-group">
               <el-input-number 
                 v-model="form.weekcalorielimit" 
                 :min="0" 
-                placeholder="請輸入每週熱量限制（必填）" 
+                placeholder="每週熱量限制" 
                 controls-position="right"
-                class="calorie-input"
-                style="width: 200px;"
+                style="width: 200px"
               />
               <CalorieCalculator 
                 v-if="form.weight"
@@ -79,48 +66,79 @@
           </el-form-item>
         </div>
         
-        <div class="preference-card">
-          <div class="card-header">
+        <!-- 帳號設定區塊 -->
+        <div class="form-section">
+          <div class="section-header">
             <i class="el-icon-lock"></i>
             <h3>帳號設定</h3>
           </div>
           
-          <el-form-item label="電子郵件" prop="email">
-            <el-input 
-              v-model="form.email"
-              type="email" 
-              placeholder="請輸入電子郵件"
-              prefix-icon="Message"
-              @blur="validateEmail"
-            />
-          </el-form-item>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="電子郵件 *" prop="email">
+                <el-input 
+                  v-model="form.email"
+                  type="email" 
+                  placeholder="請輸入電子郵件"
+                  prefix-icon="Message"
+                />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="密碼 *" prop="password">
+                <el-input 
+                  v-model="form.password"
+                  type="password" 
+                  placeholder="請輸入密碼"
+                  prefix-icon="Lock"
+                  show-password
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
           
-          <el-form-item label="密碼" prop="password">
-            <el-input 
-              v-model="form.password"
-              type="password" 
-              placeholder="請輸入密碼"
-              prefix-icon="Lock"
-              show-password
-              @input="checkPasswordStrength"
-            />
-            <div v-if="passwordResult.isValid" class="password-strength" :class="passwordResult.strength">
-              密碼強度: {{ passwordResult.message }}
-            </div>
-            <div v-else class="password-strength error">
-              {{ passwordResult.message }}
-            </div>
-          </el-form-item>
-          
-          <el-form-item label="確認密碼" prop="confirmPassword">
+          <el-form-item label="確認密碼 *" prop="confirmPassword">
             <el-input 
               v-model="form.confirmPassword"
               type="password" 
               placeholder="請再次輸入密碼"
               prefix-icon="Lock"
               show-password
-              @input="validateConfirmPassword"
             />
+          </el-form-item>
+        </div>
+        
+        <!-- 偏好設定區塊 -->
+        <div class="form-section">
+          <div class="section-header">
+            <i class="el-icon-star-on"></i>
+            <h3>偏好設定</h3>
+          </div>
+          
+          <el-form-item label="食物偏好">
+            <div class="preference-chips">
+              <el-checkbox-group v-model="form.foodPreferences">
+                <el-checkbox label="singleDish">單點</el-checkbox>
+                <el-checkbox label="setMeal">套餐</el-checkbox>
+              </el-checkbox-group>
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="辣度偏好">
+            <el-radio-group v-model="form.spicyLevel">
+              <el-radio :label="0">不辣</el-radio>
+              <el-radio :label="1">微辣</el-radio>
+              <el-radio :label="2">中辣</el-radio>
+              <el-radio :label="3">重辣</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          
+          <el-form-item label="價格範圍">
+            <el-radio-group v-model="form.priceRange">
+              <el-radio :label="1">經濟實惠</el-radio>
+              <el-radio :label="2">中等價位</el-radio>
+              <el-radio :label="3">高級精緻</el-radio>
+            </el-radio-group>
           </el-form-item>
         </div>
         
@@ -137,7 +155,7 @@
             class="submit-button"
           >
             <i class="el-icon-arrow-right" v-if="!isLoading"></i>
-            {{ isLoading ? '提交中...' : '下一步' }}
+            {{ isLoading ? '註冊中...' : '立即註冊' }}
           </el-button>
         </div>
       </el-form>
@@ -158,7 +176,7 @@
 import { reactive, computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
-import { User, Message, Lock } from '@element-plus/icons-vue'
+import { User, Message, Lock, StarOn } from '@element-plus/icons-vue'
 import { isValidEmail, validatePassword, isValidName, doPasswordsMatch } from '../../utils/validation'
 import api from '../../services/api'
 import { ElMessage } from 'element-plus'
@@ -167,7 +185,7 @@ import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
 export default {
   name: 'RegisterPage',
-  components: { User, Message, Lock, CalorieCalculator },
+  components: { User, Message, Lock, StarOn, CalorieCalculator },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
@@ -187,102 +205,63 @@ export default {
       confirmPassword: '',
       weight: null,       // 必填
       weekcalorielimit: 12000, // 設定預設值
+      foodPreferences: ['singleDish', 'setMeal'], // 預設選擇單點和套餐
+      spicyLevel: 1,     // 預設微辣
+      priceRange: 2,     // 預設中等價位
     })
     
     const localError = ref('')
     
     const rules = {
       name: [
-        {
-          validator: (rule, value, callback) => {
-            if (!isSubmitAttempted.value && !value) {
-              callback()
-              return
-            }
-            if (!value) {
-              callback(new Error('請輸入姓名'))
-            } else if (value.length < 2) {
-              callback(new Error('姓名至少需要2個字符'))
-            } else {
-              callback()
-            }
-          },
-          trigger: ['blur', 'change']
-        }
+        { required: true, message: '請輸入姓名', trigger: 'blur' },
+        { min: 2, message: '姓名至少需要2個字符', trigger: 'blur' }
       ],
       weight: [
-        {
+        { required: true, message: '請輸入體重', trigger: 'blur' },
+        { 
           validator: (rule, value, callback) => {
-            if (!isSubmitAttempted.value && value == null) {
-              callback()
-              return
-            }
-            if (value == null || value === '') {
-              callback(new Error('請輸入體重'))
-            } else if (value < 20 || value > 200) {
-              callback(new Error('體重需在合理範圍內'))
+            if (value < 30 || value > 200) {
+              callback(new Error('體重需在30-200kg範圍內'))
             } else {
               callback()
             }
-          },
-          trigger: ['blur', 'change']
+          }, 
+          trigger: 'blur' 
+        }
+      ],
+      weekcalorielimit: [
+        { required: true, message: '請輸入每週熱量限制', trigger: 'blur' },
+        { 
+          validator: (rule, value, callback) => {
+            if (value <= 0) {
+              callback(new Error('熱量限制必須大於0'))
+            } else {
+              callback()
+            }
+          }, 
+          trigger: 'blur' 
         }
       ],
       email: [
-        {
-          validator: (rule, value, callback) => {
-            if (!isSubmitAttempted.value && !value) {
-              callback()
-              return
-            }
-            if (!value) {
-              callback(new Error('請輸入電子郵件'))
-            } else if (!isValidEmail(value)) {
-              callback(new Error('請輸入有效的電子郵件地址'))
-            } else {
-              callback()
-            }
-          },
-          trigger: ['blur', 'change']
-        }
+        { required: true, message: '請輸入電子郵件', trigger: 'blur' },
+        { type: 'email', message: '請輸入有效的電子郵件地址', trigger: 'blur' }
       ],
       password: [
-        {
-          validator: (rule, value, callback) => {
-            if (!isSubmitAttempted.value && !value) {
-              callback()
-              return
-            }
-            if (!value) {
-              callback(new Error('請輸入密碼'))
-            } else {
-              const result = validatePassword(value)
-              if (!result.isValid) {
-                callback(new Error(result.message))
-              } else {
-                callback()
-              }
-            }
-          },
-          trigger: ['blur', 'change']
-        }
+        { required: true, message: '請輸入密碼', trigger: 'blur' },
+        { min: 6, message: '密碼至少需要6個字符', trigger: 'blur' }
       ],
       confirmPassword: [
+        { required: true, message: '請再次輸入密碼', trigger: 'blur' },
         {
           validator: (rule, value, callback) => {
-            if (!isSubmitAttempted.value && !value) {
-              callback()
-              return
-            }
-            if (!value) {
-              callback(new Error('請再次輸入密碼'))
-            } else if (!doPasswordsMatch(form.password, value)) {
+            if (value !== form.password) {
               callback(new Error('兩次輸入的密碼不一致'))
             } else {
               callback()
             }
           },
-          trigger: ['blur', 'change']
+          trigger: 'blur'
         }
       ]
     }
@@ -309,19 +288,51 @@ export default {
       }
     }
     
-    const submitForm = () => {
-      isSubmitAttempted.value = true
-      if (!registerForm.value) {
-        handleRegister()
-        return
-      }
-      registerForm.value.validate(valid => {
-        if (valid) {
-          handleRegister()
-        } else {
-          console.log('表單驗證失敗，顯示錯誤訊息')
+    const submitForm = async () => {
+      try {
+        // 驗證表單
+        await registerForm.value.validate()
+        
+        // 檢查密碼是否一致
+        if (form.password !== form.confirmPassword) {
+          ElMessage.error('兩次輸入的密碼不一致')
+          return
         }
-      })
+        
+        // 檢查必填欄位
+        if (!form.name || !form.email || !form.password || form.weight === null) {
+          ElMessage.error('請填寫所有必填欄位')
+          return
+        }
+        
+        // 準備註冊資料
+        const registrationData = {
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          weight: form.weight,
+          weekcalorielimit: form.weekcalorielimit,
+          foodPreferences: form.foodPreferences,
+          spicyLevel: form.spicyLevel,
+          priceRange: form.priceRange
+        }
+        
+        // 提交註冊
+        await authStore.register(registrationData)
+        
+        ElMessage.success('註冊成功！正在跳轉到登入頁面...')
+        setTimeout(() => {
+          router.push('/login')
+        }, 1500)
+        
+      } catch (error) {
+        console.error('註冊失敗:', error)
+        if (error.response?.data?.detail) {
+          ElMessage.error(error.response.data.detail)
+        } else {
+          ElMessage.error('註冊失敗，請稍後再試')
+        }
+      }
     }
     
     const checkEmailExists = async (email) => {
@@ -367,7 +378,10 @@ export default {
         email: form.email,
         password: form.password,
         weight: form.weight,
-        weekcalorielimit: form.weekcalorielimit
+        weekcalorielimit: form.weekcalorielimit,
+        foodPreferences: form.foodPreferences,
+        spicyLevel: form.spicyLevel,
+        priceRange: form.priceRange,
       }
       
       // 將註冊資料保存到會話存儲
@@ -582,15 +596,70 @@ export default {
   font-weight: 600;
 }
 
-.form-hint {
-  font-size: 15px;
-  color: #909399;
-  margin: 4px 0 0;
+/* 表單區塊樣式 */
+.form-section {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid #e9ecef;
 }
 
-.weight-input {
-  width: 100%;
-  max-width: 300px;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.section-header i {
+  font-size: 1.5rem;
+  color: #f08c00;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+/* 偏好設定樣式 */
+.preference-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.preference-chips .el-checkbox {
+  margin-right: 0;
+}
+
+.preference-chips .el-radio {
+  margin-right: 0;
+}
+
+/* 表單提示 */
+.form-hint {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 6px;
+  font-style: italic;
+}
+
+/* 熱量輸入群組 */
+.calorie-input-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.calorie-input-group .el-input-number {
+  flex-shrink: 0;
 }
 
 /* 密碼強度提示 */
@@ -728,14 +797,24 @@ export default {
   }
 }
 
-.calorie-input-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: nowrap;
-}
-
-.calorie-input {
-  flex-shrink: 0;
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .form-section {
+    padding: 16px;
+  }
+  
+  .preference-chips {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .calorie-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .calorie-input-group .el-input-number {
+    width: 100% !important;
+  }
 }
 </style>
