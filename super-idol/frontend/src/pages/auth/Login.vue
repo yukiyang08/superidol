@@ -233,7 +233,7 @@ const handleLogin = async () => {
 const testApiConnection = async () => {
   connectionStatus.value = 'waiting'
   try {
-    await api.get('/api') // 測試基本API連接
+    await api.get('/') // 測試基本API連接，使用根路徑
     connectionStatus.value = 'success'
   } catch (error) {
     console.error('API連接測試失敗:', error)
