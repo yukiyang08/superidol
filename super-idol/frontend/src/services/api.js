@@ -1,8 +1,10 @@
 import axios from 'axios'
 
-const baseURL = import.meta.env.PROD 
-    ? '/api'  // 生產環境直接使用相對路徑
-    : 'http://localhost:5000';  // 開發環境 - 移除了 /api 因為後端已經包含在路由中
+const baseURL = import.meta.env.VITE_API_BASE || (
+  import.meta.env.PROD 
+    ? ''  // 生產環境使用空字串，避免重複的 /api 路徑
+    : 'http://localhost:5000'  // 開發環境
+);
 
 // 創建 axios 實例
 export const api = axios.create({
