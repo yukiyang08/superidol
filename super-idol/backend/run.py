@@ -366,7 +366,7 @@ def static_info():
         'render_build_directory': os.environ.get('RENDER_BUILD_DIR', 'not_set')
     })
 
-# 移除前端路由處理器，只保留 API 路由
+# 保留 API 路由
 @app.route('/')
 def api_info():
     return jsonify({
@@ -381,7 +381,7 @@ def api_info():
             "reports": "/api/reports/*",
             "debug": "/api/debug/static-info"
         },
-        "note": "這是一個純 API 後端服務，前端請訪問 Vercel 部署的網址"
+        "note": "API 後端服務，前端請訪問 Vercel 部署的網址 https://superidol-mauve.vercel.app/"
     })
 
 if __name__ == '__main__':
