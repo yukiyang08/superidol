@@ -366,75 +366,23 @@ def static_info():
         'render_build_directory': os.environ.get('RENDER_BUILD_DIR', 'not_set')
     })
 
-# 前端路由處理
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    logger.info(f"請求路徑: {path}")
-    
-    if path.startswith('api/'):
-        # API請求由Flask處理
-        logger.info("API請求路徑，返回404")
-        return app.response_class(status=404)
-    
-    if path and path != '' and not path.startswith('api'):
-        # 嘗試從靜態文件夾提供文件
-        logger.info(f"嘗試提供靜態文件: {path}")
-        try:
-            full_path = os.path.join(app.static_folder, path)
-            logger.info(f"檢查文件是否存在: {full_path}")
-            if os.path.exists(full_path) and os.path.isfile(full_path):
-                return send_from_directory(app.static_folder, path)
-            logger.warning(f"文件不存在: {full_path}")
-        except Exception as e:
-            logger.error(f"提供靜態文件出錯: {str(e)}")
-    
-    # 默認返回index.html
-    logger.info(f"嘗試返回index.html，從目錄: {app.static_folder}")
-    try:
-        return send_from_directory(app.static_folder, 'index.html')
-    except Exception as e:
-        logger.error(f"提供index.html出錯: {str(e)}")
-        return f"錯誤: 無法加載前端應用。詳細信息: {str(e)}", 500
-
-# 提供備用首頁
-@app.route('/app-status')
-def app_status():
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
-    project_dir = os.path.dirname(backend_dir)
-    
-    # 檢查各種路徑
-    paths = [
-        ('前端構建目錄', os.path.join(project_dir, 'frontend', 'dist')),
-        ('後端靜態目錄', os.path.join(backend_dir, 'static')),
-        ('Flask 靜態目錄', app.static_folder)
-    ]
-    
-    path_info = []
-    for name, path in paths:
-        exists = os.path.exists(path)
-        has_index = exists and os.path.exists(os.path.join(path, 'index.html'))
-        path_info.append(f"{name}: {path} (存在: {exists}, 包含index.html: {has_index})")
-    
-    return f"""
-    <html>
-    <head>
-        <title>Super Idol 應用狀態</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
-            h1 {{ color: #333; }}
-            pre {{ background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }}
-        </style>
-    </head>
-    <body>
-        <h1>Super Idol API服務正在運行</h1>
-        <p>API路由可用，但前端靜態文件可能有問題。</p>
-        <h2>路徑信息:</h2>
-        <pre>{chr(10).join(path_info)}</pre>
-        <p>詳細診斷: <a href="/api/debug/static-info">/api/debug/static-info</a></p>
-    </body>
-    </html>
-    """
+# 移除前端路由處理器，只保留 API 路由
+@app.route('/')
+def api_info():
+    return jsonify({
+        "message": "Super Idol API 服務正在運行",
+        "status": "success",
+        "endpoints": {
+            "auth": "/api/auth/*",
+            "food": "/api/food/*", 
+            "exercise": "/api/exercise/*",
+            "preferences": "/api/preferences/*",
+            "myfavorite": "/api/myfavorite/*",
+            "reports": "/api/reports/*",
+            "debug": "/api/debug/static-info"
+        },
+        "note": "這是一個純 API 後端服務，前端請訪問 Vercel 部署的網址"
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
