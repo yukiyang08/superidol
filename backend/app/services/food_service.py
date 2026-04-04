@@ -449,18 +449,29 @@ def get_user_favorites(user_id):
 def add_to_favorites(user_id, food_id):
     conn = get_db_connection()
     try:
+        try:
+            user_id = int(user_id)
+            food_id = int(food_id)
+        except (TypeError, ValueError):
+            raise ValueError("user_id and food_id must be integers")
+
+        if user_id <= 0 or food_id <= 0:
+            raise ValueError("user_id and food_id must be positive integers")
+
         # 檢查用戶是否存在
         with conn.cursor() as cursor:
             cursor.execute("SELECT UserID FROM Users WHERE UserID = %s", (user_id,))
             user = cursor.fetchone()
             if not user:
                 raise ValueError(f"User with ID {user_id} not found")
+
         # 檢查食物是否存在
         with conn.cursor() as cursor:
             cursor.execute("SELECT FoodID FROM Food WHERE FoodID = %s", (food_id,))
             food = cursor.fetchone()
             if not food:
                 raise ValueError(f"Food with ID {food_id} not found")
+
         # 檢查是否已經收藏
         with conn.cursor() as cursor:
             cursor.execute(
@@ -469,22 +480,39 @@ def add_to_favorites(user_id, food_id):
             )
             existing = cursor.fetchone()
             if existing:
-                return {"message": "Food already in favorites"}
+                return {
+                    "created": False,
+                    "message": "Food already in favorites",
+                    "code": "favorite_already_exists"
+                }
+
         # 添加到收藏
         with conn.cursor() as cursor:
             sql = "INSERT INTO My_Favorite (UserID, FoodID) VALUES (%s, %s)"
             cursor.execute(sql, (user_id, food_id))
             conn.commit()
-            return {"message": "Food added to favorites successfully"}
-    except Exception as e:
+            return {
+                "created": True,
+                "message": "Food added to favorites successfully"
+            }
+    except Exception:
         conn.rollback()
-        raise Exception(f"Error adding food to favorites: {str(e)}")
+        raise
     finally:
         conn.close()
 
 def remove_from_favorites(user_id, food_id):
     conn = get_db_connection()
     try:
+        try:
+            user_id = int(user_id)
+            food_id = int(food_id)
+        except (TypeError, ValueError):
+            raise ValueError("user_id and food_id must be integers")
+
+        if user_id <= 0 or food_id <= 0:
+            raise ValueError("user_id and food_id must be positive integers")
+
         # 檢查是否存在該收藏
         with conn.cursor() as cursor:
             cursor.execute(
@@ -493,7 +521,12 @@ def remove_from_favorites(user_id, food_id):
             )
             favorite = cursor.fetchone()
             if not favorite:
-                raise ValueError(f"Food with ID {food_id} not found in user's favorites")
+                return {
+                    "removed": False,
+                    "message": f"Food with ID {food_id} not found in user's favorites",
+                    "code": "favorite_not_found"
+                }
+
         # 從收藏中移除
         with conn.cursor() as cursor:
             cursor.execute(
@@ -501,10 +534,13 @@ def remove_from_favorites(user_id, food_id):
                 (user_id, food_id)
             )
             conn.commit()
-            return {"message": "Food removed from favorites successfully"}
-    except Exception as e:
+            return {
+                "removed": True,
+                "message": "Food removed from favorites successfully"
+            }
+    except Exception:
         conn.rollback()
-        raise Exception(f"Error removing food from favorites: {str(e)}")
+        raise
     finally:
         conn.close()
 

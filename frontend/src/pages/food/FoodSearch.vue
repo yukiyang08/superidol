@@ -44,6 +44,7 @@
             <div class="form-group col-6">
                 <label class="form-label">價格範圍</label>
                 <div class="range-slider" role="group" aria-label="價格範圍選擇">
+                  <div class="range-summary">目前：{{ priceRangeLabel }}</div>
                   <div class="range-values">
                     <div class="range-input-group">
                       <span class="range-unit-prefix">$</span>
@@ -100,11 +101,24 @@
                     </div>
                     <span class="track-bound">${{ priceRangeMax }}</span>
                   </div>
+                  <div class="preset-chip-list" aria-label="價格快速篩選">
+                    <button
+                      v-for="preset in pricePresets"
+                      :key="preset.label"
+                      type="button"
+                      class="preset-chip"
+                      :class="{ active: priceMinValue === preset.min && priceMaxValue === preset.max }"
+                      @click="applyPricePreset(preset)"
+                    >
+                      {{ preset.label }}
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="form-group col-6">
                 <label class="form-label">熱量範圍</label>
                 <div class="range-slider" role="group" aria-label="熱量範圍選擇">
+                  <div class="range-summary">目前：{{ calRangeLabel }}</div>
                   <div class="range-values">
                     <div class="range-input-group">
                       <input
@@ -160,6 +174,18 @@
                       />
                     </div>
                     <span class="track-bound">{{ calRangeMax }}</span>
+                  </div>
+                  <div class="preset-chip-list" aria-label="熱量快速篩選">
+                    <button
+                      v-for="preset in calPresets"
+                      :key="preset.label"
+                      type="button"
+                      class="preset-chip"
+                      :class="{ active: calMinValue === preset.min && calMaxValue === preset.max }"
+                      @click="applyCalPreset(preset)"
+                    >
+                      {{ preset.label }}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -546,6 +572,12 @@ export default {
     const calStep = 10
     const calMinValue = ref(calRangeMin)
     const calMaxValue = ref(800)
+    const calPresets = [
+      { label: '低卡 0-300', min: 0, max: 300 },
+      { label: '輕食 300-600', min: 300, max: 600 },
+      { label: '主餐 600-900', min: 600, max: 900 },
+      { label: '高熱量 900-1500', min: 900, max: 1500 }
+    ]
 
     const parseFilterNumber = (value) => {
       if (value === '' || value === null || value === undefined) return null
@@ -565,17 +597,25 @@ export default {
       }
     }
 
-    const handleCalMinInput = () => {
-      if (calMinValue.value > calMaxValue.value) calMinValue.value = calMaxValue.value
+    const commitCalRange = () => {
       filters.value.calMin = calMinValue.value
       filters.value.calMax = calMaxValue.value
       handleFilterChange()
     }
+
+    const handleCalMinInput = () => {
+      if (calMinValue.value > calMaxValue.value) calMinValue.value = calMaxValue.value
+      commitCalRange()
+    }
     const handleCalMaxInput = () => {
       if (calMaxValue.value < calMinValue.value) calMaxValue.value = calMinValue.value
-      filters.value.calMin = calMinValue.value
-      filters.value.calMax = calMaxValue.value
-      handleFilterChange()
+      commitCalRange()
+    }
+
+    const applyCalPreset = (preset) => {
+      calMinValue.value = preset.min
+      calMaxValue.value = preset.max
+      commitCalRange()
     }
 
     const calLeftPercent = computed(() => {
@@ -586,6 +626,7 @@ export default {
       const span = calRangeMax - calRangeMin
       return 100 - ((calMaxValue.value - calRangeMin) / span) * 100
     })
+    const calRangeLabel = computed(() => `${calMinValue.value} - ${calMaxValue.value} kcal`)
 
     // 價格滑桿設定
     const priceRangeMin = 0
@@ -593,6 +634,12 @@ export default {
     const priceStep = 10
     const priceMinValue = ref(priceRangeMin)
     const priceMaxValue = ref(300)
+    const pricePresets = [
+      { label: '銅板 0-100', min: 0, max: 100 },
+      { label: '平價 100-200', min: 100, max: 200 },
+      { label: '中價 200-350', min: 200, max: 350 },
+      { label: '不限 0-1000', min: 0, max: 1000 }
+    ]
 
     const syncPriceValuesFromFilters = () => {
       const min = parseFilterNumber(filters.value.priceMin)
@@ -606,17 +653,25 @@ export default {
       }
     }
 
-    const handlePriceMinInput = () => {
-      if (priceMinValue.value > priceMaxValue.value) priceMinValue.value = priceMaxValue.value
+    const commitPriceRange = () => {
       filters.value.priceMin = priceMinValue.value
       filters.value.priceMax = priceMaxValue.value
       handleFilterChange()
     }
+
+    const handlePriceMinInput = () => {
+      if (priceMinValue.value > priceMaxValue.value) priceMinValue.value = priceMaxValue.value
+      commitPriceRange()
+    }
     const handlePriceMaxInput = () => {
       if (priceMaxValue.value < priceMinValue.value) priceMaxValue.value = priceMinValue.value
-      filters.value.priceMin = priceMinValue.value
-      filters.value.priceMax = priceMaxValue.value
-      handleFilterChange()
+      commitPriceRange()
+    }
+
+    const applyPricePreset = (preset) => {
+      priceMinValue.value = preset.min
+      priceMaxValue.value = preset.max
+      commitPriceRange()
     }
 
     const priceLeftPercent = computed(() => {
@@ -627,6 +682,7 @@ export default {
       const span = priceRangeMax - priceRangeMin
       return 100 - ((priceMaxValue.value - priceRangeMin) / span) * 100
     })
+    const priceRangeLabel = computed(() => `$${priceMinValue.value} - $${priceMaxValue.value}`)
 
     // 無限滾動顯示數量
     const itemsToShow = ref(20)
@@ -1208,8 +1264,11 @@ export default {
       calMaxValue,
       calLeftPercent,
       calRightPercent,
+      calRangeLabel,
+      calPresets,
       handleCalMinInput,
       handleCalMaxInput,
+      applyCalPreset,
       // 價格滑桿
       priceRangeMin,
       priceRangeMax,
@@ -1218,8 +1277,11 @@ export default {
       priceMaxValue,
       priceLeftPercent,
       priceRightPercent,
+      priceRangeLabel,
+      pricePresets,
       handlePriceMinInput,
       handlePriceMaxInput,
+      applyPricePreset,
       // exercise
       exerciseModal,
       exerciseResults,
@@ -1487,6 +1549,11 @@ export default {
 
 /* 雙滑桿樣式 */
 .range-slider { display: flex; flex-direction: column; gap: 10px; }
+.range-summary {
+  font-size: .84rem;
+  color: #6b7280;
+  font-weight: 600;
+}
 .range-values { display: flex; align-items: center; gap: 10px; }
 .range-input-group {
   display: flex; align-items: center;
@@ -1517,6 +1584,36 @@ export default {
 .slider-input::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid var(--primary-color); box-shadow: 0 2px 8px rgba(255,170,85,.4); pointer-events: auto; cursor: pointer; }
 .slider-input::-webkit-slider-runnable-track { height: 8px; background: transparent; }
 .slider-input::-moz-range-track { height: 8px; background: transparent; }
+
+.preset-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.preset-chip {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: .78rem;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.preset-chip:hover {
+  border-color: #f8b84a;
+  background: #fff8eb;
+  color: #b87915;
+}
+
+.preset-chip.active {
+  border-color: #e6a23c;
+  background: linear-gradient(135deg, #f8b84a 0%, #e6a23c 100%);
+  color: #fff;
+}
 
 /* 調整表單為 12 欄格線 */
 .search-form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }

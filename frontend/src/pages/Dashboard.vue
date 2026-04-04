@@ -43,22 +43,23 @@
           <div class="card-content">
             <div class="nutrient-grid">
               <div class="nutrient-item">
-                <span class="nutrient-value">{{ todaySummary.protein }}g</span>
+                <span class="nutrient-value">{{ formatNutrient(todaySummary.protein) }}</span>
                 <span class="nutrient-label">蛋白質</span>
               </div>
               <div class="nutrient-item">
-                <span class="nutrient-value">{{ todaySummary.carbs }}g</span>
+                <span class="nutrient-value">{{ formatNutrient(todaySummary.carbs) }}</span>
                 <span class="nutrient-label">碳水化合物</span>
               </div>
               <div class="nutrient-item">
-                <span class="nutrient-value">{{ todaySummary.fat }}g</span>
+                <span class="nutrient-value">{{ formatNutrient(todaySummary.fat) }}</span>
                 <span class="nutrient-label">脂肪</span>
               </div>
               <div class="nutrient-item">
-                <span class="nutrient-value">{{ todaySummary.sugar }}g</span>
+                <span class="nutrient-value">{{ formatNutrient(todaySummary.sugar) }}</span>
                 <span class="nutrient-label">糖</span>
               </div>
             </div>
+            <p class="nutrient-note">營養素細項整合中，目前以熱量追蹤為主。</p>
           </div>
         </div>
         
@@ -72,11 +73,11 @@
                   <span class="food-name">{{ food.name }}</span>
                   <span class="food-calories">{{ food.calories }} 卡路里</span>
                 </div>
-                <span class="food-time">{{ formatTime(food.timestamp) }}</span>
+                <span class="food-time">{{ food.timeLabel }}</span>
               </div>
             </div>
             <div v-else class="empty-state">
-              <p>今天還沒有食物記錄</p>
+              <p>尚未有食物記錄</p>
               <router-link to="/food/search" class="btn btn-primary">添加食物</router-link>
             </div>
           </div>
@@ -97,7 +98,7 @@
             </div>
             <div v-else class="empty-state">
               <p>今天還沒有運動記錄</p>
-              <router-link to="/exercise/log" class="btn btn-primary">記錄運動</router-link>
+              <router-link to="/exercise/record" class="btn btn-primary">記錄運動</router-link>
             </div>
           </div>
         </div>
@@ -107,17 +108,18 @@
 </template>
 
 <script>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../store/auth'
-// 根據需要導入其他 store
+import api from '../services/api'
 
 export default {
   name: 'Dashboard',
   setup() {
     const authStore = useAuthStore()
     const user = computed(() => authStore.user || {})
+    const isLoading = ref(false)
+    const hasLoaded = ref(false)
     
-    // 範例資料，實際應用中應該從 API 或 store 獲取
     const userGoals = ref({
       dailyCalories: 2000,
       protein: 150,
@@ -126,32 +128,26 @@ export default {
     })
     
     const todaySummary = ref({
-      caloriesConsumed: 1250,
-      protein: 85,
-      carbs: 120,
-      fat: 45,
-      sugar: 30
+      caloriesConsumed: 0,
+      protein: null,
+      carbs: null,
+      fat: null,
+      sugar: null
     })
     
-    const recentFoods = ref([
-      { id: 1, name: '牛肉漢堡', calories: 450, timestamp: new Date(Date.now() - 3600000) },
-      { id: 2, name: '凱薩沙拉', calories: 320, timestamp: new Date(Date.now() - 7200000) },
-      { id: 3, name: '水果優格', calories: 180, timestamp: new Date(Date.now() - 10800000) }
-    ])
+    const recentFoods = ref([])
     
-    const todayExercises = ref([
-      { id: 1, name: '跑步', duration: 30, caloriesBurned: 300 },
-      { id: 2, name: '健身房重訓', duration: 45, caloriesBurned: 250 }
-    ])
+    const todayExercises = ref([])
     
     // 計算剩餘卡路里
     const caloriesRemaining = computed(() => {
-      return userGoals.value.dailyCalories - todaySummary.value.caloriesConsumed
+      return Math.max(0, userGoals.value.dailyCalories - todaySummary.value.caloriesConsumed)
     })
     
     // 計算卡路里進度百分比
     const calorieProgressPercentage = computed(() => {
-      return (todaySummary.value.caloriesConsumed / userGoals.value.dailyCalories) * 100
+      if (!userGoals.value.dailyCalories) return 0
+      return Math.min(100, (todaySummary.value.caloriesConsumed / userGoals.value.dailyCalories) * 100)
     })
     
     // 格式化日期
@@ -160,18 +156,88 @@ export default {
       return new Date().toLocaleDateString('zh-TW', options)
     })
     
-    // 格式化時間
-    const formatTime = (timestamp) => {
-      return new Date(timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
+    const formatNutrient = (value) => {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '--'
+      return `${Math.round(Number(value))}g`
+    }
+
+    const getTodayString = () => {
+      const now = new Date()
+      const y = now.getFullYear()
+      const m = String(now.getMonth() + 1).padStart(2, '0')
+      const d = String(now.getDate()).padStart(2, '0')
+      return `${y}-${m}-${d}`
+    }
+
+    const getUserId = () => {
+      return user.value?.id || localStorage.getItem('userId')
+    }
+
+    const loadDashboardData = async () => {
+      const userId = getUserId()
+      if (!userId) return
+
+      isLoading.value = true
+      const today = getTodayString()
+
+      try {
+        const [summaryResult, foodResult, exerciseResult] = await Promise.allSettled([
+          api.get('/api/reports/summary', {
+            params: { user_id: userId, report_type: 'daily', start_date: today }
+          }),
+          api.get('/api/food/record', { params: { user_id: userId } }),
+          api.get('/api/exercise/records', {
+            params: { user_id: userId, start_date: today, end_date: today }
+          })
+        ])
+
+        if (summaryResult.status === 'fulfilled') {
+          const summaryData = summaryResult.value?.data || {}
+          userGoals.value.dailyCalories = summaryData.user_goals?.daily_calories || 2000
+          todaySummary.value.caloriesConsumed = summaryData.period_summary?.total_calories_intake || 0
+        }
+
+        if (foodResult.status === 'fulfilled') {
+          const records = Array.isArray(foodResult.value?.data) ? foodResult.value.data : []
+          recentFoods.value = records.slice(0, 3).map((item) => ({
+            id: item.record_id,
+            name: item.name || '未命名食物',
+            calories: Math.round(Number(item.calories || 0)),
+            timeLabel: [item.date, item.mealtime].filter(Boolean).join(' ')
+          }))
+        }
+
+        if (exerciseResult.status === 'fulfilled') {
+          const records = Array.isArray(exerciseResult.value?.data?.records)
+            ? exerciseResult.value.data.records
+            : []
+          todayExercises.value = records.slice(0, 3).map((item) => ({
+            id: item.RecordID || item.record_id,
+            name: item.Exercise_Name || item.exercise_name || '未知運動',
+            duration: Math.round(Number(item.Duration || item.duration || 0)),
+            caloriesBurned: Math.round(Number(item.calories_burned || 0))
+          }))
+        }
+      } catch (error) {
+        console.error('載入 Dashboard 資料失敗:', error)
+      } finally {
+        isLoading.value = false
+        hasLoaded.value = true
+      }
     }
     
     onMounted(() => {
-      // 在組件掛載時加載數據
-      // loadUserData()
-      // loadTodaySummary()
-      // loadRecentFoods()
-      // loadTodayExercises()
+      loadDashboardData()
     })
+
+    watch(
+      () => user.value?.id,
+      (newId) => {
+        if (newId && hasLoaded.value) {
+          loadDashboardData()
+        }
+      }
+    )
     
     return {
       user,
@@ -182,7 +248,8 @@ export default {
       caloriesRemaining,
       calorieProgressPercentage,
       currentDate,
-      formatTime
+      formatNutrient,
+      isLoading
     }
   }
 }
@@ -362,6 +429,13 @@ export default {
   font-size: 14px;
   color: var(--text-light);
   font-family: var(--font-tc), var(--font-en);
+}
+
+.nutrient-note {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-light);
+  text-align: center;
 }
 
 /* 食物記錄和運動卡片樣式 */
