@@ -226,7 +226,7 @@
                 loading="lazy"
               >
               <div class="calorie-on-image-button">
-                <span class="calorie-value">{{ Math.round(food.calories) }}</span>
+                <span class="calorie-value">{{ formatCalories(food.calories) }}</span>
                 <span class="calorie-unit">大卡</span>
               </div>
             </div>
@@ -291,21 +291,17 @@
                 </div>
               </div>
               <div class="food-actions">
-                <button class="action-btn calculator-btn" @click="openExerciseModal(food)" aria-label="開啟運動計算">
+                <button class="action-btn calculator-btn" @click="openExerciseModal(food)" aria-label="開啟運動計算" title="運動計算">
                   <el-icon><DataAnalysis /></el-icon>
-                  運動計算
                 </button>
-                <button class="action-btn favorite-btn" :disabled="favoriteFoodIds.has(food.id)" @click="addToFavorites(food)" v-if="!favoriteFoodIds.has(food.id)" aria-label="加入最愛">
+                <button class="action-btn favorite-btn" :disabled="favoriteFoodIds.has(food.id)" @click="addToFavorites(food)" v-if="!favoriteFoodIds.has(food.id)" aria-label="加入最愛" title="加入最愛">
                   <el-icon><Star /></el-icon>
-                  加入最愛
                 </button>
-                <button class="action-btn favorite-btn" disabled v-else aria-label="已收藏">
+                <button class="action-btn favorite-btn" disabled v-else aria-label="已收藏" title="已收藏">
                   <el-icon style="color: #E6A23C"><StarFilled /></el-icon>
-                  已收藏
                 </button>
-                <button class="action-btn record-btn" @click="openFoodRecordModal(food)" aria-label="加入記錄">
+                <button class="action-btn record-btn" @click="openFoodRecordModal(food)" aria-label="加入記錄" title="加入記錄">
                   <el-icon><Plus /></el-icon>
-                  加入記錄
                 </button>
               </div>
             </div>
@@ -338,7 +334,7 @@
                   @load="onImageLoad(food)"
                 >
                 <div class="calorie-on-image-button">
-                  <span class="calorie-value">{{ Math.round(food.calories) }}</span>
+                  <span class="calorie-value">{{ formatCalories(food.calories) }}</span>
                   <span class="calorie-unit">大卡</span>
                 </div>
               </div>
@@ -346,7 +342,7 @@
               <div class="food-info">
                   <div class="food-name-price-line">
                 <h3 class="food-name">{{ food.name }}</h3>
-                    <span class="food-price-prominent">${{ food.price ? food.price.toFixed(2) : '--' }}</span>
+                    <span class="food-price-prominent">${{ formatPrice(food.price) }}</span>
                     <el-tooltip placement="top" effect="dark" :disabled="!hasNutritionInfo(food)">
                       <template #content>
                         <div class="nutrition-tooltip improved-tooltip">
@@ -399,21 +395,17 @@
                 </div>
               </div>
               <div class="food-actions">
-                <button class="action-btn calculator-btn" @click="openExerciseModal(food)">
+                <button class="action-btn calculator-btn" @click="openExerciseModal(food)" aria-label="開啟運動計算" title="運動計算">
                   <el-icon><DataAnalysis /></el-icon>
-                  運動計算
                 </button>
-                <button class="action-btn favorite-btn" :disabled="favoriteFoodIds.has(food.id)" @click="addToFavorites(food)" v-if="!favoriteFoodIds.has(food.id)">
+                <button class="action-btn favorite-btn" :disabled="favoriteFoodIds.has(food.id)" @click="addToFavorites(food)" v-if="!favoriteFoodIds.has(food.id)" aria-label="加入最愛" title="加入最愛">
                   <el-icon><Star /></el-icon>
-                    加入最愛
                 </button>
-                <button class="action-btn favorite-btn" disabled v-else>
+                <button class="action-btn favorite-btn" disabled v-else aria-label="已收藏" title="已收藏">
                   <el-icon style="color: #E6A23C"><StarFilled /></el-icon>
-                  已收藏
                 </button>
-                  <button class="action-btn record-btn" @click="openFoodRecordModal(food)">
+                  <button class="action-btn record-btn" @click="openFoodRecordModal(food)" aria-label="加入記錄" title="加入記錄">
                   <el-icon><Plus /></el-icon>
-                  加入記錄
                 </button>
                 </div>
               </div>
@@ -508,14 +500,19 @@ const DEFAULT_EXERCISES = ['跑步', '游泳', '騎腳踏車', '健走']
 // 新增：防抖函數
 function debounce(func, wait) {
   let timeout
-  return function executedFunction(...args) {
+  const debounced = function executedFunction(...args) {
     const later = () => {
-      clearTimeout(timeout)
+      timeout = null
       func(...args)
     }
     clearTimeout(timeout)
     timeout = setTimeout(later, wait)
   }
+  debounced.cancel = () => {
+    clearTimeout(timeout)
+    timeout = null
+  }
+  return debounced
 }
 
 export default {
@@ -637,21 +634,16 @@ export default {
     const infiniteSentinel = ref(null)
     const canLoadMore = computed(() => searchResults.value.length > itemsToShow.value)
 
-    // 防抖搜尋
+    // 防抖搜尋（單一 400ms 延遲，避免雙重 debounce 疊加至 800ms）
     const debouncedSearch = debounce(async () => {
-      await performSearch()
-    }, 500)
+      if (hasActiveFilters()) {
+        itemsToShow.value = pageSize
+        await performSearch()
+      }
+    }, 400)
 
     const handleFilterChange = () => {
-      if (searchTimeout.value) {
-        clearTimeout(searchTimeout.value)
-      }
-      searchTimeout.value = setTimeout(() => {
-        if (hasActiveFilters()) {
-          itemsToShow.value = pageSize
-          debouncedSearch()
-        }
-      }, 300)
+      debouncedSearch()
     }
 
     const hasActiveFilters = () => {
@@ -676,6 +668,9 @@ export default {
       return f
     }
 
+    // 追蹤進行中的請求，供取消使用
+    let currentAbortController = null
+
     const performSearch = async () => {
       if (!hasActiveFilters()) return
 
@@ -685,6 +680,13 @@ export default {
         hasSearched.value = true
         return
       }
+
+      // 取消上一個尚未完成的請求
+      if (currentAbortController) {
+        currentAbortController.abort()
+      }
+      currentAbortController = new AbortController()
+      const signal = currentAbortController.signal
 
       isLoading.value = true
       hasSearched.value = true
@@ -700,7 +702,7 @@ export default {
         if (filters.value.type !== '') params.type = filters.value.type
         if (filters.value.food_type.length > 0) params.food_type = filters.value.food_type.join(',')
 
-        const { data } = await api.get('/api/food/', { params })
+        const { data } = await api.get('/api/food/', { params, signal })
 
         setCachedResults(normalizeFilters(filters.value), data)
         preloadImages(data)
@@ -722,6 +724,7 @@ export default {
           Caffeine: item.Caffeine
         }))
       } catch (error) {
+        if (error.code === 'ERR_CANCELED') return  // 被新請求取消，靜默忽略
         console.error('搜尋食物失敗:', error)
         ElMessage.error('搜尋食物失敗，請稍後再試')
         searchResults.value = []
@@ -731,9 +734,7 @@ export default {
     }
 
     const handleSearch = async () => {
-      if (searchTimeout.value) {
-        clearTimeout(searchTimeout.value)
-      }
+      debouncedSearch.cancel()
       itemsToShow.value = pageSize
       await performSearch()
     }
@@ -838,6 +839,11 @@ export default {
     const formatPrice = (value) => {
       const num = Number(value)
       return Number.isFinite(num) ? num.toFixed(2) : '--'
+    }
+
+    const formatCalories = (value) => {
+      const num = Number(value)
+      return Number.isFinite(num) && !isNaN(num) ? Math.round(num) : '--'
     }
 
     const imageLoaded = ref({});
@@ -1227,6 +1233,7 @@ export default {
       onRecordSaved,
       setDefaultImageOnError,
       formatPrice,
+      formatCalories,
       imageLoaded,
       onImageLoad,
       hasNutritionInfo,
@@ -1436,12 +1443,12 @@ export default {
 .detail-item .icon { color: var(--primary-color-light); }
 
 /* 操作列 */
-.food-actions { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border-color-lighter); display: flex; gap: 10px; justify-content: space-between; }
-.action-btn { flex: 1; padding: 10px 12px; font-size: .92rem; font-weight: 600; border-radius: 12px; border: 1px solid #e6e8ef; background: #f8fafc; color: #475569; cursor: pointer; transition: all .16s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.04); }
+.food-actions { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border-color-lighter); display: flex; gap: 10px; justify-content: flex-end; }
+.action-btn { flex: 0 0 42px; width: 42px; height: 42px; padding: 0; border-radius: 12px; border: 1px solid #e6e8ef; background: #f8fafc; color: #475569; cursor: pointer; transition: all .16s ease; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,.04); }
 .action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 14px rgba(0,0,0,.08); }
-.action-btn i { font-size: 1.2em; color: #8b95a5; }
+.action-btn .el-icon { font-size: 1.15rem; color: #8b95a5; }
 .action-btn.record-btn { background: linear-gradient(135deg, #f8b84a 0%, #e6a23c 100%); border-color: #e3a03b; color: #fff; box-shadow: 0 4px 10px rgba(230,162,60,.25); }
-.action-btn.record-btn i { color: #fff; }
+.action-btn.record-btn .el-icon { color: #fff; }
 .action-btn.record-btn:hover { box-shadow: 0 10px 24px rgba(230,162,60,.35); }
 
 /* 無結果/載入 */

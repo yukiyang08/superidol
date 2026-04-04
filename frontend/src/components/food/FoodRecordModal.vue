@@ -63,6 +63,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import api from '@/services/api'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
@@ -115,44 +116,24 @@ const saveRecord = async () => {
       return
     }
     if (props.editMode && props.record) {
-      const response = await fetch(`http://localhost:5000/api/food/record/${props.record.record_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: parseInt(userId),
-          mealtime: selectedMealType.value,
-          quantity: quantity.value,
-          date: selectedDateString.value
-        })
+      await api.put(`/api/food/record/${props.record.record_id}`, {
+        user_id: parseInt(userId),
+        mealtime: selectedMealType.value,
+        quantity: quantity.value,
+        date: selectedDateString.value
       })
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`API 請求失敗: ${response.status} ${response.statusText} - ${errorText}`)
-      }
       ElMessage.success('已成功更新食物記錄')
       emit('saved')
       close()
     } else {
       const food_id = props.food?.food_id ?? props.food?.id
-      const response = await fetch('http://localhost:5000/api/food/record', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: parseInt(userId),
-          food_id,
-          mealtime: selectedMealType.value,
-          quantity: quantity.value,
-          date: selectedDateString.value
-        })
+      await api.post('/api/food/record', {
+        user_id: parseInt(userId),
+        food_id,
+        mealtime: selectedMealType.value,
+        quantity: quantity.value,
+        date: selectedDateString.value
       })
-      if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`API 請求失敗: ${response.status} ${response.statusText} - ${errorText}`)
-      }
       ElMessage.success('已成功添加到食物記錄')
       emit('saved')
       close()

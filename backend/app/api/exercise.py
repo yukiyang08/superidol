@@ -17,10 +17,15 @@ exercise_bp = Blueprint('exercise', __name__)
 @exercise_bp.route('/items', methods=['GET'])
 def get_exercise_items_api():
     """
-    獲取所有可用的運動項目。
-    
-    Returns:
-        200: 運動項目列表
+        獲取所有可用的運動項目
+        ---
+        tags:
+            - Exercise
+        responses:
+            200:
+                description: 運動項目列表
+            500:
+                description: 伺服器錯誤
     """
     try:
         print("開始獲取運動項目...")
@@ -49,13 +54,7 @@ def get_exercise_items_api():
 
 @exercise_bp.route('/log', methods=['POST'])
 def log_exercise_api():
-    """
-    新增一筆運動紀錄。
-    Request body:
-      exercise_name: 運動名稱
-      duration: 持續時間（分鐘）
-      date: 運動日期
-    """
+
     try:
         data = request.get_json() or {}
         user_id = data.get('user_id')
@@ -92,13 +91,6 @@ def get_exercise_records_api():
 def manage_exercise_preferences():
     """
     Manage user's exercise preferences.
-    ---
-    Methods:
-      GET: Get user's exercise preferences
-      POST: Set exercise preferences
-    Responses:
-      200:
-        description: Operation successful
     """
     # TODO: Implement exercise preferences management
     return jsonify({"message": "Exercise preferences endpoint - to be implemented"}), 200 
@@ -129,13 +121,7 @@ def update_exercise_record_api(record_id):
 
 @exercise_bp.route('/<int:record_id>', methods=['DELETE'])
 def delete_exercise_record_api(record_id):
-    """
-    刪除一筆運動紀錄。
-    Path params:
-      record_id: 運動紀錄ID
-    Query params:
-      user_id: 使用者ID
-    """
+   
     try:
         user_id = request.args.get('user_id', type=int)
         if not user_id:
@@ -149,11 +135,7 @@ def delete_exercise_record_api(record_id):
 
 @exercise_bp.route('/food/exercise/calculator', methods=['GET'])
 def exercise_calculator_api():
-    """
-    根據卡路里計算所有運動所需分鐘數，動態抓 ExerciseItem 表。
-    Query: calories=xxx&user_id=xxx
-    回傳: {exercises: [{type, duration}, ...]}
-    """
+
     from app.db import get_db_connection
     calories = float(request.args.get('calories', 0))
     user_id = request.args.get('user_id', type=int)

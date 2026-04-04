@@ -107,7 +107,7 @@
               <el-icon><MostlyCloudy /></el-icon> 卡路里消耗
             </div>
             <div class="summary-value">{{ periodSummary.totalCaloriesBurned }} <span class="unit">大卡</span></div>
-             <div class="summary-description" v-if="currentReportType === 'weekly'">
+            <div class="summary-description" v-if="currentReportType === 'weekly'">
               平均每日: {{ periodSummary.avgDailyCaloriesBurned }} <span class="unit-small">大卡</span>
             </div>
             <div class="summary-description">
@@ -117,7 +117,7 @@
 
           <div class="summary-card">
             <div class="summary-title">
-             <el-icon><Timer /></el-icon> 運動時長
+              <el-icon><Timer /></el-icon> 運動時長
             </div>
             <div class="summary-value">{{ periodSummary.total_exercise_duration_minutes }} <span class="unit">分鐘</span></div>
             <div class="summary-description" v-if="currentReportType === 'weekly'">
@@ -237,6 +237,7 @@ import {
   Present, Tickets, Opportunity, Star, InfoFilled 
 } from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/date'
+import api from '@/services/api'
 
 
 export default {
@@ -254,8 +255,8 @@ export default {
     const targetDate = ref(new Date())
     const reportData = ref(null)
     const isLoading = ref(false)
-    const selectedMonth = ref(new Date(2025, 0, 1))
-    const customRange = ref([new Date(2025, 4, 1), new Date(2025, 4, 7)])
+    const selectedMonth = ref(new Date())
+    const customRange = ref([new Date(), new Date()])
     const weeklySummaries = ref([])
 
     const calorieChartEl = ref(null);
@@ -266,6 +267,7 @@ export default {
     today.setHours(0,0,0,0);
     const thisYear = today.getFullYear();
     const thisMonth = today.getMonth();
+    const yearRange = [thisYear, thisYear]
     // 本週週一
     const thisWeekMonday = new Date(today);
     thisWeekMonday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
@@ -281,7 +283,7 @@ export default {
       d.setHours(0,0,0,0);
       const todayLocal = new Date();
       todayLocal.setHours(0,0,0,0);
-      return d <= todayLocal && d.getFullYear() === 2025;
+      return d <= todayLocal && d.getFullYear() === thisYear;
     };
     // 週報告：只能查本週且不超過今天
     const allowedWeekDatesFn = (dateToCheck) => {
@@ -293,7 +295,7 @@ export default {
       const monday = new Date(todayLocal);
       monday.setDate(todayLocal.getDate() - ((todayLocal.getDay() + 6) % 7));
       monday.setHours(0,0,0,0);
-      return d >= monday && d <= todayLocal && d.getFullYear() === 2025;
+      return d >= monday && d <= todayLocal && d.getFullYear() === thisYear;
     };
     // 月報告：只能查本月
     const allowedMonthsFn = (dateToCheck) => {
@@ -307,25 +309,15 @@ export default {
       d.setHours(0,0,0,0);
       const todayLocal = new Date();
       todayLocal.setHours(0,0,0,0);
-      return d <= todayLocal && d.getFullYear() === 2025;
+      return d <= todayLocal && d.getFullYear() === thisYear;
     };
 
     const initializeTargetDate = () => {
       let initialDisplayDate = new Date(); 
       initialDisplayDate.setHours(0,0,0,0);
 
-      // Clamp initialDisplayDate to 2025, and not in future if current year is 2025
-      if (initialDisplayDate.getFullYear() !== 2025) {
-        if (initialDisplayDate.getFullYear() < 2025) {
-          initialDisplayDate = new Date(2025, 0, 1); // Default to Jan 1, 2025
-        } else { // initialDisplayDate.getFullYear() > 2025
-          initialDisplayDate = new Date(2025, 11, 31); // Default to Dec 31, 2025
-        }
-      } else { // initialDisplayDate.getFullYear() === 2025
-        // If today is also in 2025, make sure initialDisplayDate is not after today
-        if (today.getFullYear() === 2025 && initialDisplayDate > today) {
-          initialDisplayDate = new Date(today); // Clamp to today
-        }
+      if (initialDisplayDate > today) {
+        initialDisplayDate = new Date(today)
       }
       
       targetDate.value = new Date(initialDisplayDate);
@@ -376,12 +368,7 @@ export default {
           apiUrl += `&report_type=custom&start_date=${startDateStr}&end_date=${endDateStr}`
         }
 
-        const response = await fetch(apiUrl)
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(`API 請求失敗: ${response.status} - ${errorData.error || response.statusText}`)
-        }
-        const data = await response.json()
+        const { data } = await api.get(apiUrl)
         reportData.value = data
         if (currentReportType.value === 'monthly' && data.weekly_summaries) {
           weeklySummaries.value = data.weekly_summaries;
@@ -469,13 +456,12 @@ export default {
       currentReportType.value = newType;
       if (newType === 'monthly') {
         const now = new Date();
-        if (now.getFullYear() === 2025) {
-          selectedMonth.value = new Date(2025, now.getMonth(), 1);
-        } else {
-          selectedMonth.value = new Date(2025, 0, 1);
-        }
+        selectedMonth.value = new Date(now.getFullYear(), now.getMonth(), 1);
       } else if (newType === 'custom') {
-        customRange.value = [new Date(2025, 4, 1), new Date(2025, 4, 7)]; // 五月1日~7日
+        const end = new Date(today)
+        const start = new Date(today)
+        start.setDate(start.getDate() - 6)
+        customRange.value = [start, end]
       } else if (newType === 'daily' || newType === 'weekly') {
         initializeTargetDate();
       }

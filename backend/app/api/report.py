@@ -14,17 +14,17 @@ CORS(report_bp)
 @report_bp.route('/summary', methods=['GET'])
 def summary_report_api():
     """
-    獲取摘要報告 API (日報/週報)
-    ---
-    查詢參數:
-      user_id: 用戶ID (必填, int)
-      report_type: 報告類型 ('daily', 'weekly') (必填, str)
-      start_date: 開始日期 (YYYY-MM-DD) (可選, str)
-      end_date: 結束日期 (YYYY-MM-DD) (可選, str)
-    回應:
-      200: 報告 JSON
-      400: 缺少必要參數或格式錯誤
-      500: 伺服器錯誤
+        獲取摘要報告
+        ---
+        tags:
+            - Reports
+        responses:
+            200:
+                description: 成功回傳報表資料
+            400:
+                description: 參數錯誤
+            500:
+                description: 伺服器錯誤
     """
     user_id = request.args.get('user_id')
     report_type = request.args.get('report_type')
@@ -66,13 +66,6 @@ def summary_report_api():
 def get_trends():
     """
     Get user's trends over multiple weeks.
-    ---
-    Parameters:
-      - weeks: Number of weeks to analyze
-      - end_date: End date for analysis (optional, defaults to current date)
-    Responses:
-      200:
-        description: Trend analysis data
     """
     # TODO: Implement trend analysis
     return jsonify({"message": "Trends endpoint - to be implemented"}), 200 

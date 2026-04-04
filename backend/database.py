@@ -18,25 +18,48 @@ load_dotenv(env_path)
 #ssd
 #ssd12
 # Database configuration
+DB_ENGINE = os.getenv("DB_ENGINE", "mysql").lower()
+DATABASE_URL = os.getenv("DATABASE_URL")
+SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "3306")  # Default MySQL port
-DB_NAME = "superidol"  # 修改為正確的資料庫名稱!
+DB_NAME = os.getenv("DB_NAME", "superidol")
 
-# Validate required environment variables
-required_vars = {
-    "DB_USER": DB_USER,
-    "DB_PASSWORD": DB_PASSWORD,
-    "DB_HOST": DB_HOST
-}
+if DB_ENGINE == "supabase":
+    DB_ENGINE = "postgres"
 
-missing_vars = [var for var, value in required_vars.items() if not value]
-if missing_vars:
-    raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+if DB_ENGINE == "postgres":
+    SQLALCHEMY_DATABASE_URL = SUPABASE_DB_URL or DATABASE_URL
+    if not SQLALCHEMY_DATABASE_URL:
+        required_vars = {
+            "DB_USER": DB_USER,
+            "DB_PASSWORD": DB_PASSWORD,
+            "DB_HOST": DB_HOST,
+        }
+        missing_vars = [var for var, value in required_vars.items() if not value]
+        if missing_vars:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+        DB_PORT = os.getenv("DB_PORT", "5432")
+        sslmode = os.getenv("DB_SSLMODE", "require")
+        SQLALCHEMY_DATABASE_URL = (
+            f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?sslmode={sslmode}"
+        )
+else:
+    # Validate required environment variables
+    required_vars = {
+        "DB_USER": DB_USER,
+        "DB_PASSWORD": DB_PASSWORD,
+        "DB_HOST": DB_HOST
+    }
 
-# Create database URL
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    missing_vars = [var for var, value in required_vars.items() if not value]
+    if missing_vars:
+        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+
+    # Create database URL
+    SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 try:
     # Create engine with connection pooling

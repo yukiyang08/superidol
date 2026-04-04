@@ -1,27 +1,16 @@
 services:
   - type: web
-    name: super-idol
+    name: super-idol-api
     env: python
-
-    buildCommand: |
-      set -e
-      cd super-idol/frontend
-      npm ci || npm i
-      npm run build
-      cd ../..
-      pip install -r backend/requirements.txt
-      mkdir -p backend/static
-      cp -rv frontend/dist/* backend/static/
-
-    startCommand: |
-      cd super-idol/backend
-      gunicorn --bind 0.0.0.0:$PORT --log-level info run:app
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --log-level info run:app
 
     envVars:
       - key: DB_HOST
         value: <your-db-host>
       - key: DB_PORT
-        value: 3306
+        value: 5432
       - key: DB_USER
         value: <your-db-user>
       - key: DB_PASSWORD
@@ -38,5 +27,3 @@ services:
         value: INFO
       - key: CORS_ORIGINS
         value: "https://<your-vercel-domain>"
-      - key: RENDER
-        value: "true"

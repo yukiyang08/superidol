@@ -101,40 +101,40 @@ def search_food(filters):
         if filters.get('priceMin') is not None:
             price_min = filters['priceMin']
             if isinstance(price_min, (int, float, decimal.Decimal)):
-                sql += " AND f.Price >= %s"
+                sql += " AND (f.Price IS NULL OR f.Price >= %s)"
                 params.append(float(price_min))
             elif isinstance(price_min, str) and price_min.strip():
-                sql += " AND f.Price >= %s"
+                sql += " AND (f.Price IS NULL OR f.Price >= %s)"
                 params.append(float(price_min.strip()))
         
         # priceMax
         if filters.get('priceMax') is not None:
             price_max = filters['priceMax']
             if isinstance(price_max, (int, float, decimal.Decimal)):
-                sql += " AND f.Price <= %s"
+                sql += " AND (f.Price IS NULL OR f.Price <= %s)"
                 params.append(float(price_max))
             elif isinstance(price_max, str) and price_max.strip():
-                sql += " AND f.Price <= %s"
+                sql += " AND (f.Price IS NULL OR f.Price <= %s)"
                 params.append(float(price_max.strip()))
         
         # calMin
         if filters.get('calMin') is not None:
             cal_min = filters['calMin']
             if isinstance(cal_min, (int, float, decimal.Decimal)):
-                sql += " AND f.Calories >= %s"
+                sql += " AND (f.Calories IS NULL OR f.Calories >= %s)"
                 params.append(float(cal_min))
             elif isinstance(cal_min, str) and cal_min.strip():
-                sql += " AND f.Calories >= %s"
+                sql += " AND (f.Calories IS NULL OR f.Calories >= %s)"
                 params.append(float(cal_min.strip()))
         
         # calMax
         if filters.get('calMax') is not None:
             cal_max = filters['calMax']
             if isinstance(cal_max, (int, float, decimal.Decimal)):
-                sql += " AND f.Calories <= %s"
+                sql += " AND (f.Calories IS NULL OR f.Calories <= %s)"
                 params.append(float(cal_max))
             elif isinstance(cal_max, str) and cal_max.strip():
-                sql += " AND f.Calories <= %s"
+                sql += " AND (f.Calories IS NULL OR f.Calories <= %s)"
                 params.append(float(cal_max.strip()))
         
         # name - 使用索引友好的查詢
@@ -509,15 +509,7 @@ def remove_from_favorites(user_id, food_id):
         conn.close()
 
 def update_food_record(user_id, record_id, updates):
-    """
-    更新食物記錄
-    Args:
-        user_id (int): 用戶ID (驗證權限)
-        record_id (int): 記錄ID
-        updates (dict): 欲更新欄位（mealtime, quantity, date）
-    Returns:
-        dict: 操作結果
-    """
+
     conn = get_db_connection()
     try:
         # 檢查記錄是否存在且屬於該用戶

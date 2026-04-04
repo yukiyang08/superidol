@@ -427,11 +427,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
-import axios from 'axios'
+import api from '@/services/api'
 import { ArrowLeft, ArrowRight, ArrowDown, Sunrise, Sunny, Sunset, Dessert, Notebook, Calendar as DateIcon, Food as FoodIcon } from '@element-plus/icons-vue'
-// TODO: 導入相關 store 和工具函數
-// import { useFoodStore } from '../../store/food'
-// import { formatDate } from '../../utils/date'
 
 export default {
   name: 'FoodRecord',
@@ -551,16 +548,9 @@ export default {
         }
         
         // 使用 selectedDateString 作為日期參數
-        const response = await fetch(`http://localhost:5000/api/food/record?user_id=${userId}&start_date=${selectedDateString.value}&end_date=${selectedDateString.value}`)
-        
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('加載食物記錄錯誤:', errorText)
-          throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`)
-        }
-        
-        const data = await response.json()
-        console.log('獲取到食物記錄:', data)
+        const { data } = await api.get('/api/food/record', {
+          params: { user_id: userId, start_date: selectedDateString.value, end_date: selectedDateString.value }
+        })
         
         // 重置所有餐點數組
         breakfastItems.value = []
@@ -647,15 +637,7 @@ export default {
           return
         }
         
-        const response = await fetch(`http://localhost:5000/api/food/record/${recordId}?user_id=${userId}`, {
-          method: 'DELETE'
-        })
-        
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('刪除食物記錄錯誤:', errorText)
-          throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`)
-        }
+        await api.delete(`/api/food/record/${recordId}`, { params: { user_id: userId } })
         
         ElMessage.success('記錄已成功刪除')
         

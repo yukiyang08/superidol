@@ -23,69 +23,69 @@ CORS(food_bp)  # 啟用 CORS
 
 @food_bp.route('/', methods=['GET'])
 def get_foods():
-    """
-    Get all foods or search for foods based on filters
-    """
-    try:
-        # 初始化空的過濾條件
-        filters = {
-            'name': request.args.get('name', ''),
-            'priceMin': request.args.get('priceMin', ''),
-            'priceMax': request.args.get('priceMax', ''),
-            'calMin': request.args.get('calMin', ''),
-            'calMax': request.args.get('calMax', ''),
-            'type': request.args.get('type', ''),
-            'restaurant': request.args.get('restaurant', '')
-        }
+        """
+        搜尋食物
+        ---
+        tags:
+          - Food
+        responses:
+          200:
+            description: 成功回傳食物列表
+          500:
+            description: 伺服器錯誤
+        """
+        try:
+                filters = {
+                        'name': request.args.get('name', ''),
+                        'priceMin': request.args.get('priceMin', ''),
+                        'priceMax': request.args.get('priceMax', ''),
+                        'calMin': request.args.get('calMin', ''),
+                        'calMax': request.args.get('calMax', ''),
+                        'type': request.args.get('type', ''),
+                        'restaurant': request.args.get('restaurant', '')
+                }
 
-        results = search_food(filters)
-        if not results:
-            results = []  # 確保返回空列表而不是 None
-        return jsonify(results), 200
-    except Exception as e:
-        print(f"Error in get_foods: {str(e)}")  # 添加服務器端日誌
-        return jsonify({'error': str(e)}), 500
+                results = cached_search_food(filters_to_tuple(filters))
+                if not results:
+                        results = []
+                return jsonify(results), 200
+        except Exception as e:
+                print(f"Error in get_foods: {str(e)}")
+                return jsonify({'error': str(e)}), 500
 
 @food_bp.route('/record', methods=['POST'])
 def create_food_record():
-    """
-    添加食物消費記錄
-    ---
-    請求參數:
-      user_id: 用戶ID
-      food_id: 食物ID
-      mealtime: 餐點類型 (早餐/午餐/晚餐/宵夜)
-      quantity: 數量
-      date: 日期 (YYYY-MM-DD)
-    回應:
-      201: 記錄創建成功
-    """
-    try:
-        data = request.json
-        
-        # 檢查必要參數
-        if 'user_id' not in data:
-            return jsonify({"error": "Missing required field: user_id"}), 400
-            
-        result = add_food_record(data['user_id'], data)
-        return jsonify(result), 201
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        """
+        添加食物消費記錄
+        ---
+        tags:
+          - Food Record
+        responses:
+          201:
+            description: 記錄新增成功
+          400:
+            description: 參數錯誤
+          500:
+            description: 伺服器錯誤
+        """
+        try:
+                data = request.json
+
+                if 'user_id' not in data:
+                        return jsonify({"error": "Missing required field: user_id"}), 400
+
+                result = add_food_record(data['user_id'], data)
+                return jsonify(result), 201
+        except ValueError as e:
+                return jsonify({"error": str(e)}), 400
+        except Exception as e:
+                return jsonify({"error": str(e)}), 500
 
 @food_bp.route('/record', methods=['GET'])
 def get_food_records():
     """
-    獲取用戶食物記錄
-    ---
-    查詢參數:
-      user_id: 用戶ID
-      start_date: 開始日期 (可選)
-      end_date: 結束日期 (可選)
-      mealtime: 餐點類型 (可選)
-    回應:
-      200: 食物記錄列表
+    獲取用戶食物記錄。
+    查詢參數包含 user_id、start_date、end_date、mealtime。
     """
     try:
         user_id = request.args.get('user_id')
@@ -104,12 +104,8 @@ def get_food_records():
 @food_bp.route('/record/<int:record_id>', methods=['DELETE'])
 def remove_food_record(record_id):
     """
-    刪除食物記錄
-    ---
-    查詢參數:
-      user_id: 用戶ID (用於驗證權限)
-    回應:6
-      200: 刪除成功
+    刪除食物記錄。
+    查詢參數需要 user_id 以驗證權限。
     """
     try:
         user_id = request.args.get('user_id')
@@ -127,12 +123,8 @@ def remove_food_record(record_id):
 @food_bp.route('/favorites', methods=['GET'])
 def get_favorites():
     """
-    獲取用戶收藏的食物清單
-    ---
-    查詢參數:
-      user_id: 用戶ID
-    回應:
-      200: 收藏清單
+    獲取用戶收藏的食物清單。
+    查詢參數需要 user_id。
     """
     try:
         user_id = request.args.get('user_id')
@@ -148,13 +140,8 @@ def get_favorites():
 @food_bp.route('/favorites', methods=['POST'])
 def add_favorite():
     """
-    添加食物到收藏
-    ---
-    請求參數:
-      user_id: 用戶ID
-      food_id: 食物ID
-    回應:
-      201: 添加成功
+    添加食物到收藏。
+    請求參數需要 user_id 與 food_id。
     """
     try:
         data = request.json
@@ -172,13 +159,8 @@ def add_favorite():
 @food_bp.route('/favorites', methods=['DELETE'])
 def remove_favorite():
     """
-    從收藏中移除食物
-    ---
-    請求參數:
-      user_id: 用戶ID
-      food_id: 食物ID
-    回應:
-      200: 移除成功
+    從收藏中移除食物。
+    請求參數需要 user_id 與 food_id。
     """
     try:
         data = request.json
@@ -255,17 +237,8 @@ def calculate_exercise():
 @food_bp.route('/record/<int:record_id>', methods=['PUT'])
 def update_food_record(record_id):
     """
-    修改食物記錄
-    ---
-    路徑參數:
-      record_id: 食物記錄ID
-    請求參數:
-      user_id: 用戶ID (驗證權限)
-      mealtime: 餐點類型 (可選)
-      quantity: 數量 (可選)
-      date: 日期 (可選)
-    回應:
-      200: 修改成功
+    修改食物記錄。
+    路徑參數為 record_id，請求參數需要 user_id，並可選 mealtime、quantity、date。
     """
     try:
         data = request.json

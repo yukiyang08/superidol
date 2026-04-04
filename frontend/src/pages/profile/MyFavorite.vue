@@ -92,6 +92,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
+import api from '@/services/api'
 
 export default {
   name: 'MyFavorite',
@@ -115,17 +116,7 @@ export default {
 
       isLoading.value = true
       try {
-        const response = await fetch(`http://localhost:5000/api/myfavorite/favorites?user_id=${userId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        })
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`)
-        }
-        const data = await response.json()
+        const { data } = await api.get('/api/myfavorite/favorites', { params: { user_id: userId } })
         if (Array.isArray(data)) {
           favoriteFoods.value = data.map(item => ({
             food_id: item.food_id ?? item.id,
@@ -169,20 +160,9 @@ export default {
       }
       isRemoving.value = true
       try {
-        const response = await fetch('http://localhost:5000/api/myfavorite/favorites', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user_id: parseInt(userId),
-            food_id: selectedFood.value.food_id
-          }),
+        await api.delete('/api/myfavorite/favorites', {
+          data: { user_id: parseInt(userId), food_id: selectedFood.value.food_id }
         })
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`刪除失敗: HTTP ${response.status} - ${errorText}`)
-        }
         ElMessage.success('已移除最愛')
         favoriteFoods.value = favoriteFoods.value.filter(food => food.food_id !== selectedFood.value.food_id)
         showConfirmModal.value = false
