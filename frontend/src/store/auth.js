@@ -2,6 +2,15 @@ import { defineStore } from 'pinia'
 import api from '../services/api'
 import { ElMessage } from 'element-plus'
 
+function mapPriceRangeToBudget(priceRange) {
+  const mapping = {
+    1: 120,
+    2: 200,
+    3: 320
+  }
+  return mapping[Number(priceRange)] || 200
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
@@ -56,14 +65,19 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
+        const resolvedBudget =
+          userData.budget ?? mapPriceRangeToBudget(userData.priceRange)
+        const resolvedWeekCalorieLimit =
+          userData.weekcalorielimit ?? userData.weekCalorieLimit ?? userData.calorieLimit
+
         // 將欄位轉換為後端需要的格式
         const formattedData = {
           name: userData.name,
           email: userData.email,
           password: userData.password,
           weight: userData.weight,
-          budget: userData.budget,
-          weekcalorielimit: userData.calorieLimit,  // 欄位名轉換
+          budget: resolvedBudget,
+          weekcalorielimit: resolvedWeekCalorieLimit,
           restaurant_preferences: userData.Food_Preference ? userData.Food_Preference.split(',').map(p => p.trim()) : [],  // 轉為陣列
           exercise_preferences: userData.exercisePreference ? userData.exercisePreference.split(',').map(p => p.trim()) : []  // 轉為陣列
         };

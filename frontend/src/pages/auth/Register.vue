@@ -176,7 +176,7 @@
 import { reactive, computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
-import { User, Message, Lock, StarOn } from '@element-plus/icons-vue'
+import { User, Message, Lock, Star } from '@element-plus/icons-vue'
 import { isValidEmail, validatePassword, isValidName, doPasswordsMatch } from '../../utils/validation'
 import api from '../../services/api'
 import { ElMessage } from 'element-plus'
@@ -185,7 +185,7 @@ import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
 export default {
   name: 'RegisterPage',
-  components: { User, Message, Lock, StarOn, CalorieCalculator },
+  components: { User, Message, Lock, Star, CalorieCalculator },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
