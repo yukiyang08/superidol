@@ -4,38 +4,31 @@
       <div class="footer-content">
         <div class="footer-logo">
           <span class="logo-text">速per Idol</span>
-          <p class="slogan">Healthy Life Starts with Nutrition</p>
+          <p class="slogan">從每一餐開始，養成更好的健康習慣</p>
         </div>
         
         <div class="footer-links">
           <div class="link-section">
-            <h3>About Us</h3>
+            <h3>快速入口</h3>
             <ul>
-              <li><a href="#about">About 速per Idol</a></li>
-              <li><a href="#team">Our Team</a></li>
-              <li><a href="#contact">Contact Us</a></li>
+              <li><router-link to="/food/search">食物搜尋</router-link></li>
+              <li><router-link to="/food/record">飲食記錄</router-link></li>
+              <li><router-link to="/reports/weekly">健康報告</router-link></li>
             </ul>
           </div>
           
           <div class="link-section">
-            <h3>User Guide</h3>
+            <h3>服務資訊</h3>
             <ul>
-              <li><a href="#guide">Operation Guide</a></li>
-              <li><a href="#faq">FAQ</a></li>
-              <li><a href="#support">Support</a></li>
+              <li><span>資料來源：使用者紀錄與餐點資料庫</span></li>
+              <li><span>若有問題，請聯繫專案管理員</span></li>
+              <li><span>版本：Web v1</span></li>
             </ul>
           </div>
         </div>
       </div>
-      
+
       <div class="footer-bottom">
-        <div class="social-icons">
-          <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-          <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
-          <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
-          <a href="#" title="GitHub"><i class="fab fa-github"></i></a>
-        </div>
-        
         <div class="copyright">
           &copy; {{ currentYear }} 速per Idol - DBMS Team 11302. All Rights Reserved.
         </div>
@@ -138,7 +131,8 @@ export default {
   margin-bottom: 10px;
 }
 
-.link-section a {
+.link-section a,
+.link-section span {
   color: #bbb;
   text-decoration: none;
   font-size: 14px;
@@ -163,35 +157,6 @@ export default {
     flex-direction: row;
     justify-content: space-between;
   }
-}
-
-.social-icons {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-}
-
-@media (min-width: 768px) {
-  .social-icons {
-    margin-bottom: 0;
-  }
-}
-
-.social-icons a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  background-color: #444;
-  border-radius: 50%;
-  color: #fff;
-  transition: all 0.3s;
-}
-
-.social-icons a:hover {
-  background-color: var(--primary-color);
-  transform: translateY(-3px);
 }
 
 .copyright {

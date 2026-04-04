@@ -63,7 +63,7 @@
             @keyup.enter="submitForm"
           />
           <div class="forgot-password">
-            <router-link to="/forgot-password" class="forgot-link">忘記密碼?</router-link>
+            <span class="forgot-link disabled">忘記密碼功能即將推出</span>
           </div>
         </el-form-item>
         

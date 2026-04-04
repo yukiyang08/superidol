@@ -30,7 +30,7 @@
           :enable-time-picker="false"
           placeholder="選擇日期"
           :allowed-dates="allowedDatesFn"
-          :year-range="[2025, 2025]"
+          :year-range="yearRange"
           prevent-min-max-navigation
         />
       </div>
@@ -44,7 +44,7 @@
           :enable-time-picker="false"
           placeholder="選擇日期"
           :allowed-dates="allowedWeekDatesFn"
-          :year-range="[2025, 2025]"
+          :year-range="yearRange"
           prevent-min-max-navigation
         />
       </div>
@@ -58,7 +58,7 @@
           :key="'monthly-' + selectedMonth"
           type="month"
           :inline="false"
-          :year-range="[2025,2025]"
+          :year-range="yearRange"
           :allowed-dates="allowedMonthsFn"
           @update:model-value="onMonthPicked"
           placeholder="選擇月份"
@@ -72,7 +72,7 @@
           :key="'custom-' + customRange"
           range
           :inline="true"
-          :year-range="[2025,2025]"
+          :year-range="yearRange"
           :allowed-dates="allowedCustomDatesFn"
           @update:model-value="onCustomRangePicked"
           placeholder="選擇日期範圍"
@@ -331,7 +331,7 @@ export default {
       } else if (currentReportType.value === 'weekly') {
         newDate.setDate(newDate.getDate() + direction * 7);
       }
-      // Ensure the new date is within the allowed range (2025 and not future if today is 2025)
+      // Ensure the new date is within the allowed range of this year and not in the future.
       return allowedDatesFn(newDate);
     };
 
@@ -407,11 +407,6 @@ export default {
             const end = new Date(start);
             end.setDate(start.getDate() + 6);
             
-            // Ensure start and end of week are within 2025
-            if (start.getFullYear() !== 2025) start.setFullYear(2025,0,1);
-            if (end.getFullYear() !== 2025) end.setFullYear(2025,11,31);
-
-
             const startText = start.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
             const endText = end.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
             return `${startText} - ${endText}`;
@@ -636,6 +631,7 @@ export default {
       allowedMonthsFn,
       onMonthPicked,
       onCustomRangePicked,
+      yearRange,
       dateRangeText,
       weeklySummaries,
     }

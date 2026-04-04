@@ -13,24 +13,24 @@
         <nav class="main-nav">
           <router-link to="/food/search" class="nav-link">
             <i class="fas fa-search"></i>
-            <span>Food Search</span>
+            <span>食物搜尋</span>
           </router-link>
           <router-link to="/food/record" class="nav-link">
             <i class="fas fa-utensils"></i>
-            <span>Food Record</span>
+            <span>飲食記錄</span>
           </router-link>
           <router-link to="/exercise/record" class="nav-link">
             <i class="fas fa-running"></i>
-            <span>Exercise</span>
+            <span>運動記錄</span>
           </router-link>
           <router-link to="/reports/weekly" class="nav-link">
             <i class="fas fa-chart-line"></i>
-            <span>Reports</span>
+            <span>健康報告</span>
           </router-link>
         </nav>
         
         <div class="user-menu">
-          <button class="user-toggle" @click="isMenuOpen = !isMenuOpen">
+          <button class="user-toggle" @click="isMenuOpen = !isMenuOpen" :aria-expanded="isMenuOpen" aria-label="開啟使用者選單">
             <i class="fas fa-user-circle avatar-icon"></i>
             <span class="user-name">{{ userName }}</span>
             <i class="fas fa-chevron-down" :class="{ 'rotate-icon': isMenuOpen }"></i>
@@ -40,15 +40,15 @@
             <div v-if="isMenuOpen" class="dropdown-menu">
               <router-link to="/profile/basic-info" class="dropdown-item">
                 <i class="fas fa-id-card"></i>
-                <span>Basic Information</span>
+                <span>基本資料</span>
               </router-link>
               <router-link to="/profile/myfavorite" class="dropdown-item">
                 <i class="fas fa-sliders-h"></i>
-                <span>Preferences</span>
+                <span>我的最愛</span>
               </router-link>
               <button class="dropdown-item" @click="logout">
                 <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
+                <span>登出</span>
               </button>
             </div>
           </transition>
@@ -56,7 +56,7 @@
       </div>
 
       <!-- Mobile Navigation -->
-      <button class="mobile-toggle" @click="toggleMobileMenu">
+      <button class="mobile-toggle" @click="toggleMobileMenu" :aria-expanded="isMobileMenuOpen" aria-label="開啟手機選單">
         <i :class="isMobileMenuOpen ? 'fas fa-times swing-animation' : 'fas fa-bars'"></i>
       </button> 
     </div>
@@ -71,31 +71,31 @@
           <nav class="mobile-nav">
             <router-link to="/food/search" class="mobile-nav-link" @click="closeMobileMenu">
               <i class="fas fa-search"></i>
-              <span>Food Search</span>
+              <span>食物搜尋</span>
             </router-link>
             <router-link to="/food/record" class="mobile-nav-link" @click="closeMobileMenu">
               <i class="fas fa-utensils"></i>
-              <span>Food Record</span>
+              <span>飲食記錄</span>
             </router-link>
             <router-link to="/exercise/record" class="mobile-nav-link" @click="closeMobileMenu">
               <i class="fas fa-running"></i>
-              <span>Exercise Record</span>
+              <span>運動記錄</span>
             </router-link>
             <router-link to="/reports/weekly" class="mobile-nav-link" @click="closeMobileMenu">
               <i class="fas fa-chart-line"></i>
-              <span>Weekly Report</span>
+              <span>健康報告</span>
             </router-link>
             <router-link to="/profile/basic-info" class="mobile-nav-link" @click="closeMobileMenu">
               <i class="fas fa-id-card"></i>
-              <span>Basic Information</span>
+              <span>基本資料</span>
             </router-link>
             <router-link to="/profile/myfavorite" class="mobile-nav-link" @click="closeMobileMenu">
               <i class="fas fa-sliders-h"></i>
-              <span>Preferences</span>
+              <span>我的最愛</span>
             </router-link>
             <button class="mobile-nav-link logout-button" @click="logoutMobile">
               <i class="fas fa-sign-out-alt"></i>
-              <span>Logout</span>
+              <span>登出</span>
             </button>
           </nav>
         </div>
@@ -119,7 +119,7 @@ export default {
     const isMobileMenuOpen = ref(false)
     
     const userName = computed(() => {
-      return authStore.user?.name || 'User'
+      return authStore.user?.name || '使用者'
     })
     
     const toggleMobileMenu = () => {
