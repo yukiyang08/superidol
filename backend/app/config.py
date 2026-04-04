@@ -14,12 +14,12 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-please-change-in-production')
     DEBUG = False
     
-    # Database settings
-    MYSQL_HOST = os.getenv('DB_HOST', 'superidol.c9i82eygu8mk.ap-southeast-2.rds.amazonaws.com')
-    MYSQL_PORT = int(os.getenv('DB_PORT', '3306'))
-    MYSQL_USER = os.getenv('DB_USER', 'DBMS11302')
-    MYSQL_PASSWORD = os.getenv('DB_PASSWORD', 'ilovedbms')
-    MYSQL_DB = os.getenv('DB_NAME', 'superidol')
+    # Database settings (Supabase PostgreSQL)
+    MYSQL_HOST = os.getenv('DB_HOST', 'db.boqkvhewwsvofzgaiuyg.supabase.co')
+    MYSQL_PORT = int(os.getenv('DB_PORT', '5432'))
+    MYSQL_USER = os.getenv('DB_USER', 'postgres')
+    MYSQL_PASSWORD = os.getenv('DB_PASSWORD', '')  # 必須在 .env 設定 DB_PASSWORD
+    MYSQL_DB = os.getenv('DB_NAME', 'postgres')
     
     # JWT settings
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-please-change-in-production')
@@ -42,7 +42,7 @@ class TestingConfig(Config):
     """Testing configuration."""
     DEBUG = True
     TESTING = True
-    MYSQL_DB = 'super_idol_test_db'
+    MYSQL_DB = 'postgres'
 
 class ProductionConfig(Config):
     """Production configuration."""

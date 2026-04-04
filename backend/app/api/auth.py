@@ -11,8 +11,12 @@ def signup():
     try:
         data = request.get_json() or {}
 
-        required_fields = ['name', 'email', 'password', 'weight', 'budget', 'weekcalorielimit']
+        required_fields = ['name', 'email', 'password', 'weight']
         if not all(field in data for field in required_fields):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # 相容舊前端欄位命名
+        if 'weekcalorielimit' not in data and 'weekCalorieLimit' not in data and 'calorieLimit' not in data:
             return jsonify({"error": "Missing required fields"}), 400
 
         result = register_user(data)

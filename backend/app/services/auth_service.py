@@ -1,8 +1,7 @@
-import pymysql
 import jwt
 from datetime import datetime, timedelta
 from app.db import get_db_connection
-from app.utils.security import hash_password, verify_password
+from app.utils.security import hash_password, verify_password, is_bcrypt_hash
 from app.config import Config
 from app.services.preference_service import save_restaurant_preferences, save_exercise_preferences, save_food_preferences
 
@@ -14,10 +13,17 @@ def register_user(data):
     email = data.get('email')
     password = data.get('password')
     weight = data.get('weight')
-    budget = data.get('budget')
     weekcalorielimit = data.get('weekcalorielimit')
+    if weekcalorielimit is None:
+        weekcalorielimit = data.get('weekCalorieLimit', data.get('calorieLimit'))
 
-    if not all([name, email, password, weight, budget, weekcalorielimit]):
+    budget = data.get('budget')
+    if budget is None:
+        price_range = data.get('priceRange')
+        budget_mapping = {1: 120, 2: 200, 3: 320}
+        budget = budget_mapping.get(int(price_range), 200) if price_range is not None else 200
+
+    if any(value in (None, '') for value in [name, email, password, weight, weekcalorielimit]):
         return {"error": "Missing required fields"}
 
     hashed_password = hash_password(password)
@@ -33,8 +39,9 @@ def register_user(data):
         cursor.execute("""
             INSERT INTO Users (Name, Email, PasswordHash, Weight, Budget, WeekCalorieLimit)
             VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING UserID
         """, (name, email, hashed_password, weight, budget, weekcalorielimit))
-        user_id = cursor.lastrowid
+        user_id = cursor.fetchone()['UserID']
         conn.commit()
         return {
             "message": "User registered successfully",
@@ -42,7 +49,7 @@ def register_user(data):
             "name": name,
             "email": email
         }
-    except pymysql.Error as e:
+    except Exception as e:
         conn.rollback()
         return {"error": f"Database error: {str(e)}"}
     finally:
@@ -63,7 +70,24 @@ def login_user(data):
             cursor.execute("SELECT UserID, Name, Email, PasswordHash, Weight, Budget, WeekCalorieLimit FROM Users WHERE Email = %s", (email,))
             user = cursor.fetchone()
 
-            if not user or not verify_password(password, user['PasswordHash']):
+            if not user:
+                return {"error": "Invalid email or password"}
+
+            stored_hash = user.get('PasswordHash')
+            password_ok = verify_password(password, stored_hash)
+
+            # Backward compatibility for legacy records that stored non-bcrypt values.
+            if not password_ok and isinstance(stored_hash, str) and not is_bcrypt_hash(stored_hash):
+                if password == stored_hash:
+                    password_ok = True
+                    upgraded_hash = hash_password(password)
+                    cursor.execute(
+                        "UPDATE Users SET PasswordHash = %s WHERE UserID = %s",
+                        (upgraded_hash, user['UserID'])
+                    )
+                    conn.commit()
+
+            if not password_ok:
                 return {"error": "Invalid email or password"}
 
             payload = {
@@ -85,7 +109,7 @@ def login_user(data):
                     "weekCalorieLimit": user['WeekCalorieLimit']
                 }
             }
-    except pymysql.Error as e:
+    except Exception as e:
         return {"error": f"Database error: {str(e)}"}
     finally:
         conn.close()
