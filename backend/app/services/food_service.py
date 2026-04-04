@@ -6,7 +6,6 @@ from ..extensions import db
 from ..schemas.food_item import FoodItemCreate, FoodItemUpdate
 from app.db import get_db_connection, return_db_connection
 import logging
-import pymysql
 import decimal
 import functools
 
@@ -84,7 +83,7 @@ def search_food(filters):
     搜尋符合條件的食物清單（優化版本）
     """
     conn = get_db_connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    cursor = conn.cursor()
     try:
         # 基本查詢 - 添加 LIMIT 以提升性能
         sql = """
@@ -250,9 +249,10 @@ def add_food_record(user_id, food_data):
                 sql = """
                     INSERT INTO Food_Records (UserID, FoodID, Mealtime, Quantity, Date)
                     VALUES (%s, %s, %s, %s, %s)
+                    RETURNING RecordID
                 """
                 cursor.execute(sql, (user_id, food_id, mealtime, quantity, date))
-                record_id = cursor.lastrowid
+                record_id = cursor.fetchone()['RecordID']
                 conn.commit()
                 return {
                     "record_id": record_id,
@@ -266,9 +266,10 @@ def add_food_record(user_id, food_data):
                 sql = """
                     INSERT INTO Food_Records (UserID, FoodID, CustomName, CustomCalories, CustomType, CustomPrice, CustomRestaurant, Mealtime, Quantity, Date)
                     VALUES (%s, NULL, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING RecordID
                 """
                 cursor.execute(sql, (user_id, custom_name, custom_calories, custom_type, custom_price, custom_restaurant, mealtime, quantity, date))
-                record_id = cursor.lastrowid
+                record_id = cursor.fetchone()['RecordID']
                 conn.commit()
                 return {
                     "record_id": record_id,
@@ -293,7 +294,7 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
     """
     conn = get_db_connection()
     try:
-        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+        with conn.cursor() as cursor:
             sql = """
                 SELECT 
                     fr.RecordID,

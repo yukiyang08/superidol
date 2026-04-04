@@ -45,32 +45,60 @@
                 <label class="form-label">價格範圍</label>
                 <div class="range-slider" role="group" aria-label="價格範圍選擇">
                   <div class="range-values">
-                    <span class="value-pill" aria-live="polite">${{ priceMinValue }}</span>
-                    <span class="value-sep">~</span>
-                    <span class="value-pill" aria-live="polite">${{ priceMaxValue }}</span>
+                    <div class="range-input-group">
+                      <span class="range-unit-prefix">$</span>
+                      <input
+                        type="number"
+                        class="range-number-input"
+                        v-model.number="priceMinValue"
+                        :min="priceRangeMin"
+                        :max="priceMaxValue"
+                        :step="priceStep"
+                        @change="handlePriceMinInput"
+                        aria-label="最低價格"
+                      />
+                    </div>
+                    <span class="value-sep">—</span>
+                    <div class="range-input-group">
+                      <span class="range-unit-prefix">$</span>
+                      <input
+                        type="number"
+                        class="range-number-input"
+                        v-model.number="priceMaxValue"
+                        :min="priceMinValue"
+                        :max="priceRangeMax"
+                        :step="priceStep"
+                        @change="handlePriceMaxInput"
+                        aria-label="最高價格"
+                      />
+                    </div>
                   </div>
-                  <div class="slider-track">
-                    <div class="slider-fill" :style="{ left: priceLeftPercent + '%', right: priceRightPercent + '%' }"></div>
-                    <input
-                      type="range"
-                      class="slider-input"
-                      :min="priceRangeMin"
-                      :max="priceRangeMax"
-                      :step="priceStep"
-                      v-model.number="priceMinValue"
-                      @input="handlePriceMinInput"
-                      aria-label="最低價格"
-                    />
-                    <input
-                      type="range"
-                      class="slider-input"
-                      :min="priceRangeMin"
-                      :max="priceRangeMax"
-                      :step="priceStep"
-                      v-model.number="priceMaxValue"
-                      @input="handlePriceMaxInput"
-                      aria-label="最高價格"
-                    />
+                  <div class="slider-track-wrapper">
+                    <span class="track-bound">$0</span>
+                    <div class="slider-track">
+                      <div class="slider-fill" :style="{ left: priceLeftPercent + '%', right: priceRightPercent + '%' }"></div>
+                      <input
+                        type="range"
+                        class="slider-input"
+                        :min="priceRangeMin"
+                        :max="priceRangeMax"
+                        :step="priceStep"
+                        v-model.number="priceMinValue"
+                        @input="handlePriceMinInput"
+                        aria-label="最低價格滑桿"
+                      />
+                      <input
+                        type="range"
+                        class="slider-input"
+                        :min="priceRangeMin"
+                        :max="priceRangeMax"
+                        :step="priceStep"
+                        v-model.number="priceMaxValue"
+                        @input="handlePriceMaxInput"
+                        aria-label="最高價格滑桿"
+                      />
+                    </div>
+                    <span class="track-bound">${{ priceRangeMax }}</span>
                   </div>
                 </div>
               </div>
@@ -78,32 +106,60 @@
                 <label class="form-label">熱量範圍</label>
                 <div class="range-slider" role="group" aria-label="熱量範圍選擇">
                   <div class="range-values">
-                    <span class="value-pill" aria-live="polite">{{ calMinValue }} 大卡</span>
-                    <span class="value-sep">~</span>
-                    <span class="value-pill" aria-live="polite">{{ calMaxValue }} 大卡</span>
+                    <div class="range-input-group">
+                      <input
+                        type="number"
+                        class="range-number-input"
+                        v-model.number="calMinValue"
+                        :min="calRangeMin"
+                        :max="calMaxValue"
+                        :step="calStep"
+                        @change="handleCalMinInput"
+                        aria-label="最低熱量"
+                      />
+                      <span class="range-unit-suffix">kcal</span>
+                    </div>
+                    <span class="value-sep">—</span>
+                    <div class="range-input-group">
+                      <input
+                        type="number"
+                        class="range-number-input"
+                        v-model.number="calMaxValue"
+                        :min="calMinValue"
+                        :max="calRangeMax"
+                        :step="calStep"
+                        @change="handleCalMaxInput"
+                        aria-label="最高熱量"
+                      />
+                      <span class="range-unit-suffix">kcal</span>
+                    </div>
                   </div>
-                  <div class="slider-track">
-                    <div class="slider-fill" :style="{ left: calLeftPercent + '%', right: calRightPercent + '%' }"></div>
-                    <input
-                      type="range"
-                      class="slider-input"
-                      :min="calRangeMin"
-                      :max="calRangeMax"
-                      :step="calStep"
-                      v-model.number="calMinValue"
-                      @input="handleCalMinInput"
-                      aria-label="最低熱量"
-                    />
-                    <input
-                      type="range"
-                      class="slider-input"
-                      :min="calRangeMin"
-                      :max="calRangeMax"
-                      :step="calStep"
-                      v-model.number="calMaxValue"
-                      @input="handleCalMaxInput"
-                      aria-label="最高熱量"
-                    />
+                  <div class="slider-track-wrapper">
+                    <span class="track-bound">0</span>
+                    <div class="slider-track">
+                      <div class="slider-fill" :style="{ left: calLeftPercent + '%', right: calRightPercent + '%' }"></div>
+                      <input
+                        type="range"
+                        class="slider-input"
+                        :min="calRangeMin"
+                        :max="calRangeMax"
+                        :step="calStep"
+                        v-model.number="calMinValue"
+                        @input="handleCalMinInput"
+                        aria-label="最低熱量滑桿"
+                      />
+                      <input
+                        type="range"
+                        class="slider-input"
+                        :min="calRangeMin"
+                        :max="calRangeMax"
+                        :step="calStep"
+                        v-model.number="calMaxValue"
+                        @input="handleCalMaxInput"
+                        aria-label="最高熱量滑桿"
+                      />
+                    </div>
+                    <span class="track-bound">{{ calRangeMax }}</span>
                   </div>
                 </div>
               </div>
@@ -178,7 +234,7 @@
               <div class="food-info">
                 <div class="food-name-price-line">
                 <h3 class="food-name">{{ food.name }}</h3>
-                  <span class="food-price-prominent">${{ food.price.toFixed(2) }}</span>
+                  <span class="food-price-prominent">${{ formatPrice(food.price) }}</span>
                   <el-tooltip placement="top" effect="dark" :disabled="!hasNutritionInfo(food)">
                     <template #content>
                       <div class="nutrition-tooltip improved-tooltip">
@@ -494,11 +550,17 @@ export default {
     const calMinValue = ref(calRangeMin)
     const calMaxValue = ref(800)
 
+    const parseFilterNumber = (value) => {
+      if (value === '' || value === null || value === undefined) return null
+      const n = Number(value)
+      return Number.isFinite(n) ? n : null
+    }
+
     const syncCalValuesFromFilters = () => {
-      const min = Number(filters.value.calMin)
-      const max = Number(filters.value.calMax)
-      calMinValue.value = Number.isFinite(min) ? Math.max(calRangeMin, Math.min(min, calRangeMax)) : calRangeMin
-      calMaxValue.value = Number.isFinite(max) ? Math.max(calRangeMin, Math.min(max, calRangeMax)) : Math.min(calRangeMax, Math.max(calMinValue.value, 800))
+      const min = parseFilterNumber(filters.value.calMin)
+      const max = parseFilterNumber(filters.value.calMax)
+      calMinValue.value = min !== null ? Math.max(calRangeMin, Math.min(min, calRangeMax)) : calRangeMin
+      calMaxValue.value = max !== null ? Math.max(calRangeMin, Math.min(max, calRangeMax)) : Math.min(calRangeMax, Math.max(calMinValue.value, 800))
       if (calMinValue.value > calMaxValue.value) {
         const t = calMinValue.value
         calMinValue.value = calMaxValue.value
@@ -536,10 +598,10 @@ export default {
     const priceMaxValue = ref(300)
 
     const syncPriceValuesFromFilters = () => {
-      const min = Number(filters.value.priceMin)
-      const max = Number(filters.value.priceMax)
-      priceMinValue.value = Number.isFinite(min) ? Math.max(priceRangeMin, Math.min(min, priceRangeMax)) : priceRangeMin
-      priceMaxValue.value = Number.isFinite(max) ? Math.max(priceRangeMin, Math.min(max, priceRangeMax)) : Math.min(priceRangeMax, Math.max(priceMinValue.value, 300))
+      const min = parseFilterNumber(filters.value.priceMin)
+      const max = parseFilterNumber(filters.value.priceMax)
+      priceMinValue.value = min !== null ? Math.max(priceRangeMin, Math.min(min, priceRangeMax)) : priceRangeMin
+      priceMaxValue.value = max !== null ? Math.max(priceRangeMin, Math.min(max, priceRangeMax)) : Math.min(priceRangeMax, Math.max(priceMinValue.value, 300))
       if (priceMinValue.value > priceMaxValue.value) {
         const t = priceMinValue.value
         priceMinValue.value = priceMaxValue.value
@@ -772,6 +834,11 @@ export default {
     const setDefaultImageOnError = (event) => {
       event.target.src = foodImagePlaceholderLibrary[Math.floor(Math.random() * foodImagePlaceholderLibrary.length)];
     };
+
+    const formatPrice = (value) => {
+      const num = Number(value)
+      return Number.isFinite(num) ? num.toFixed(2) : '--'
+    }
 
     const imageLoaded = ref({});
 
@@ -1159,6 +1226,7 @@ export default {
       openFoodRecordModal,
       onRecordSaved,
       setDefaultImageOnError,
+      formatPrice,
       imageLoaded,
       onImageLoad,
       hasNutritionInfo,
@@ -1411,17 +1479,37 @@ export default {
 }
 
 /* 雙滑桿樣式 */
-.range-slider { display: flex; flex-direction: column; gap: 8px; }
-.range-values { display: flex; align-items: center; gap: 8px; }
-.value-pill { padding: 4px 10px; background: #f5f7ff; color: #2c3e50; border: 1px solid #e6e8f0; border-radius: 9999px; font-size: .9rem; }
-.value-sep { color: var(--text-secondary); }
-.slider-track { position: relative; height: 6px; background: #edf2f7; border-radius: 9999px; }
-.slider-fill { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, #9ecbff, #409EFF); border-radius: 9999px; }
-.slider-input { position: absolute; left: 0; right: 0; width: 100%; -webkit-appearance: none; background: none; pointer-events: none; height: 20px; margin: -7px 0 0; }
-.slider-input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #409EFF; box-shadow: 0 2px 6px rgba(0,0,0,.12); pointer-events: auto; cursor: pointer; }
-.slider-input::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid #409EFF; box-shadow: 0 2px 6px rgba(0,0,0,.12); pointer-events: auto; cursor: pointer; }
-.slider-input::-webkit-slider-runnable-track { height: 6px; background: transparent; }
-.slider-input::-moz-range-track { height: 6px; background: transparent; }
+.range-slider { display: flex; flex-direction: column; gap: 10px; }
+.range-values { display: flex; align-items: center; gap: 10px; }
+.range-input-group {
+  display: flex; align-items: center;
+  background: #f5f7ff; border: 1px solid #e6e8f0;
+  border-radius: 8px; padding: 4px 8px; gap: 3px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.range-input-group:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(255,170,85,.2);
+}
+.range-unit-prefix, .range-unit-suffix { color: #909399; font-size: .82rem; white-space: nowrap; user-select: none; }
+.range-number-input {
+  width: 56px; border: none; background: transparent;
+  outline: none; font-size: .9rem; color: #2c3e50;
+  text-align: center; -moz-appearance: textfield;
+}
+.range-number-input::-webkit-inner-spin-button,
+.range-number-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.value-sep { color: #c0c4cc; font-size: 1rem; flex-shrink: 0; }
+.slider-track-wrapper { display: flex; align-items: center; gap: 6px; }
+.track-bound { font-size: .72rem; color: #c0c4cc; white-space: nowrap; min-width: 26px; text-align: center; flex-shrink: 0; }
+.slider-track { flex: 1; position: relative; height: 8px; background: #edf2f7; border-radius: 9999px; }
+.slider-fill { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, var(--primary-lighter), var(--primary-color)); border-radius: 9999px; transition: left .08s, right .08s; }
+.slider-input { position: absolute; top: 50%; transform: translateY(-50%); left: 0; width: 100%; -webkit-appearance: none; background: none; pointer-events: none; height: 20px; margin: 0; }
+.slider-input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid var(--primary-color); box-shadow: 0 2px 8px rgba(255,170,85,.4); pointer-events: auto; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.slider-input::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 3px 12px rgba(255,170,85,.6); }
+.slider-input::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid var(--primary-color); box-shadow: 0 2px 8px rgba(255,170,85,.4); pointer-events: auto; cursor: pointer; }
+.slider-input::-webkit-slider-runnable-track { height: 8px; background: transparent; }
+.slider-input::-moz-range-track { height: 8px; background: transparent; }
 
 /* 調整表單為 12 欄格線 */
 .search-form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
