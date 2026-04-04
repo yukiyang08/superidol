@@ -4,11 +4,10 @@ Report service functions.
 
 from app.db import get_db_connection
 from datetime import datetime, timedelta, date as dt_date
-import pymysql
 import logging
 import calendar
 
-def get_user_goals(user_id: int, cursor: pymysql.cursors.DictCursor) -> dict:
+def get_user_goals(user_id: int, cursor) -> dict:
     """獲取用戶目標"""
     cursor.execute("SELECT WeekCalorieLimit, Budget, weight FROM Users WHERE UserID = %s", (user_id,))
     user = cursor.fetchone()
@@ -71,7 +70,7 @@ def _determine_date_range(report_type: str, start_date_str: str | None, end_date
         raise ValueError(f"Unsupported report_type: {report_type}")
     return actual_start_date, actual_end_date
 
-def get_food_summary_for_period(user_id: int, start_date: dt_date, end_date: dt_date, cursor: pymysql.cursors.DictCursor) -> dict:
+def get_food_summary_for_period(user_id: int, start_date: dt_date, end_date: dt_date, cursor) -> dict:
     """獲取每週食物相關摘要"""
     sql = """
         SELECT 
@@ -91,7 +90,7 @@ def get_food_summary_for_period(user_id: int, start_date: dt_date, end_date: dt_
         "food_days_logged": summary['food_days_logged'] or 0
     }
 
-def get_exercise_summary_for_period(user_id: int, start_date: dt_date, end_date: dt_date, user_weight_kg: float, cursor: pymysql.cursors.DictCursor) -> dict:
+def get_exercise_summary_for_period(user_id: int, start_date: dt_date, end_date: dt_date, user_weight_kg: float, cursor) -> dict:
     """獲取每週運動相關摘要"""
     sql = """
         SELECT 
@@ -118,7 +117,7 @@ def get_exercise_summary_for_period(user_id: int, start_date: dt_date, end_date:
         "total_calories_burned": round(summary['total_calories_burned']) if summary['total_calories_burned'] else 0
     }
 
-def get_daily_trends_for_period(user_id: int, start_date_dt: dt_date, end_date_dt: dt_date, user_weight_kg: float, cursor: pymysql.cursors.DictCursor) -> list:
+def get_daily_trends_for_period(user_id: int, start_date_dt: dt_date, end_date_dt: dt_date, user_weight_kg: float, cursor) -> list:
     """獲取每日趨勢數據"""
     daily_trends = []
     current_date = start_date_dt
@@ -172,7 +171,7 @@ def get_summary_report(user_id: int, report_type: str, start_date_str: str | Non
     try:
         actual_start_date, actual_end_date = _determine_date_range(report_type, start_date_str, end_date_str)
         weekly_summaries = []
-        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+        with conn.cursor() as cursor:
             user_goals_data = get_user_goals(user_id, cursor) 
             user_weight_kg = user_goals_data.get("user_weight_kg", 0) 
 

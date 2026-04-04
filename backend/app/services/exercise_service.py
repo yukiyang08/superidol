@@ -49,10 +49,11 @@ def log_exercise(user_id: int, exercise_data: Dict[str, Any]) -> Dict[str, Any]:
                 """
                 INSERT INTO Exercise_Records (UserID, Exercise_Name, Duration, Date)
                 VALUES (%s, %s, %s, %s)
+                RETURNING RecordID
                 """,
                 (user_id, exercise_name, duration, date)
             )
-            record_id = cursor.lastrowid
+            record_id = cursor.fetchone()['RecordID']
         conn.commit()
         return {
             "message": "運動紀錄新增成功",
