@@ -82,12 +82,9 @@ export const useAuthStore = defineStore('auth', {
           exercise_preferences: userData.exercisePreference ? userData.exercisePreference.split(',').map(p => p.trim()) : []  // 轉為陣列
         };
         
-        console.log('正在發送註冊請求:', formattedData);
         const response = await api.post('/api/auth/signup', formattedData)
         
-        console.log('註冊回應:', response.data);
-        
-        // 檢查回應中是否有 token 
+        // 應導呀回應中是否有 token 
         if (response.data && response.data.access_token) {
           // 儲存 token 到 localStorage
           const token = response.data.access_token
@@ -108,7 +105,6 @@ export const useAuthStore = defineStore('auth', {
           return response.data
         } else {
           // 如果沒有 token，可能需要手動登入
-          console.log('註冊成功但未返回 token，嘗試自動登入')
           // 嘗試登入
           try {
             return await this.login({
