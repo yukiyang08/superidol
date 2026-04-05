@@ -150,7 +150,9 @@ def add_favorite():
             return jsonify({"error": "Missing required fields: user_id and food_id"}), 400
             
         result = add_to_favorites(data['user_id'], data['food_id'])
-        return jsonify(result), 201
+        if result.get('created'):
+            return jsonify(result), 201
+        return jsonify(result), 409
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
@@ -169,7 +171,9 @@ def remove_favorite():
             return jsonify({"error": "Missing required fields: user_id and food_id"}), 400
             
         result = remove_from_favorites(data['user_id'], data['food_id'])
-        return jsonify(result), 200
+        if result.get('removed'):
+            return jsonify(result), 200
+        return jsonify(result), 404
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
@@ -292,9 +296,67 @@ def recommend_foods():
             food_types = [p['value'] for p in preferences if p['type'] == 'food_type']
             restaurants = [p['value'] for p in preferences if p['type'] == 'restaurant']
 
-            # 一次性取得歷史紀錄和收藏（限制數量）
-            records = get_user_food_records(user_id)[-10:]  # 只取最近10筆記錄
-            favorites = get_user_favorites(user_id)
+            # 一次性取得歷史紀錄和收藏（限制數量，避免全量掃描）
+            cursor.execute(
+                """
+                SELECT
+                    fr.FoodID,
+                    COALESCE(f.Price, fr.CustomPrice) AS Price,
+                    COALESCE(f.Calories, fr.CustomCalories) AS Calories,
+                    COALESCE(f.Name, fr.CustomName) AS Name,
+                    COALESCE(r.Name, fr.CustomRestaurant) AS Restaurant,
+                    COALESCE(f.Food_Type, fr.CustomType) AS Food_Type,
+                    f.Set_Type,
+                    fr.Date
+                FROM Food_Records fr
+                LEFT JOIN Food f ON fr.FoodID = f.FoodID
+                LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
+                WHERE fr.UserID = %s
+                ORDER BY fr.Date DESC, fr.RecordID DESC
+                LIMIT 10
+                """,
+                (user_id,)
+            )
+            records_raw = cursor.fetchall()
+            records = [
+                {
+                    'food_id': record.get('FoodID'),
+                    'name': record.get('Name'),
+                    'restaurant': record.get('Restaurant'),
+                    'price': record.get('Price'),
+                    'calories': record.get('Calories'),
+                    'food_type': record.get('Food_Type'),
+                    'type': record.get('Set_Type'),
+                    'date': record.get('Date').strftime('%Y-%m-%d') if record.get('Date') else None
+                }
+                for record in records_raw
+            ]
+
+            cursor.execute(
+                """
+                SELECT f.FoodID, f.Name, r.Name AS Restaurant, f.Price, f.Calories, f.Food_Type, f.Set_Type
+                FROM My_Favorite mf
+                JOIN Food f ON mf.FoodID = f.FoodID
+                LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
+                WHERE mf.UserID = %s
+                ORDER BY mf.FavoriteID DESC
+                LIMIT 50
+                """,
+                (user_id,)
+            )
+            favorites_raw = cursor.fetchall()
+            favorites = [
+                {
+                    'food_id': fav.get('FoodID'),
+                    'name': fav.get('Name'),
+                    'restaurant': fav.get('Restaurant'),
+                    'price': fav.get('Price'),
+                    'calories': fav.get('Calories'),
+                    'food_type': fav.get('Food_Type'),
+                    'type': fav.get('Set_Type')
+                }
+                for fav in favorites_raw
+            ]
             
             # 分析用戶習慣
             historical_food_ids = set()
@@ -437,7 +499,7 @@ def recommend_foods():
                 if budget_limit:
                     filters['priceMax'] = budget_limit
                 
-                restaurant_foods = cached_search_food(filters_to_tuple(filters))
+                restaurant_foods = cached_search_food_precise(filters_to_tuple(filters), 120)
                 scored_restaurant_foods = []
                 
                 for food in restaurant_foods:
@@ -471,7 +533,7 @@ def recommend_foods():
                 if budget_limit:
                     health_filters['priceMax'] = budget_limit
                 
-                healthy_foods = cached_search_food(filters_to_tuple(health_filters))
+                healthy_foods = cached_search_food_precise(filters_to_tuple(health_filters), 120)
                 healthy_foods = [f for f in healthy_foods if f['id'] not in seen_food_ids]
                 
                 # 選擇營養均衡的食物
@@ -500,7 +562,7 @@ def recommend_foods():
                 if restaurants:
                     explore_filters['restaurant'] = ','.join(restaurants)
                 
-                all_foods = cached_search_food(filters_to_tuple(explore_filters))
+                all_foods = cached_search_food_precise(filters_to_tuple(explore_filters), 120)
                 new_foods = [f for f in all_foods if f['id'] not in historical_food_ids and f['id'] not in favorite_food_ids and f['id'] not in seen_food_ids]
                 
                 if new_foods:

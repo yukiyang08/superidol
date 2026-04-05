@@ -809,6 +809,11 @@ export default {
         ElMessage.success('已添加到我的最愛')
         favoriteFoodIds.value = new Set([...favoriteFoodIds.value, food.id])
       } catch (error) {
+        if (error?.response?.status === 409) {
+          favoriteFoodIds.value = new Set([...favoriteFoodIds.value, food.id])
+          ElMessage.info('此食物已在我的最愛')
+          return
+        }
         console.error('添加到最愛失敗:', error)
         ElMessage.error('添加到最愛失敗，請稍後再試')
       }
@@ -983,7 +988,7 @@ export default {
         return
       }
       try {
-        const res = await api.get('/api/food/favorites', { params: { user_id: userId } })
+        const res = await api.get('/api/myfavorite/favorites', { params: { user_id: userId } })
         if (Array.isArray(res.data)) {
           favoriteFoodIds.value = new Set(res.data.map(f => f.food_id || f.id))
         }
@@ -1014,47 +1019,56 @@ export default {
     onMounted(async () => {
       isLoading.value = true
       hasSearched.value = false
-      
+
       // 定期清理過期快取
       setInterval(cleanExpiredCache, 60000)
-      
-      await fetchFavorites()
-      await fetchExercisePreferences()
-      await loadUserPreferences()
-      try {
-        const userId = localStorage.getItem('userId')
-        if (!userId) {
-          recommendedCategories.value = []
-          isLoading.value = false
-          return
-        }
-        const { data } = await api.get('/api/food/recommend', { params: { user_id: userId } })
-        recommendedCategories.value = Array.isArray(data.categories) ? data.categories : []
-      } catch (error) {
-        console.error('載入推薦失敗:', error)
-        recommendedCategories.value = []
-      } finally {
-        isLoading.value = false
-      }
-      try {
-        const res = await api.get('/api/food/types')
-        if (Array.isArray(res.data)) {
-          foodTypes.value = res.data
-        }
-      } catch (e) {
-        foodTypes.value = Array.from(new Set((searchResults.value || []).map(f => f.food_type).filter(Boolean)))
-      }
-      try {
-        const res = await api.get('/api/food/restaurants');
-        if (Array.isArray(res.data)) {
-          restaurants.value = res.data.map(r => ({
-            ...r,
-            logo: `/img/logos/restaurant-${r.id}.png`
-          }));
-        }
-      } catch (e) {
-        restaurants.value = [];
-      }
+
+      const userId = localStorage.getItem('userId')
+
+      const bootstrapTasks = [
+        fetchFavorites(),
+        fetchExercisePreferences(),
+        loadUserPreferences(),
+        (async () => {
+          if (!userId) {
+            recommendedCategories.value = []
+            return
+          }
+          try {
+            const { data } = await api.get('/api/food/recommend', { params: { user_id: userId } })
+            recommendedCategories.value = Array.isArray(data.categories) ? data.categories : []
+          } catch (error) {
+            console.error('載入推薦失敗:', error)
+            recommendedCategories.value = []
+          }
+        })(),
+        (async () => {
+          try {
+            const res = await api.get('/api/food/types')
+            if (Array.isArray(res.data)) {
+              foodTypes.value = res.data
+            }
+          } catch (e) {
+            foodTypes.value = Array.from(new Set((searchResults.value || []).map(f => f.food_type).filter(Boolean)))
+          }
+        })(),
+        (async () => {
+          try {
+            const res = await api.get('/api/food/restaurants')
+            if (Array.isArray(res.data)) {
+              restaurants.value = res.data.map(r => ({
+                ...r,
+                logo: `/img/logos/restaurant-${r.id}.png`
+              }))
+            }
+          } catch (e) {
+            restaurants.value = []
+          }
+        })()
+      ]
+
+      await Promise.allSettled(bootstrapTasks)
+      isLoading.value = false
 
       // 初始化熱量滑桿
       syncCalValuesFromFilters()

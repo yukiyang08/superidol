@@ -1,4 +1,4 @@
-from db import get_db_connection
+from app.db import get_db_connection
 
 # 這裡只保留底層邏輯 function，不再定義 Blueprint 路由
 

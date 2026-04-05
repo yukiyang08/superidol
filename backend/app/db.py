@@ -44,6 +44,8 @@ class CIDict(dict):
 
 
 def ci_dict_row(cursor):
+    if cursor.description is None:
+        return lambda values: values
     columns = [col.name for col in cursor.description]
     def make_row(values):
         return CIDict(zip(columns, values))

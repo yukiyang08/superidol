@@ -62,9 +62,7 @@
             size="large"
             @keyup.enter="submitForm"
           />
-          <div class="forgot-password">
-            <span class="forgot-link disabled">忘記密碼功能即將推出</span>
-          </div>
+
         </el-form-item>
         
         <el-form-item class="remember-item">
