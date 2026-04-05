@@ -39,7 +39,7 @@
           <!-- 預算和熱量限制 -->
           <div class="preference-card">
             <div class="card-header">
-              <i class="el-icon-setting"></i>
+              <el-icon><Setting /></el-icon>
               <h3>個人設定</h3>
             </div>
             
@@ -77,7 +77,7 @@
           <!-- 食物偏好 -->
           <div class="preference-card">
             <div class="card-header">
-              <i class="el-icon-food"></i>
+              <el-icon><Food /></el-icon>
               <h3>飲食偏好</h3>
             </div>
             <el-form-item label="食物類型偏好">
@@ -91,7 +91,7 @@
                   @click="preferences.foodTypePreferences[type.name] = !preferences.foodTypePreferences[type.name]"
                   style="margin: 4px"
                 >
-                  <i class="el-icon-ice-cream" style="margin-right:4px;color:#67c23a"></i>{{ type.name }}
+                  <el-icon style="margin-right:4px;color:#67c23a"><IceCream /></el-icon>{{ type.name }}
                 </el-button>
               </div>
             </el-form-item>
@@ -100,7 +100,7 @@
           <!-- 餐廳偏好 -->
           <div class="preference-card">
             <div class="card-header">
-              <i class="el-icon-office-building"></i>
+              <el-icon><OfficeBuilding /></el-icon>
               <h3>餐廳偏好</h3>
             </div>
             <el-form-item label="喜好的餐廳">
@@ -114,7 +114,7 @@
                   @click="preferences.restaurantPreferences[restaurant.id] = !preferences.restaurantPreferences[restaurant.id]"
                   style="margin: 4px"
                 >
-                  <i class="el-icon-office-building" style="margin-right:4px;color:#f08c00"></i>
+                  <el-icon style="margin-right:4px;color:#f08c00"><OfficeBuilding /></el-icon>
                   {{ restaurant.name }}
                 </el-button>
               </div>
@@ -124,7 +124,7 @@
           <!-- 運動偏好 -->
           <div class="preference-card">
             <div class="card-header">
-              <i class="el-icon-basketball"></i>
+              <el-icon><Basketball /></el-icon>
               <h3>運動偏好</h3>
             </div>
             <el-form-item label="喜好的運動類型">
@@ -138,20 +138,20 @@
                   @click="preferences.exercisePreferences[item.name] = !preferences.exercisePreferences[item.name]"
                   style="margin: 4px"
                 >
-                  <i class="el-icon-basketball" style="margin-right:4px;color:#409eff"></i>{{ item.name }}
+                  <el-icon style="margin-right:4px;color:#409eff"><Basketball /></el-icon>{{ item.name }}
                 </el-button>
               </div>
             </el-form-item>
           </div>
           
           <div class="note">
-            <i class="el-icon-info-filled"></i>
+            <el-icon><InfoFilled /></el-icon>
             <p>* 標示為必填欄位，其他偏好設定均為選填，我們會根據您的偏好為您推薦內容</p>
           </div>
           
           <div class="form-actions">
             <el-button @click="goBack" class="back-button">
-              <i class="el-icon-arrow-left"></i> 返回
+              <el-icon><ArrowLeft /></el-icon> 返回
             </el-button>
             <el-button 
               type="primary" 
@@ -159,7 +159,7 @@
               @click="submitForm"
               class="submit-button"
             >
-              <i class="el-icon-check" v-if="!isLoading"></i>
+              <el-icon v-if="!isLoading"><Check /></el-icon>
               {{ isLoading ? '提交中...' : '完成註冊' }}
             </el-button>
           </div>
@@ -174,7 +174,7 @@ import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { ElMessage } from 'element-plus'
-import { Loading } from '@element-plus/icons-vue'
+import { Loading, Setting, Food, IceCream, OfficeBuilding, Basketball, InfoFilled, ArrowLeft, Check } from '@element-plus/icons-vue'
 import api from '../../services/api'
 import CalorieCalculator from '../../components/CalorieCalculator.vue'
 

@@ -19,7 +19,7 @@
         <!-- 基本資訊區塊 -->
         <div class="form-section">
           <div class="section-header">
-            <i class="el-icon-user"></i>
+            <el-icon><User /></el-icon>
             <h3>基本資訊</h3>
           </div>
           
@@ -69,7 +69,7 @@
         <!-- 帳號設定區塊 -->
         <div class="form-section">
           <div class="section-header">
-            <i class="el-icon-lock"></i>
+            <el-icon><Lock /></el-icon>
             <h3>帳號設定</h3>
           </div>
           
@@ -111,7 +111,7 @@
         <!-- 偏好設定區塊 -->
         <div class="form-section">
           <div class="section-header">
-            <i class="el-icon-star-on"></i>
+            <el-icon><Star /></el-icon>
             <h3>偏好設定</h3>
           </div>
           
@@ -143,7 +143,7 @@
         </div>
         
         <div class="note">
-          <i class="el-icon-info-filled"></i>
+          <el-icon><InfoFilled /></el-icon>
           <p>* 標示為必填欄位，其他資訊可於註冊後補充</p>
         </div>
         
@@ -154,7 +154,7 @@
             @click="submitForm" 
             class="submit-button"
           >
-            <i class="el-icon-arrow-right" v-if="!isLoading"></i>
+            <el-icon v-if="!isLoading"><ArrowRight /></el-icon>
             {{ isLoading ? '註冊中...' : '立即註冊' }}
           </el-button>
         </div>
@@ -177,6 +177,7 @@ import { reactive, computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { ElMessage } from 'element-plus'
+import { User, Lock, Star, InfoFilled, ArrowRight } from '@element-plus/icons-vue'
 import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
 const router = useRouter()

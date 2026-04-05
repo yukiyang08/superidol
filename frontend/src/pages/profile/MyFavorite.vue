@@ -11,7 +11,7 @@
 
       <!-- 無最愛提示 -->
       <div v-if="!isLoading && favoriteFoods.length === 0" class="no-results">
-        <i class="el-icon-star-off no-results-icon"></i>
+        <el-icon class="no-results-icon"><Star /></el-icon>
         <p>尚未收藏任何食物</p>
         <p class="no-results-subtitle">到食物搜尋頁面尋找喜歡的食物並加入最愛吧！</p>
       </div>
@@ -28,34 +28,34 @@
                 <h3 class="food-name">{{ food.name }}</h3>
                 <div class="food-details">
                   <div class="detail-item">
-                    <i class="el-icon-shop"></i>
+                    <el-icon><Shop /></el-icon>
                     <span>{{ food.restaurant || '未知餐廳' }}</span>
                   </div>
                   <div class="detail-item">
-                    <i class="el-icon-money"></i>
+                    <el-icon><Money /></el-icon>
                     <span>{{ food.price }} 元</span>
                   </div>
                   <div class="detail-item">
-                    <i class="el-icon-data-line"></i>
+                    <el-icon><DataLine /></el-icon>
                     <span>{{ food.calories }} 大卡</span>
                   </div>
                   <div class="detail-item">
-                    <i class="el-icon-food"></i>
+                    <el-icon><Food /></el-icon>
                     <span>{{ food.food_type || '未分類' }}</span>
                   </div>
                   <div class="detail-item">
-                    <i class="el-icon-menu"></i>
+                    <el-icon><Menu /></el-icon>
                     <span>{{ food.type }}</span>
                   </div>
                 </div>
               </div>
               <div class="food-actions">
                 <button class="action-btn record-btn" @click="openFoodRecordModal(food)">
-                  <i class="el-icon-plus"></i>
+                  <el-icon><Plus /></el-icon>
                   加入紀錄
                 </button>
                 <button class="action-btn remove-btn" @click="confirmRemoveFavorite(food)" :disabled="isRemoving">
-                  <i class="el-icon-star-off"></i>
+                  <el-icon><Star /></el-icon>
                   {{ isRemoving ? '移除中...' : '移除最愛' }}
                 </button>
               </div>
@@ -91,6 +91,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Star, Shop, Money, DataLine, Food, Menu, Plus } from '@element-plus/icons-vue'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 import api from '@/services/api'
 

@@ -446,7 +446,7 @@
 
       <!-- 無結果 -->
       <div v-if="hasSearched && searchResults.length === 0 && !isLoading" class="no-results">
-        <el-icon class="el-icon-search no-results-icon"></el-icon>
+        <el-icon class="no-results-icon"><Search /></el-icon>
         <p>未找到符合條件的食物</p>
       </div>
 

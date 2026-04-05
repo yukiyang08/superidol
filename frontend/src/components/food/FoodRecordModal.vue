@@ -12,28 +12,28 @@
             <label class="meal-type-option">
               <input type="radio" value="早餐" v-model="selectedMealType" />
               <span class="meal-type-label">
-                <i class="el-icon-sunrise"></i>
+                <el-icon><Sunrise /></el-icon>
                 早餐
               </span>
             </label>
             <label class="meal-type-option">
               <input type="radio" value="午餐" v-model="selectedMealType" />
               <span class="meal-type-label">
-                <i class="el-icon-sunny"></i>
+                <el-icon><Sunny /></el-icon>
                 午餐
               </span>
             </label>
             <label class="meal-type-option">
               <input type="radio" value="晚餐" v-model="selectedMealType" />
               <span class="meal-type-label">
-                <i class="el-icon-sunset"></i>
+                <el-icon><Sunset /></el-icon>
                 晚餐
               </span>
             </label>
             <label class="meal-type-option">
               <input type="radio" value="點心" v-model="selectedMealType" />
               <span class="meal-type-label">
-                <i class="el-icon-dessert"></i>
+                <el-icon><Dessert /></el-icon>
                 點心
               </span>
             </label>
@@ -63,6 +63,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Sunrise, Sunny, Sunset, Dessert } from '@element-plus/icons-vue'
 import api from '@/services/api'
 
 const props = defineProps({

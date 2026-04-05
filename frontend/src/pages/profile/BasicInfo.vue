@@ -3,13 +3,13 @@
     <el-card class="profile-card">
       <div class="profile-header">
         <h2>
-          <i class="el-icon-user" style="color:#4a4a4a;margin-right:8px"></i>
+          <el-icon style="color:#4a4a4a;margin-right:8px"><User /></el-icon>
           個人基本資料
         </h2>
         <el-button
           v-if="!isEditing"
           type="warning"
-          icon="el-icon-edit"
+          :icon="Edit"
           @click="startEdit"
           class="edit-btn"
         >編輯</el-button>
@@ -99,7 +99,7 @@
                   type="warning"
                   class="help-btn"
                   @click="showCalorieHelp"
-                  icon="el-icon-question"
+                  :icon="QuestionFilled"
                 >
                   計算說明
                 </el-button>
@@ -258,6 +258,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { User, Edit, QuestionFilled } from '@element-plus/icons-vue'
 import api from '@/services/api'
 
 // 狀態
