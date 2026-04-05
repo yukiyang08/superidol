@@ -6,7 +6,7 @@ import logging
 import os
 
 from flasgger import Swagger
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 
@@ -62,11 +62,15 @@ def create_app():
     logging.basicConfig(level=getattr(logging, log_level))
 
     # 設置 CORS：以 config.py 的 CORS_ORIGINS 為準（可由環境變數覆蓋）
-    CORS(app, origins=app.config.get("CORS_ORIGINS", []), supports_credentials=True)
+    cors_origins = [origin.rstrip("/") for origin in app.config.get("CORS_ORIGINS", [])]
+    CORS(app, origins=cors_origins, supports_credentials=True)
 
     # 記錄每個請求的CORS信息
     @app.after_request
     def log_cors_headers(response):
+        origin = request.headers.get("Origin")
+        if origin:
+            logging.debug(f"Request Origin: {origin}")
         logging.debug(f"CORS Headers: {dict(response.headers)}")
         return response
 
@@ -106,6 +110,6 @@ def create_app():
     # 記錄應用啟動信息
     logging.info(f"Flask應用已啟動，環境: {env}")
     logging.info(f"數據庫連接: {app.config.get('MYSQL_HOST')}:{app.config.get('MYSQL_PORT')}")
-    logging.info(f"CORS設置: 允許來源 {app.config.get('CORS_ORIGINS')}")
+    logging.info(f"CORS設置: 允許來源 {cors_origins}")
 
     return app

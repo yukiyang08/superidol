@@ -8,6 +8,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def parse_cors_origins(raw_value: str | None, default_value: str) -> list[str]:
+    """Parse comma-separated origins and normalize formatting for exact matching."""
+    value = raw_value if raw_value is not None else default_value
+    origins = []
+    for origin in value.split(','):
+        normalized = origin.strip().rstrip('/')
+        if normalized:
+            origins.append(normalized)
+    return origins
+
 class Config:
     """Base configuration."""
     # Flask settings
@@ -30,13 +41,19 @@ class Config:
     API_VERSION = 'v1'
     
     # CORS 配置
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,https://super-idol.onrender.com').split(',')
+    CORS_ORIGINS = parse_cors_origins(
+        os.getenv('CORS_ORIGINS'),
+        'http://localhost:3000,https://super-idol.onrender.com,https://superidol-mauve.vercel.app'
+    )
 
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
     # 開發環境 CORS 設置 - 添加前端開發伺服器地址
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173').split(',')
+    CORS_ORIGINS = parse_cors_origins(
+        os.getenv('CORS_ORIGINS'),
+        'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,https://superidol-mauve.vercel.app'
+    )
 
 class TestingConfig(Config):
     """Testing configuration."""
@@ -88,4 +105,7 @@ class ProductionConfig(Config):
             logging.warning(f"Using default DB_NAME: {MYSQL_DB}")
     
     # 生產環境 CORS 設置
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'https://super-idol.onrender.com').split(',') 
+    CORS_ORIGINS = parse_cors_origins(
+        os.getenv('CORS_ORIGINS'),
+        'https://superidol-mauve.vercel.app,https://superidol-i0t9.onrender.com'
+    )

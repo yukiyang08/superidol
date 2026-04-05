@@ -1,10 +1,12 @@
 import axios from 'axios'
 
-const baseURL = import.meta.env.VITE_API_BASE || (
-  import.meta.env.PROD 
-    ? ''  // 生產環境使用空字串，避免重複的 /api 路徑
-    : 'http://localhost:5000'  // 開發環境
-);
+const configuredBaseURL = (import.meta.env.VITE_API_BASE || '').trim().replace(/\/$/, '')
+
+const baseURL = configuredBaseURL || (
+  import.meta.env.PROD
+    ? 'https://superidol-i0t9.onrender.com'
+    : 'http://localhost:5000'
+)
 
 // 創建 axios 實例
 export const api = axios.create({
