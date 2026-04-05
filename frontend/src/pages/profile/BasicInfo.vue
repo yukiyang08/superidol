@@ -187,18 +187,6 @@
           <el-button @click="cancelEdit">取消</el-button>
       </div>
       </template>
-      <el-dialog v-model="dialogVisible" title="訊息" width="300">
-        <span>{{ dialogMsg }}</span>
-        <template #footer>
-          <el-button type="primary" @click="dialogVisible = false">確定</el-button>
-        </template>
-      </el-dialog>
-      <div v-if="notification.show" class="notification-overlay">
-        <div class="notification-content" :class="notification.type">
-          <span class="notification-icon">✓</span>
-          <p>{{ notification.message }}</p>
-        </div>
-      </div>
       <el-loading v-if="isLoading" lock text="載入中..." />
       <el-dialog
         v-model="calorieHelpVisible"
@@ -269,6 +257,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
+import { ElMessage } from 'element-plus'
 import api from '@/services/api'
 
 // 狀態
@@ -301,11 +290,6 @@ const profile = ref({
     const editSelectedFoodTypes = ref([])
     const editSelectedExerciseNames = ref([])
     const editSelectedRestaurantIds = ref([])
-    // dialog
-    const dialogVisible = ref(false)
-    const dialogMsg = ref('')
-    // 通知狀態
-    const notification = ref({ show: false, message: '', type: 'success' })
     const calorieHelpVisible = ref(false)
     const calorieCalc = reactive({
       gender: 'male',
@@ -336,53 +320,22 @@ const profile = ref({
       return iconMap[exerciseName] || '🏋️'
     }
 
-    // 獲取運動強度（基於MET值）
-    const getExerciseIntensity = (exerciseName) => {
-      const metValues = {
-        '伏地挺身': 5,
-        '划船': 7,
-        '太極': 4,
-        '快走': 4,
-        '慢走': 3,
-        '攀岩': 8,
-        '游泳': 7,
-        '爬山': 6,
-        '瑜珈': 5,
-        '籃球': 7,
-        '足球': 7,
-        '跑步(10km/hr)': 10,
-        '跑步(8km/hr)': 8,
-        '騎腳踏車': 6
-      }
-      
-      const met = metValues[exerciseName] || 0
-      
+    const EXERCISE_MET = {
+      '伏地挺身': 5, '划船': 7, '太極': 4, '快走': 4, '慢走': 3,
+      '攀岩': 8, '游泳': 7, '爬山': 6, '瑜珈': 5, '籃球': 7,
+      '足球': 7, '跑步(10km/hr)': 10, '跑步(8km/hr)': 8, '騎腳踏車': 6
+    }
+    const getExerciseMET = (name) => EXERCISE_MET[name] || 0
+
+    const getExerciseIntensity = (name) => {
+      const met = getExerciseMET(name)
       if (met <= 3) return '輕度'
       if (met <= 6) return '中度'
       return '高度'
     }
-    
-    // 根據強度獲取火焰圖示
-    const getIntensityFlames = (exerciseName) => {
-      const metValues = {
-        '伏地挺身': 5,
-        '划船': 7,
-        '太極': 4,
-        '快走': 4,
-        '慢走': 3,
-        '攀岩': 8,
-        '游泳': 7,
-        '爬山': 6,
-        '瑜珈': 5,
-        '籃球': 7,
-        '足球': 7,
-        '跑步(10km/hr)': 10,
-        '跑步(8km/hr)': 8,
-        '騎腳踏車': 6
-      }
-      
-      const met = metValues[exerciseName] || 0
-      
+
+    const getIntensityFlames = (name) => {
+      const met = getExerciseMET(name)
       if (met <= 0) return ''
       if (met <= 3) return '🔥'
       if (met <= 6) return '🔥🔥'
@@ -390,15 +343,12 @@ const profile = ref({
       return '🔥🔥🔥🔥'
     }
     
-    // 切換運動選擇
-    const toggleExercise = (exerciseName) => {
-      const index = editSelectedExerciseNames.value.indexOf(exerciseName)
-      if (index === -1) {
-        editSelectedExerciseNames.value.push(exerciseName)
-      } else {
-        editSelectedExerciseNames.value.splice(index, 1)
-      }
+    const toggleItem = (arr, val) => {
+      const i = arr.value.indexOf(val)
+      i === -1 ? arr.value.push(val) : arr.value.splice(i, 1)
     }
+
+    const toggleExercise = (name) => toggleItem(editSelectedExerciseNames, name)
 
     // 載入所有可選項目
     const fetchOptions = async () => {
@@ -411,7 +361,6 @@ const profile = ref({
         foodTypes.value = foodRes.data || []
         exerciseItems.value = exerciseRes.data || []
         restaurants.value = restaurantRes.data || []
-        console.log('載入選項成功', { foodTypes: foodTypes.value, exerciseItems: exerciseItems.value, restaurants: restaurants.value })
       } catch (error) {
         console.error('載入選項失敗:', error)
         errorMsg.value = '載入選項失敗，請重新整理頁面'
@@ -429,11 +378,6 @@ const profile = ref({
         selectedFoodTypes.value = foodPref.data.food_types || []
         selectedExerciseNames.value = exercisePref.data.exercise_names || []
         selectedRestaurantIds.value = restaurantPref.data.restaurant_ids || []
-        console.log('載入用戶偏好成功', { 
-          foodTypes: selectedFoodTypes.value, 
-          exerciseNames: selectedExerciseNames.value, 
-          restaurantIds: selectedRestaurantIds.value 
-        })
       } catch (err) {
         console.error('載入用戶偏好失敗:', err)
         // 若查無偏好可忽略
@@ -479,67 +423,29 @@ const profile = ref({
         const userId = Number(localStorage.getItem('userId'))
         if (!userId) {
           errorMsg.value = '找不到使用者 ID，請重新登入'
-          isLoading.value = false
           return
         }
-        // 1. 儲存基本資料
-        const payload = {
+        await api.put('/api/auth/profile', {
           name: editProfile.name,
           email: editProfile.email,
           budget: editProfile.budget,
           weekcalorielimit: editProfile.weekcalorielimit,
           weight: editProfile.weight
-        }
-        console.log('更新基本資料:', payload)
-        
-        try {
-          const response = await api.put('/api/auth/profile', payload)
-          console.log('基本資料更新結果:', response.data)
-        } catch (profileError) {
-          console.error('更新基本資料失敗:', profileError.response?.data || profileError.message)
-          throw profileError
-        }
-        
-        // 2. 儲存三種偏好（POST）
-        console.log('更新食物偏好:', editSelectedFoodTypes.value)
-        try {
-          const foodResponse = await api.post('/api/preferences/user/food-preferences', { 
-            user_id: userId, 
-            food_types: editSelectedFoodTypes.value 
+        })
+        await Promise.all([
+          api.post('/api/preferences/user/food-preferences', {
+            user_id: userId,
+            food_types: editSelectedFoodTypes.value
+          }),
+          api.post('/api/preferences/user/exercise-preferences', {
+            user_id: userId,
+            exercise_names: editSelectedExerciseNames.value
+          }),
+          api.post('/api/preferences/user/restaurant-preferences', {
+            user_id: userId,
+            restaurant_ids: editSelectedRestaurantIds.value.map(Number)
           })
-          console.log('食物偏好更新結果:', foodResponse.data)
-        } catch (foodError) {
-          console.error('更新食物偏好失敗:', foodError.response?.data || foodError.message)
-          throw foodError
-        }
-        
-        console.log('更新運動偏好:', editSelectedExerciseNames.value)
-        try {
-          const exerciseResponse = await api.post('/api/preferences/user/exercise-preferences', { 
-            user_id: userId, 
-            exercise_names: editSelectedExerciseNames.value 
-          })
-          console.log('運動偏好更新結果:', exerciseResponse.data)
-        } catch (exerciseError) {
-          console.error('更新運動偏好失敗:', exerciseError.response?.data || exerciseError.message)
-          throw exerciseError
-        }
-        
-        console.log('更新餐廳偏好:', editSelectedRestaurantIds.value)
-        try {
-          const restaurantResponse = await api.post('/api/preferences/user/restaurant-preferences', { 
-            user_id: userId, 
-            restaurant_ids: editSelectedRestaurantIds.value.map(id => 
-              typeof id === 'string' ? parseInt(id) : id
-            )
-          })
-          console.log('餐廳偏好更新結果:', restaurantResponse.data)
-        } catch (restaurantError) {
-          console.error('更新餐廳偏好失敗:', restaurantError.response?.data || restaurantError.message)
-          throw restaurantError
-        }
-        
-        // 更新顯示資料
+        ])
         profile.value.name = editProfile.name
         profile.value.email = editProfile.email
         profile.value.budget = editProfile.budget
@@ -549,14 +455,10 @@ const profile = ref({
         selectedExerciseNames.value = [...editSelectedExerciseNames.value]
         selectedRestaurantIds.value = [...editSelectedRestaurantIds.value]
         isEditing.value = false
-        dialogMsg.value = '資料已儲存！'
-        dialogVisible.value = true
         showNotification('個人偏好已成功更新！')
       } catch (err) {
-        console.error('儲存失敗詳細錯誤:', err)
         errorMsg.value = err.response?.data?.error || '儲存失敗'
-        dialogMsg.value = errorMsg.value
-        dialogVisible.value = true
+        showNotification(errorMsg.value, 'error')
       } finally {
         isLoading.value = false
       }
@@ -627,32 +529,16 @@ const profile = ref({
       return typeMap[restaurantId] || ''
     }
 
-    // 切換食物選擇
-    const toggleFood = (foodTypeName) => {
-      const index = editSelectedFoodTypes.value.indexOf(foodTypeName)
-      if (index === -1) {
-        editSelectedFoodTypes.value.push(foodTypeName)
-      } else {
-        editSelectedFoodTypes.value.splice(index, 1)
-      }
-    }
+    const toggleFood       = (name) => toggleItem(editSelectedFoodTypes, name)
+    const toggleRestaurant = (id)   => toggleItem(editSelectedRestaurantIds, id)
 
-    // 切換餐廳選擇
-    const toggleRestaurant = (restaurantId) => {
-      const index = editSelectedRestaurantIds.value.indexOf(restaurantId)
-      if (index === -1) {
-        editSelectedRestaurantIds.value.push(restaurantId)
-      } else {
-        editSelectedRestaurantIds.value.splice(index, 1)
-      }
-    }
-
-    // 顯示通知
     const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
+      ElMessage({
+        message,
+        type,
+        duration: type === 'error' ? 5000 : 3000,
+        showClose: true
+      })
     }
 
     // 獲取餐廳圖片背景
@@ -720,9 +606,8 @@ const profile = ref({
     }
 
 onMounted(async () => {
-  await fetchOptions()
-  await fetchProfile()
   const userId = Number(localStorage.getItem('userId'))
+  await Promise.all([fetchOptions(), fetchProfile()])
   if (userId) await fetchUserPreferences(userId)
 })
 </script>
@@ -739,8 +624,8 @@ onMounted(async () => {
 .profile-card {
   width: 100%;
   max-width: 700px;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border-radius: var(--surface-radius-lg);
+  box-shadow: var(--shadow-card-hover);
   padding: 32px 24px 24px 24px;
   border: none;
   background: #fff;
@@ -762,25 +647,25 @@ onMounted(async () => {
   margin-right: 10px;
 }
 .edit-btn, .save-btn {
-  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%) !important;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%) !important;
   border: none !important;
   color: #fff !important;
   font-weight: 600;
   padding: 10px 24px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+  border-radius: var(--btn-radius);
+  box-shadow: var(--shadow-button);
   transition: all 0.3s ease;
 }
 .edit-btn:hover, .save-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+  box-shadow: var(--shadow-button-hover);
 }
 .preference-card, .preference-view {
   margin: 24px 0 0 0;
   padding: 24px 20px;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   background: #fff;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-card);
   border: none;
 }
 .preference-header {
@@ -1105,59 +990,6 @@ onMounted(async () => {
   padding: 2px 6px;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  font-weight: 500;
-}
-
-/* 通知樣式 */
-.notification-overlay {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1001;
-  animation: slideIn 0.3s forwards;
-}
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-.notification-content {
-  background-color: white;
-  border-radius: 12px;
-  padding: 16px 24px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-  display: flex;
-  align-items: center;
-  border-left: none;
-}
-.notification-content.success {
-  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  border-left: none;
-}
-.notification-content.error {
-  background: linear-gradient(135deg, #ffffff 0%, #fff0f0 100%);
-  border-left: none;
-}
-.notification-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #4a4a4a 0%, #666666 100%);
-  color: white;
-  font-weight: bold;
-  margin-right: 16px;
-  box-shadow: 0 4px 10px rgba(74, 74, 74, 0.25);
-}
-.notification-content.error .notification-icon {
-  background: linear-gradient(135deg, #f44336 0%, #ff5252 100%);
-  box-shadow: 0 4px 10px rgba(244, 67, 54, 0.25);
-}
-.notification-content p {
-  margin: 0;
-  font-size: 14px;
-  color: #333;
   font-weight: 500;
 }
 

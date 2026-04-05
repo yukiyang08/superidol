@@ -61,6 +61,23 @@ onMounted(async () => {
   --border-color: #e0e0e0;
   --font-tc: 'Noto Sans TC', sans-serif;
   --font-en: 'Poppins', 'Nunito Sans', sans-serif;
+  --surface-radius-lg: 16px;
+  --surface-radius-md: 12px;
+  --surface-radius-sm: 10px;
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 14px 28px rgba(0, 0, 0, 0.10);
+  --shadow-button: 0 6px 16px rgba(255, 170, 85, 0.28);
+  --shadow-button-hover: 0 10px 22px rgba(255, 170, 85, 0.36);
+  --btn-radius: 10px;
+}
+/* Override Element Plus primary to match brand orange */
+:root {
+  --el-color-primary: #ffaa55;
+  --el-color-primary-dark-2: #e09640;
+  --el-color-primary-light-3: #ffc07d;
+  --el-color-primary-light-5: #ffd4a0;
+  --el-color-primary-light-7: #ffe5c3;
+  --el-color-primary-light-9: #fff4e8;
 }
 
 body {

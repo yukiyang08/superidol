@@ -3,7 +3,7 @@
     <div class="container header-container">
       <div class="logo-container">
         <router-link to="/food/search" class="logo">
-          <i class="fas fa-hamburger logo-icon pulse-animation"></i>
+          <el-icon class="logo-icon pulse-animation"><IconFood /></el-icon>
           <span class="logo-text">Super Idol</span>
         </router-link>
       </div>
@@ -12,42 +12,42 @@
       <div class="nav-desktop">
         <nav class="main-nav">
           <router-link to="/food/search" class="nav-link">
-            <i class="fas fa-search"></i>
+            <el-icon><Search /></el-icon>
             <span>食物搜尋</span>
           </router-link>
           <router-link to="/food/record" class="nav-link">
-            <i class="fas fa-utensils"></i>
+            <el-icon><Food /></el-icon>
             <span>飲食記錄</span>
           </router-link>
           <router-link to="/exercise/record" class="nav-link">
-            <i class="fas fa-running"></i>
+            <el-icon><IconSport /></el-icon>
             <span>運動記錄</span>
           </router-link>
           <router-link to="/reports/weekly" class="nav-link">
-            <i class="fas fa-chart-line"></i>
+            <el-icon><TrendCharts /></el-icon>
             <span>健康報告</span>
           </router-link>
         </nav>
         
         <div class="user-menu">
           <button class="user-toggle" @click="isMenuOpen = !isMenuOpen" :aria-expanded="isMenuOpen" aria-label="開啟使用者選單">
-            <i class="fas fa-user-circle avatar-icon"></i>
+            <el-icon class="avatar-icon"><UserFilled /></el-icon>
             <span class="user-name">{{ userName }}</span>
-            <i class="fas fa-chevron-down" :class="{ 'rotate-icon': isMenuOpen }"></i>
+            <el-icon :class="{ 'rotate-icon': isMenuOpen }"><ArrowDown /></el-icon>
           </button>
           
           <transition name="fade-scale">
             <div v-if="isMenuOpen" class="dropdown-menu">
               <router-link to="/profile/basic-info" class="dropdown-item">
-                <i class="fas fa-id-card"></i>
+                <el-icon><User /></el-icon>
                 <span>基本資料</span>
               </router-link>
               <router-link to="/profile/myfavorite" class="dropdown-item">
-                <i class="fas fa-sliders-h"></i>
+                <el-icon><Star /></el-icon>
                 <span>我的最愛</span>
               </router-link>
               <button class="dropdown-item" @click="logout">
-                <i class="fas fa-sign-out-alt"></i>
+                <el-icon><SwitchButton /></el-icon>
                 <span>登出</span>
               </button>
             </div>
@@ -57,7 +57,8 @@
 
       <!-- Mobile Navigation -->
       <button class="mobile-toggle" @click="toggleMobileMenu" :aria-expanded="isMobileMenuOpen" aria-label="開啟手機選單">
-        <i :class="isMobileMenuOpen ? 'fas fa-times swing-animation' : 'fas fa-bars'"></i>
+        <el-icon v-if="isMobileMenuOpen" class="swing-animation"><Close /></el-icon>
+        <el-icon v-else><Menu /></el-icon>
       </button> 
     </div>
     
@@ -65,36 +66,36 @@
       <div v-if="isMobileMenuOpen" class="mobile-menu-overlay" @click="closeMobileMenu">
         <div class="mobile-menu" @click.stop>
           <div class="mobile-user-info">
-            <i class="fas fa-user-circle mobile-avatar"></i>
+            <el-icon class="mobile-avatar"><UserFilled /></el-icon>
             <span>{{ userName }}</span>
           </div>
           <nav class="mobile-nav">
             <router-link to="/food/search" class="mobile-nav-link" @click="closeMobileMenu">
-              <i class="fas fa-search"></i>
+              <el-icon><Search /></el-icon>
               <span>食物搜尋</span>
             </router-link>
             <router-link to="/food/record" class="mobile-nav-link" @click="closeMobileMenu">
-              <i class="fas fa-utensils"></i>
+              <el-icon><Food /></el-icon>
               <span>飲食記錄</span>
             </router-link>
             <router-link to="/exercise/record" class="mobile-nav-link" @click="closeMobileMenu">
-              <i class="fas fa-running"></i>
+              <el-icon><IconSport /></el-icon>
               <span>運動記錄</span>
             </router-link>
             <router-link to="/reports/weekly" class="mobile-nav-link" @click="closeMobileMenu">
-              <i class="fas fa-chart-line"></i>
+              <el-icon><TrendCharts /></el-icon>
               <span>健康報告</span>
             </router-link>
             <router-link to="/profile/basic-info" class="mobile-nav-link" @click="closeMobileMenu">
-              <i class="fas fa-id-card"></i>
+              <el-icon><User /></el-icon>
               <span>基本資料</span>
             </router-link>
             <router-link to="/profile/myfavorite" class="mobile-nav-link" @click="closeMobileMenu">
-              <i class="fas fa-sliders-h"></i>
+              <el-icon><Star /></el-icon>
               <span>我的最愛</span>
             </router-link>
             <button class="mobile-nav-link logout-button" @click="logoutMobile">
-              <i class="fas fa-sign-out-alt"></i>
+              <el-icon><SwitchButton /></el-icon>
               <span>登出</span>
             </button>
           </nav>
@@ -108,6 +109,8 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
+import IconFood from '../icons/IconFood.vue'
+import IconSport from '../icons/IconSport.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()

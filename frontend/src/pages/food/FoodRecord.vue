@@ -427,7 +427,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
-import axios from '@/utils/axios'
 import api from '@/services/api'
 import { ArrowLeft, ArrowRight, ArrowDown, Sunrise, Sunny, Sunset, Dessert, Notebook, Calendar as DateIcon, Food as FoodIcon } from '@element-plus/icons-vue'
 
@@ -510,17 +509,12 @@ const router = useRouter()
     // 取得用戶每日熱量目標
     const fetchCalorieGoal = async () => {
       try {
-        const token = localStorage.getItem('token')
-        if (!token) return
-        const res = await axios.get('/api/auth/user', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const res = await api.get('/api/auth/user')
         const weekLimit = res.data.weekCalorieLimit
         if (weekLimit && !isNaN(Number(weekLimit))) {
           calorieGoal.value = Math.round(Number(weekLimit) / 7)
         }
       } catch (err) {
-        // fallback 預設 2000
         calorieGoal.value = 2000
       }
     }
@@ -533,7 +527,6 @@ const router = useRouter()
         const userId = localStorage.getItem('userId')
         if (!userId) {
           ElMessage.warning('請先登入')
-          isLoading.value = false
           return
         }
         
@@ -707,7 +700,7 @@ const router = useRouter()
           mealtime: customForm.value.mealtime,
           date: selectedDateString.value
         }
-        await axios.post('/api/food/record', payload)
+        await api.post('/api/food/record', payload)
         ElMessage.success('自訂飲食紀錄已新增')
         // 清空表單
         customForm.value = {
@@ -792,8 +785,8 @@ onMounted(() => {
 .current-date {
   padding: 10px 20px;
   background: white;
-  border-radius: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -843,15 +836,15 @@ onMounted(() => {
 /* 營養摘要卡片 */
 .nutrition-summary-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   margin-bottom: 30px;
   overflow: hidden;
 }
 
 .summary-header {
   padding: 16px 20px;
-  background: #ffaa55;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
 }
 
@@ -907,7 +900,7 @@ onMounted(() => {
 
 .progress-bar {
   height: 100%;
-  background: #ffaa55;
+  background: var(--primary-color);
   transition: width 0.3s ease;
 }
 
@@ -932,8 +925,8 @@ onMounted(() => {
 
 .meal-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
@@ -949,7 +942,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #ffaa55;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -970,20 +963,22 @@ onMounted(() => {
 
 .add-food-btn {
   padding: 8px 16px;
-  background: #ffaa55;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
   border: none;
-  border-radius: 20px;
+  border-radius: var(--btn-radius);
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
   transition: all 0.3s;
+  box-shadow: var(--shadow-button);
 }
 
 .add-food-btn:hover {
-  background: #ff9933;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .meal-content {
@@ -1116,8 +1111,8 @@ onMounted(() => {
 /* 無記錄狀態 */
 .no-records-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   padding: 40px 20px;
   text-align: center;
   margin: 40px 0;
@@ -1150,8 +1145,8 @@ onMounted(() => {
   justify-content: center;
   padding: 60px 0;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   margin: 40px 0;
 }
 
@@ -1210,8 +1205,8 @@ onMounted(() => {
 
 .custom-food-form-card {
   background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   margin-bottom: 30px;
   padding: 24px 20px 18px 20px;
 }
@@ -1246,18 +1241,19 @@ onMounted(() => {
   outline: none;
 }
 .submit-btn {
-  background: #ffb340;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--btn-radius);
   padding: 8px 18px;
   font-weight: 600;
   font-size: 15px;
-  cursor: pointer;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow-button);
   transition: background 0.2s;
 }
-.submit-btn:hover {
-  background: #cc6933;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .food-image-container {

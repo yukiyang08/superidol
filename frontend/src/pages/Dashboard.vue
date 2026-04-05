@@ -4,11 +4,28 @@
       <h1 class="page-title">儀表板</h1>
       
       <div class="welcome-card card">
-        <h2>歡迎回來，{{ user.name }}</h2>
-        <p>今天是 {{ currentDate }}，這是您的健康飲食摘要</p>
+        <template v-if="isLoading && !hasLoaded">
+          <div class="skeleton-line skeleton-title"></div>
+          <div class="skeleton-line skeleton-subtitle"></div>
+        </template>
+        <template v-else>
+          <h2>歡迎回來，{{ user.name }}</h2>
+          <p>今天是 {{ currentDate }}，這是您的健康飲食摘要</p>
+        </template>
       </div>
       
-      <div class="dashboard-grid">
+      <div v-if="isLoading && !hasLoaded" class="dashboard-grid">
+        <div v-for="index in 4" :key="index" class="card dashboard-card skeleton-card">
+          <div class="dashboard-card-title-skeleton"></div>
+          <div class="card-content">
+            <div class="skeleton-line skeleton-block"></div>
+            <div class="skeleton-line skeleton-block short"></div>
+            <div class="skeleton-line skeleton-block medium"></div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="dashboard-grid">
         <!-- 卡路里摘要卡片 -->
         <div class="card dashboard-card">
           <h3>今日熱量</h3>
@@ -265,9 +282,9 @@ watch(
 .welcome-card {
   margin-bottom: 32px;
   padding: 24px 28px;
-  border-radius: 16px;
+  border-radius: var(--surface-radius-lg);
   background-color: #fff;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
   border: none;
 }
 
@@ -287,6 +304,62 @@ watch(
   line-height: 1.6;
 }
 
+.skeleton-line {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f1f1f1 0%, #f7f7f7 50%, #f1f1f1 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-title {
+  width: 220px;
+  height: 28px;
+  margin-bottom: 14px;
+}
+
+.skeleton-subtitle {
+  width: 360px;
+  max-width: 100%;
+  height: 16px;
+}
+
+.skeleton-card {
+  pointer-events: none;
+}
+
+.dashboard-card-title-skeleton {
+  height: 24px;
+  width: 120px;
+  margin: 20px 24px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f1f1f1 0%, #f7f7f7 50%, #f1f1f1 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-block {
+  width: 100%;
+  height: 18px;
+  margin-bottom: 14px;
+}
+
+.skeleton-block.short {
+  width: 42%;
+}
+
+.skeleton-block.medium {
+  width: 68%;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -295,8 +368,8 @@ watch(
 
 .card {
   background-color: #fff;
-  border-radius: 16px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  border-radius: var(--surface-radius-lg);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   border: none;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -304,7 +377,7 @@ watch(
 
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .dashboard-card {
@@ -490,7 +563,7 @@ watch(
 
 .btn {
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: var(--btn-radius);
   border: none;
   font-weight: 500;
   cursor: pointer;
@@ -501,13 +574,14 @@ watch(
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
+  box-shadow: var(--shadow-button);
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-darker);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 /* 響應式調整 */

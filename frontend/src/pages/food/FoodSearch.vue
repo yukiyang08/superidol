@@ -51,7 +51,6 @@
             <div class="form-group col-6">
                 <label class="form-label">價格範圍</label>
                 <div class="range-slider" role="group" aria-label="價格範圍選擇">
-                  <div class="range-summary">目前：{{ priceRangeLabel }}</div>
                   <div class="range-values">
                     <div class="range-input-group">
                       <span class="range-unit-prefix">$</span>
@@ -125,7 +124,6 @@
               <div class="form-group col-6">
                 <label class="form-label">熱量範圍</label>
                 <div class="range-slider" role="group" aria-label="熱量範圍選擇">
-                  <div class="range-summary">目前：{{ calRangeLabel }}</div>
                   <div class="range-values">
                     <div class="range-input-group">
                       <input
@@ -1214,7 +1212,7 @@ const fetchExercisePreferences = async () => {
   background: #fff6e8;
   border: 1px solid #f7d7a5;
   color: #8a5200;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   padding: 12px 14px;
   margin-bottom: 16px;
 }
@@ -1226,17 +1224,19 @@ const fetchExercisePreferences = async () => {
 
 .guest-login-btn {
   border: none;
-  border-radius: 9px;
-  background: #f59e0b;
+  border-radius: var(--btn-radius);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: #fff;
   font-weight: 600;
   padding: 8px 14px;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: var(--shadow-button);
 }
 
 .guest-login-btn:hover {
-  background: #d97706;
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-2px);
 }
 
 @media (max-width: 768px) {
@@ -1251,9 +1251,9 @@ const fetchExercisePreferences = async () => {
   background: rgba(255,255,255,.8);
   backdrop-filter: saturate(1.2) blur(6px);
   border: 1px solid rgba(0,0,0,.06);
-  border-radius: 14px;
+  border-radius: var(--surface-radius-md);
   padding: 22px;
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-card);
 }
 .search-form-grid { display: grid; gap: 18px; }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; align-items: end; }
@@ -1309,15 +1309,16 @@ const fetchExercisePreferences = async () => {
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
-  background: linear-gradient(135deg, #f8b84a 0%, #e6a23c 100%);
-  border: 1px solid #e3a03b;
-  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
+  border: 1px solid transparent;
+  border-radius: var(--btn-radius);
   cursor: pointer;
   transition: all .2s ease;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   position: relative; overflow: hidden;
+  box-shadow: var(--shadow-button);
 }
-.search-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(230,162,60,.28); }
+.search-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-button-hover); }
 .search-btn:active { transform: translateY(0); }
 
 /* 標題與結果區 */
@@ -1333,14 +1334,14 @@ const fetchExercisePreferences = async () => {
 .food-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
 .food-card {
   background: #fff;
-  border-radius: 16px;
-  box-shadow: var(--card-shadow);
+  border-radius: var(--surface-radius-lg);
+  box-shadow: var(--shadow-card);
   overflow: hidden;
   display: flex; flex-direction: column;
   transition: transform .18s ease, box-shadow .18s ease;
   border: 1px solid var(--border-color-lighter);
 }
-.food-card:hover { transform: translateY(-6px); box-shadow: var(--card-shadow-hover); }
+.food-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-card-hover); }
 .food-card:focus-within { outline: 2px solid var(--primary-color); outline-offset: 2px; }
 
 .food-image-container { width: 100%; height: 220px; background: #f3f6fb; position: relative; overflow: hidden; }
@@ -1353,7 +1354,7 @@ const fetchExercisePreferences = async () => {
 
 .food-card-content { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
 .food-name-price-line { display: flex; align-items: center; gap: 10px; }
-.food-name { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); line-height: 1.3; flex: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(1.2rem * 1.3 * 2); }
+.food-name { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); line-height: 1.3; flex: 1; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(1.2rem * 1.3 * 2); }
 .food-price-prominent { font-size: 1.15rem; font-weight: 800; color: #E6A23C; }
 
 /* tooltip icon */
@@ -1368,11 +1369,12 @@ const fetchExercisePreferences = async () => {
 /* 操作列 */
 .food-actions { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border-color-lighter); display: flex; gap: 10px; justify-content: flex-end; }
 .action-btn { flex: 0 0 42px; width: 42px; height: 42px; padding: 0; border-radius: 12px; border: 1px solid #e6e8ef; background: #f8fafc; color: #475569; cursor: pointer; transition: all .16s ease; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,.04); }
+.action-btn { border-radius: var(--btn-radius); }
 .action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 14px rgba(0,0,0,.08); }
 .action-btn .el-icon { font-size: 1.15rem; color: #8b95a5; }
-.action-btn.record-btn { background: linear-gradient(135deg, #f8b84a 0%, #e6a23c 100%); border-color: #e3a03b; color: #fff; box-shadow: 0 4px 10px rgba(230,162,60,.25); }
+.action-btn.record-btn { background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%); border-color: transparent; color: #fff; box-shadow: var(--shadow-button); }
 .action-btn.record-btn .el-icon { color: #fff; }
-.action-btn.record-btn:hover { box-shadow: 0 10px 24px rgba(230,162,60,.35); }
+.action-btn.record-btn:hover { box-shadow: var(--shadow-button-hover); }
 
 /* 無結果/載入 */
 .no-results, .loading-state { text-align: center; padding: 80px 20px; color: var(--text-secondary); }
@@ -1410,11 +1412,6 @@ const fetchExercisePreferences = async () => {
 
 /* 雙滑桿樣式 */
 .range-slider { display: flex; flex-direction: column; gap: 10px; }
-.range-summary {
-  font-size: .84rem;
-  color: #6b7280;
-  font-weight: 600;
-}
 .range-values { display: flex; align-items: center; gap: 10px; }
 .range-input-group {
   display: flex; align-items: center;
@@ -1430,7 +1427,7 @@ const fetchExercisePreferences = async () => {
 .range-number-input {
   width: 56px; border: none; background: transparent;
   outline: none; font-size: .9rem; color: #2c3e50;
-  text-align: center; -moz-appearance: textfield;
+  text-align: center; appearance: textfield; -moz-appearance: textfield;
 }
 .range-number-input::-webkit-inner-spin-button,
 .range-number-input::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -1439,7 +1436,7 @@ const fetchExercisePreferences = async () => {
 .track-bound { font-size: .72rem; color: #c0c4cc; white-space: nowrap; min-width: 26px; text-align: center; flex-shrink: 0; }
 .slider-track { flex: 1; position: relative; height: 8px; background: #edf2f7; border-radius: 9999px; }
 .slider-fill { position: absolute; top: 0; bottom: 0; background: linear-gradient(90deg, var(--primary-lighter), var(--primary-color)); border-radius: 9999px; transition: left .08s, right .08s; }
-.slider-input { position: absolute; top: 50%; transform: translateY(-50%); left: 0; width: 100%; -webkit-appearance: none; background: none; pointer-events: none; height: 20px; margin: 0; }
+.slider-input { position: absolute; top: 50%; transform: translateY(-50%); left: 0; width: 100%; appearance: none; -webkit-appearance: none; background: none; pointer-events: none; height: 20px; margin: 0; }
 .slider-input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid var(--primary-color); box-shadow: 0 2px 8px rgba(255,170,85,.4); pointer-events: auto; cursor: pointer; transition: transform .15s, box-shadow .15s; }
 .slider-input::-webkit-slider-thumb:hover { transform: scale(1.2); box-shadow: 0 3px 12px rgba(255,170,85,.6); }
 .slider-input::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid var(--primary-color); box-shadow: 0 2px 8px rgba(255,170,85,.4); pointer-events: auto; cursor: pointer; }

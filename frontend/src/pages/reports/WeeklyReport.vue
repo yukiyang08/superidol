@@ -605,7 +605,7 @@ import api from '@/services/api'
 }
 .btn {
   padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: var(--btn-radius);
   font-size: 0.95rem;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -620,14 +620,14 @@ import api from '@/services/api'
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
-  border-color: var(--primary-color);
+  border-color: transparent;
+  box-shadow: var(--shadow-button);
 }
 .btn-primary:hover {
-  background-color: var(--primary-color-dark);
-  border-color: var(--primary-color-dark);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-2px);
 }
 .btn-secondary {
   background-color: #f0f2f5;
@@ -693,16 +693,16 @@ import api from '@/services/api'
 .summary-card {
   position: relative;
   background-color: #fff;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   padding: 20px 20px 20px 28px;
-  box-shadow: 0 6px 16px -8px rgba(0,0,0,.08), 0 9px 28px 0 rgba(0,0,0,.05), 0 12px 48px 16px rgba(0,0,0,.03);
+  box-shadow: var(--shadow-card);
   border: 1px solid var(--border-color-light);
   transition: transform 0.2s, box-shadow 0.2s;
   border-left: 6px solid var(--warning-color); /* 橘色強調線 */
 }
 .summary-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px -6px rgba(0,0,0,.1), 0 12px 32px 0 rgba(0,0,0,.07), 0 16px 52px 18px rgba(0,0,0,.04);
+  box-shadow: var(--shadow-card-hover);
 }
 .summary-card:not(.expense-card) .summary-title .el-icon {
   color: var(--primary-color);
@@ -757,9 +757,9 @@ import api from '@/services/api'
 /* ----- 區塊標題 ----- */
 .report-section {
   background-color: #ffffff;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   padding: 24px;
-  box-shadow: 0 6px 16px -8px rgba(0,0,0,.08), 0 9px 28px 0 rgba(0,0,0,.05), 0 12px 48px 16px rgba(0,0,0,.03);
+  box-shadow: var(--shadow-card);
   border: 1px solid var(--border-color-light);
 }
 .section-title {

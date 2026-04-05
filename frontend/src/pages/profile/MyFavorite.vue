@@ -228,15 +228,15 @@ onMounted(() => {
 
 .food-card {
   background: white;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
   transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .food-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .food-card-content {
@@ -276,7 +276,7 @@ onMounted(() => {
 .action-btn {
   padding: 10px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--btn-radius);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -286,13 +286,15 @@ onMounted(() => {
 }
 
 .record-btn {
-  background: #ffaa55;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
   margin-right: 8px;
+  box-shadow: var(--shadow-button);
 }
 
 .record-btn:hover {
-  background: #ff9933;
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-2px);
 }
 
 .remove-btn {
@@ -316,8 +318,8 @@ onMounted(() => {
   justify-content: center;
   padding: 60px 40px;
   background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   margin: 40px 0;
   text-align: center;
 }
@@ -326,7 +328,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #ffaa55;
+  border-top: 4px solid var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -343,8 +345,8 @@ onMounted(() => {
   justify-content: center;
   padding: 60px 40px;
   background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: var(--surface-radius-md);
+  box-shadow: var(--shadow-card);
   margin: 40px 0;
   text-align: center;
 }
@@ -381,10 +383,10 @@ onMounted(() => {
 
 .modal {
   background: white;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   width: 90%;
   max-width: 400px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .modal-header {

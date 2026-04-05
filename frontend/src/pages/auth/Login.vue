@@ -260,8 +260,8 @@ onMounted(() => {
   width: 100%;
   max-width: 500px;
   border: none;
-  box-shadow: 0 0 30px rgba(0,0,0,0.1);
-  border-radius: 16px;
+  box-shadow: var(--shadow-card-hover);
+  border-radius: var(--surface-radius-lg);
 }
 
 .auth-header {
@@ -355,16 +355,17 @@ onMounted(() => {
   height: 48px;
   font-weight: 600;
   font-size: 1rem;
-  background-color: #f97316;
-  border-color: #f97316;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
+  border-color: transparent;
   margin-top: 16px;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
+  border-radius: var(--btn-radius);
+  box-shadow: var(--shadow-button);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .login-btn:hover:not([disabled]) {
-  background-color: #ea580c;
-  border-color: #ea580c;
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-2px);
 }
 
 .loading-text {

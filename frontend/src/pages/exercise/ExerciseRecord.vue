@@ -319,19 +319,12 @@
       </div>
     </div>
 
-    <!-- 通知彈窗 -->
-    <div v-if="notification.show" class="notification-overlay">
-      <div class="notification-content" :class="notification.type">
-        <span class="material-icons notification-icon" v-if="notification.type === 'success'">check_circle</span>
-        <span class="material-icons notification-icon" v-else>error</span>
-        <p>{{ notification.message }}</p>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ElMessage } from 'element-plus'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 
@@ -356,22 +349,15 @@ const selectedDate = ref(new Date())
     const isDeleting = ref(null)
     const isEditing = ref(false)
     
-    // 添加通知訊息
-    const notification = ref({ show: false, message: '', type: 'success' })
-    let notificationTimer = null
     let materialIconsLink = null
     
-    // 顯示通知
     const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      const displayTime = type === 'error' ? 5000 : 3000 // 錯誤訊息顯示更久
-      if (notificationTimer) {
-        clearTimeout(notificationTimer)
-      }
-      notificationTimer = setTimeout(() => {
-        notification.value.show = false
-        notificationTimer = null
-      }, displayTime)
+      ElMessage({
+        message,
+        type,
+        duration: type === 'error' ? 5000 : 3000,
+        showClose: true
+      })
     }
     
     // 計算屬性: 檢查當前選擇日期是否為今天 - 新增
@@ -452,11 +438,9 @@ const selectedDate = ref(new Date())
           exerciseItems.value = data.items
           // 提取運動名稱用於下拉選單
           exerciseTypes.value = data.items.map(item => item.Exercise_Name)
-          console.log(`成功載入 ${data.items.length} 項運動類型`)
         } else {
           exerciseItems.value = []
           exerciseTypes.value = []
-          console.warn('API返回了空的運動項目列表，可能是資料庫中沒有ExerciseItem表或表中沒有數據')
         }
       } catch (error) {
         console.error('載入運動項目失敗:', error)
@@ -523,7 +507,6 @@ const selectedDate = ref(new Date())
           // 檢查是否為超時錯誤
           if (error.code === 'ECONNABORTED' && retryCount < maxRetries) {
             retryCount++;
-            console.log(`請求超時，進行第 ${retryCount} 次重試...`);
             return false; // 請求失敗，需要重試
           }
           
@@ -936,10 +919,6 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (notificationTimer) {
-    clearTimeout(notificationTimer)
-    notificationTimer = null
-  }
   if (materialIconsLink && materialIconsLink.parentNode) {
     materialIconsLink.parentNode.removeChild(materialIconsLink)
     materialIconsLink = null
@@ -1117,12 +1096,12 @@ onBeforeUnmount(() => {
 /* 摘要卡片優化 */
 .calorie-summary {
   background-color: var(--card-bg);
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   padding: 24px;
   margin-bottom: 24px;
   display: flex;
   justify-content: space-around;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .summary-item {
@@ -1146,14 +1125,14 @@ onBeforeUnmount(() => {
 
 .summary-icon .material-icons {
   font-size: 28px;
-  color: orange;
+  color: var(--primary-color);
 }
 
 .summary-value {
   font-size: 28px;
   font-weight: bold;
   margin-bottom: 8px;
-  color: orange;
+  color: var(--primary-color);
 }
 
 .summary-label {
@@ -1164,9 +1143,9 @@ onBeforeUnmount(() => {
 /* 運動列表容器優化 */
 .exercise-list-container {
   background-color: var(--card-bg);
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .list-header {
@@ -1179,21 +1158,23 @@ onBeforeUnmount(() => {
 }
 
 .add-btn {
-  background-color: orange;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
   border: none;
-  border-radius: 50px;
+  border-radius: var(--btn-radius);
   padding: 8px 20px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 500;
+  box-shadow: var(--shadow-button);
 }
 
 .add-btn:hover {
-  background-color: #f5a623;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .section-title {
@@ -1225,7 +1206,7 @@ onBeforeUnmount(() => {
 .chart-bar {
   position: relative;
   height: 30px;
-  background-color: orange;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   border-radius: 4px;
   min-width: 30px;
   display: flex;
@@ -1254,17 +1235,17 @@ onBeforeUnmount(() => {
   align-items: center;
   padding: 16px;
   background-color: #fff;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-md);
   transition: transform 0.2s, box-shadow 0.2s;
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-card);
   border-left: 4px solid transparent;
   overflow: hidden;
 }
 
 .exercise-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .exercise-date {
@@ -1423,12 +1404,13 @@ onBeforeUnmount(() => {
 }
 
 .empty-state button {
-  background-color: orange;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
   border: none;
-  border-radius: 50px;
+  border-radius: var(--btn-radius);
   padding: 10px 24px;
   font-weight: 500;
+  box-shadow: var(--shadow-button);
 }
 
 /* 載入中動畫 */
@@ -1436,7 +1418,7 @@ onBeforeUnmount(() => {
   width: 40px;
   height: 40px;
   border: 4px solid rgba(255, 165, 0, 0.1);
-  border-left-color: orange;
+  border-left-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -1549,7 +1531,7 @@ onBeforeUnmount(() => {
 
 .preview-value {
   font-weight: 500;
-  color: orange;
+  color: var(--primary-color);
 }
 
 .btn-secondary {
@@ -1562,12 +1544,13 @@ onBeforeUnmount(() => {
 }
 
 .btn-primary {
-  background-color: orange;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--btn-radius);
   padding: 10px 20px;
   cursor: pointer;
+  box-shadow: var(--shadow-button);
 }
 
 .btn-primary:disabled {
@@ -1598,57 +1581,6 @@ onBeforeUnmount(() => {
   .exercise-actions {
     order: 2;
   }
-}
-
-/* 通知彈窗 */
-.notification-overlay {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 1001;
-  animation: slideIn 0.3s forwards;
-}
-
-@keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-.notification-content {
-  background-color: white;
-  border-radius: 8px;
-  padding: 12px 20px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  display: flex;
-  align-items: center;
-  border-left: 4px solid;
-}
-
-.notification-content.success {
-  border-left-color: #4caf50;
-}
-
-.notification-content.success .notification-icon {
-  color: #4caf50;
-}
-
-.notification-content.error {
-  border-left-color: #f44336;
-}
-
-.notification-content.error .notification-icon {
-  color: #f44336;
-}
-
-.notification-content p {
-  margin: 0;
-  font-size: 16px;
-  color: #333;
-}
-
-.notification-icon {
-  font-size: 24px;
-  margin-right: 8px;
 }
 
 /* 月份選擇器樣式 */
@@ -1684,9 +1616,9 @@ onBeforeUnmount(() => {
 }
 
 .btn-month.active {
-  background-color: orange;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
-  box-shadow: 0 2px 5px rgba(255, 165, 0, 0.3);
+  box-shadow: var(--shadow-button);
 }
 
 .month-dropdown {
@@ -1737,7 +1669,7 @@ onBeforeUnmount(() => {
 }
 
 .btn-filter-mode.active {
-  background-color: orange;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
 }
 

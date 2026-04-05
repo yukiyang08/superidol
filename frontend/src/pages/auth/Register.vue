@@ -312,9 +312,9 @@ const isLoading = computed(() => authStore.isLoading)
 .auth-container {
   width: 100%;
   max-width: 700px;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-lg);
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
   border: none;
 }
 
@@ -416,14 +416,14 @@ const isLoading = computed(() => authStore.isLoading)
 .preference-card {
   margin-bottom: 24px;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: var(--surface-radius-md);
   background-color: #f9f9f9;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-card);
   transition: all 0.3s ease;
 }
 
 .preference-card:hover {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
 

@@ -248,7 +248,6 @@ const preferences = reactive({
           return
         }
         const parsedData = JSON.parse(storedData)
-        console.log('解析後的註冊數據:', parsedData) // 添加日誌
         registrationData.value = parsedData
         await fetchData()
       } catch (error) {
@@ -287,9 +286,6 @@ const preferences = reactive({
         for (const [key, value] of Object.entries(preferences.restaurantPreferences)) {
           if (value) restaurantPreferencesList.push(Number(key))
         }
-        // Debug log
-        console.log('foodTypePreferences', preferences.foodTypePreferences)
-        console.log('exercisePreferences', preferences.exercisePreferences)
         // 1. 註冊（只送 user 基本資料）
         const userPayload = {
           name: registrationData.value.name,
@@ -320,9 +316,11 @@ const preferences = reactive({
         }
         // 2. 送偏好（只要註冊成功且 user_id 存在才送）
         try {
-          await api.post('/api/preferences/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList })
-          await api.post('/api/preferences/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList })
-          await api.post('/api/preferences/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
+          await Promise.all([
+            api.post('/api/preferences/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList }),
+            api.post('/api/preferences/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList }),
+            api.post('/api/preferences/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
+          ])
         } catch (error) {
           ElMessage.error('偏好設定失敗，請稍後再試')
           isLoading.value = false
@@ -364,9 +362,9 @@ const registrationDataComputed = computed(() => registrationData.value)
 .auth-container {
   width: 100%;
   max-width: 700px;
-  border-radius: 12px;
+  border-radius: var(--surface-radius-lg);
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card);
   border: none;
 }
 
@@ -468,14 +466,14 @@ const registrationDataComputed = computed(() => registrationData.value)
 .preference-card {
   margin-bottom: 24px;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: var(--surface-radius-md);
   background-color: #f9f9f9;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  box-shadow: var(--shadow-card);
   transition: all 0.3s ease;
 }
 
 .preference-card:hover {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
 
