@@ -3,6 +3,13 @@
     <div class="container">
       <h1 class="page-title">食物搜尋</h1>
 
+      <div v-if="isGuest" class="guest-mode-banner" role="status" aria-live="polite">
+        <div class="guest-mode-text">
+          <strong>訪客模式：</strong>你可以先看推薦與搜尋食物，登入後可使用最愛、記錄與報表功能。
+        </div>
+        <button type="button" class="guest-login-btn" @click="goToLogin">立即登入</button>
+      </div>
+
       <!-- 搜尋表單 -->
       <div class="search-form-container">
         <div class="search-form-card" @keydown.enter="handleSearch">
@@ -516,6 +523,7 @@
 <script>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 import { InfoFilled, Food, Shop, DataLine, Menu, IceCream, MilkTea, Sugar, Coin, Coffee, Burger, DataAnalysis, Star, StarFilled, Plus, Search } from '@element-plus/icons-vue'
@@ -546,6 +554,7 @@ export default {
   components: { FoodRecordModal, InfoFilled, Food, Shop, DataLine, Menu, IceCream, MilkTea, Sugar, Coin, Coffee, Burger, DataAnalysis, Star, StarFilled, Plus, Search },
   setup() {
     const router = useRouter()
+    const authStore = useAuthStore()
 
     const searchResults = ref([])
     const recommendedCategories = ref([])
@@ -1259,6 +1268,11 @@ export default {
       return searchResults.value.slice(0, itemsToShow.value)
     })
 
+    const isGuest = computed(() => !authStore.isAuthenticated)
+    const goToLogin = () => {
+      router.push('/login')
+    }
+
     return {
       filters,
       recommendedCategories,
@@ -1339,7 +1353,9 @@ export default {
       itemsToShow,
       infiniteSentinel,
       canLoadMore,
-      visibleResults
+      visibleResults,
+      isGuest,
+      goToLogin
     }
   }
 }
@@ -1397,6 +1413,46 @@ export default {
   color: var(--text-secondary);
   margin-bottom: 22px;
   font-size: .95rem;
+}
+
+.guest-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff6e8;
+  border: 1px solid #f7d7a5;
+  color: #8a5200;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.guest-mode-text {
+  font-size: .92rem;
+  line-height: 1.45;
+}
+
+.guest-login-btn {
+  border: none;
+  border-radius: 9px;
+  background: #f59e0b;
+  color: #fff;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.guest-login-btn:hover {
+  background: #d97706;
+}
+
+@media (max-width: 768px) {
+  .guest-mode-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .search-form-container { margin-bottom: 26px; }

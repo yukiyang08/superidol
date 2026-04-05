@@ -16,7 +16,7 @@ import ApiTest from '../pages/ApiTest.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard'
+    redirect: '/food/search'
   },
   {
     path: '/login',
@@ -70,7 +70,7 @@ const routes = [
     path: '/food/search',
     name: 'FoodSearch',
     component: FoodSearch,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: false }
   },
   {
     path: '/food/record',
