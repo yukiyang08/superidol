@@ -307,7 +307,12 @@ const isLoading = computed(() => authStore.isLoading)
   align-items: center;
   min-height: 100vh;
   padding: 40px 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  background: linear-gradient(150deg, #fff4e8 0%, #ffe0c0 55%, #ffd0a0 100%);
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-top: -84px;
+  margin-bottom: -40px;
+  box-sizing: border-box;
 }
 
 .auth-container {

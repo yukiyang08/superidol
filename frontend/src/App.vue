@@ -57,7 +57,7 @@ onMounted(async () => {
   --primary-lighter: #ffd0a0;
   --text-color: #333333;
   --text-light: #666666;
-  --bg-light: #f8f9fa;
+  --bg-light: #faf7f4;
   --border-color: #e0e0e0;
   --font-tc: 'Noto Sans TC', sans-serif;
   --font-en: 'Poppins', 'Nunito Sans', sans-serif;

@@ -252,8 +252,13 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f8fafc;
-  padding: 20px;
+  background: linear-gradient(150deg, #fff4e8 0%, #ffe0c0 55%, #ffd0a0 100%);
+  padding: 40px 20px;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-top: -84px;
+  margin-bottom: -40px;
+  box-sizing: border-box;
 }
 
 .auth-container {
@@ -272,7 +277,10 @@ onMounted(() => {
 .main-title {
   font-size: 3rem;
   font-weight: 800;
-  color: #f97316;
+  background: linear-gradient(135deg, #e06000 0%, #ffaa55 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 8px;
   letter-spacing: -1px;
 }
@@ -294,11 +302,12 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #475569;
+  color: #7c4a00;
   font-size: 0.9rem;
   padding: 10px;
   border-radius: 8px;
-  background-color: #f1f5f9;
+  background-color: #fff4e8;
+  border: 1px solid #fde8cc;
   width: 90px;
 }
 

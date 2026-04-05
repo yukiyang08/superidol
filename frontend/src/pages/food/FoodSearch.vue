@@ -2,6 +2,9 @@
   <div class="food-search-page">
     <div class="container">
       <h1 class="page-title">食物搜尋</h1>
+      <p class="section-subtitle">快速篩出你今天想吃的餐點，從熱量、預算到餐廳一次搞定。</p>
+
+      
 
       <div v-if="isGuest" class="guest-mode-banner" role="status" aria-live="polite">
         <div class="guest-mode-text">
@@ -240,6 +243,7 @@
             class="food-card" 
             v-for="(food, index) in visibleResults" 
             :key="food.id || index"
+            :style="{ '--card-index': index % 12 }"
             role="listitem"
             tabindex="0"
             :aria-label="`食物卡片 ${food.name}`"
@@ -353,7 +357,7 @@
             <span class="recommend-category-reason">{{ category.reason }}</span>
           </div>
         <div class="food-grid">
-            <div class="food-card" v-for="(food, index) in category.foods" :key="food.id || food.food_id || index">
+            <div class="food-card" v-for="(food, index) in category.foods" :key="food.id || food.food_id || index" :style="{ '--card-index': index % 12 }">
               <div class="food-image-container" v-if="food.ImageUrl || food.image_url || food.imageUrl">
                 <div class="image-loader" 
                      v-if="food && food.id !== undefined && food.id !== null && imageLoaded && typeof imageLoaded === 'object' && !imageLoaded[String(food.id)]">
@@ -744,6 +748,17 @@ const router = useRouter()
         food_type.length > 0
       )
     }
+
+    const activeFilterCount = computed(() => {
+      let count = 0
+      if (filters.value.name.trim() !== '') count += 1
+      if (filters.value.priceMin !== '' || filters.value.priceMax !== '') count += 1
+      if (filters.value.calMin !== '' || filters.value.calMax !== '') count += 1
+      if (filters.value.restaurants.length > 0) count += 1
+      if (filters.value.food_type.length > 0) count += 1
+      if (filters.value.type !== '') count += 1
+      return count
+    })
 
     const normalizeFilters = (raw) => {
       const f = { ...raw }
@@ -1186,6 +1201,34 @@ const fetchExercisePreferences = async () => {
 
 .food-search-page {
   background: linear-gradient(180deg, #fafcff 0%, #f7fbff 35%, #fefcf8 100%);
+  position: relative;
+  isolation: isolate;
+}
+
+.food-search-page::before,
+.food-search-page::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(10px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.food-search-page::before {
+  width: 320px;
+  height: 320px;
+  top: 24px;
+  right: -120px;
+  background: radial-gradient(circle, rgba(255, 170, 85, 0.28) 0%, rgba(255, 170, 85, 0) 70%);
+}
+
+.food-search-page::after {
+  width: 260px;
+  height: 260px;
+  bottom: 50px;
+  left: -100px;
+  background: radial-gradient(circle, rgba(255, 208, 160, 0.28) 0%, rgba(255, 208, 160, 0) 70%);
 }
 .food-search-page .container {
   max-width: 1200px;
@@ -1197,15 +1240,39 @@ const fetchExercisePreferences = async () => {
   font-size: 2.25rem; 
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 18px;
+  margin-bottom: 10px;
   text-align: center;
   letter-spacing: .5px;
 }
 .page-title + .section-subtitle {
   text-align: center;
-  color: var(--text-secondary);
-  margin-bottom: 22px;
+  color: #6b7280;
+  margin: 0 auto 16px;
+  max-width: 660px;
   font-size: .95rem;
+}
+
+.search-insights {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.insight-pill {
+  border: 1px solid #f6dcb5;
+  background: #fff8ee;
+  color: #8a5a17;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: .82rem;
+  line-height: 1;
+}
+
+.insight-pill strong {
+  color: #cf7a18;
+  margin-left: 4px;
 }
 
 .guest-mode-banner {
@@ -1252,12 +1319,12 @@ const fetchExercisePreferences = async () => {
 
 .search-form-container { margin-bottom: 26px; }
 .search-form-card {
-  background: rgba(255,255,255,.8);
+  background: linear-gradient(160deg, rgba(255,255,255,.92) 0%, rgba(255,249,239,.9) 100%);
   backdrop-filter: saturate(1.2) blur(6px);
-  border: 1px solid rgba(0,0,0,.06);
+  border: 1px solid rgba(255, 176, 82, .28);
   border-radius: var(--surface-radius-md);
   padding: 22px;
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 14px 30px rgba(236, 153, 51, 0.12);
 }
 .search-form-grid { display: grid; gap: 18px; }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; align-items: end; }
@@ -1269,7 +1336,8 @@ const fetchExercisePreferences = async () => {
 .input-with-icon .form-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); font-size: 1.1em; }
 
 .form-control {
-  width:90%;
+  width: 100%;
+  box-sizing: border-box;
   padding: 12px 12px;
   padding-left: 36px;
   font-size: .95rem;
@@ -1331,18 +1399,18 @@ const fetchExercisePreferences = async () => {
   padding: 12px 18px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #909399;
-  background: #fff;
-  border: 1px solid #dcdfe6;
+  color: #845530;
+  background: #fff8ef;
+  border: 1px solid #f0d2aa;
   border-radius: var(--btn-radius);
   cursor: pointer;
   transition: all .2s ease;
   white-space: nowrap;
 }
 .clear-btn:hover {
-  color: #606266;
-  border-color: #c0c4cc;
-  background: #f5f7fa;
+  color: #6a4120;
+  border-color: #e8bc83;
+  background: #fff2df;
 }
 .search-btn {
   width: 100%;
@@ -1381,9 +1449,24 @@ const fetchExercisePreferences = async () => {
   display: flex; flex-direction: column;
   transition: transform .18s ease, box-shadow .18s ease;
   border: 1px solid var(--border-color-lighter);
+  opacity: 0;
+  transform: translateY(10px);
+  animation: card-enter .45s ease forwards;
+  animation-delay: calc(var(--card-index, 0) * 0.04s);
 }
 .food-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-card-hover); }
 .food-card:focus-within { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 .food-image-container { width: 100%; height: 220px; background: #f3f6fb; position: relative; overflow: hidden; }
 .food-image { width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
@@ -1413,6 +1496,8 @@ const fetchExercisePreferences = async () => {
 .action-btn { border-radius: var(--btn-radius); }
 .action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 14px rgba(0,0,0,.08); }
 .action-btn .el-icon { font-size: 1.15rem; color: #8b95a5; }
+.action-btn.calculator-btn:hover { border-color: #f0d1ab; background: #fff7ee; }
+.action-btn.favorite-btn:hover { border-color: #f2cc9a; background: #fff3e2; }
 .action-btn.record-btn { background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%); border-color: transparent; color: #fff; box-shadow: var(--shadow-button); }
 .action-btn.record-btn .el-icon { color: #fff; }
 .action-btn.record-btn:hover { box-shadow: var(--shadow-button-hover); }
@@ -1501,6 +1586,210 @@ const fetchExercisePreferences = async () => {
 @media (max-width: 768px) {
   .col-6 { grid-column: span 12; }
   .align-right .search-btn { width: 100%; }
+}
+
+@media (max-width: 1024px) {
+  .food-search-page .container {
+    padding: 20px 16px 32px;
+  }
+
+  .search-form-card {
+    padding: 18px;
+  }
+
+  .food-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 1.6rem;
+  }
+
+  .page-title + .section-subtitle {
+    font-size: .88rem;
+    margin-bottom: 12px;
+  }
+
+  .search-insights {
+    justify-content: flex-start;
+  }
+
+  .search-form-card {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .search-form-grid {
+    gap: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 8px;
+  }
+
+  .form-label {
+    font-size: .88rem;
+  }
+
+  .range-values {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .range-input-group {
+    flex: 1;
+    min-width: 128px;
+    justify-content: center;
+  }
+
+  .range-number-input {
+    width: 48px;
+    font-size: .86rem;
+  }
+
+  .slider-track-wrapper {
+    gap: 4px;
+  }
+
+  .track-bound {
+    min-width: 22px;
+    font-size: .68rem;
+  }
+
+  .foodtype-chip-list,
+  .restaurant-logo-list,
+  .preset-chip-list {
+    gap: 6px;
+  }
+
+  .foodtype-chip-btn,
+  .restaurant-logo-btn,
+  .preset-chip {
+    padding: 7px 10px;
+    font-size: .78rem;
+  }
+
+  .restaurant-logo-img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .search-btn-container {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .search-btn,
+  .clear-btn {
+    width: 100%;
+  }
+
+  .food-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .food-image-container {
+    height: 188px;
+  }
+
+  .food-card-content {
+    padding: 14px;
+  }
+
+  .food-name-price-line {
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .food-name {
+    font-size: 1.04rem;
+    min-height: calc(1.04rem * 1.3 * 2);
+  }
+
+  .food-price-prominent {
+    font-size: 1rem;
+  }
+
+  .food-details {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-item {
+    font-size: .84rem;
+    padding: 6px 9px;
+  }
+
+  .food-actions {
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .action-btn {
+    flex: 1;
+    max-width: none;
+    height: 44px;
+  }
+}
+
+@media (max-width: 560px) {
+  .food-search-page .container {
+    padding: 16px 12px 26px;
+  }
+
+  .page-title {
+    font-size: 1.42rem;
+  }
+
+  .search-form-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .insight-pill {
+    font-size: .74rem;
+    padding: 6px 10px;
+  }
+
+  .food-image-container {
+    height: 168px;
+  }
+
+  .calorie-on-image-button {
+    width: 58px;
+    height: 58px;
+  }
+
+  .calorie-on-image-button .calorie-value {
+    font-size: 1rem;
+  }
+
+  .calorie-on-image-button .calorie-unit {
+    font-size: .62rem;
+  }
+
+  .modal-exercise {
+    width: 96vw;
+    margin: 8px;
+    max-height: 88vh;
+  }
+
+  .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-header h3 {
+    font-size: 1.15rem;
+  }
+
+  .modal-body {
+    padding: 14px;
+    max-height: calc(88vh - 64px);
+  }
 }
 
 /* 運動計算器模態框樣式 */
@@ -1593,7 +1882,7 @@ const fetchExercisePreferences = async () => {
   gap: 20px;
 }
 
-.section-title {
+.exercise-modal-body .section-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: #1e293b;
@@ -1603,7 +1892,7 @@ const fetchExercisePreferences = async () => {
   gap: 8px;
 }
 
-.section-title:after {
+.exercise-modal-body .section-title:after {
   content: "";
   flex: 1;
   height: 1px;

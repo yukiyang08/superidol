@@ -380,6 +380,68 @@ watch(
   box-shadow: var(--shadow-card-hover);
 }
 
+.welcome-card {
+  background: linear-gradient(135deg, #ff7c1f 0%, #ffaa55 60%, #ffc880 100%);
+  padding: 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-card::before {
+  content: '';
+  position: absolute;
+  top: -48px;
+  right: -48px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.welcome-card::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: 20%;
+  width: 260px;
+  height: 260px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.welcome-card:hover {
+  transform: none;
+  box-shadow: var(--shadow-card);
+}
+
+.welcome-card h2 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 8px;
+  font-family: var(--font-tc), var(--font-en);
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-card p {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.95rem;
+  margin: 0;
+  font-family: var(--font-tc), var(--font-en);
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-card .skeleton-line {
+  background: linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.32) 50%, rgba(255,255,255,0.18) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
 .dashboard-card {
   height: 100%;
   display: flex;
@@ -438,17 +500,19 @@ watch(
 }
 
 .progress-container {
-  height: 10px;
-  background-color: #f0f0f0;
-  border-radius: 5px;
+  height: 12px;
+  background-color: #f0ebe3;
+  border-radius: 999px;
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .progress-bar {
   height: 100%;
-  background-color: var(--primary-color);
-  border-radius: 5px;
-  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #ffaa55 0%, #ff7c1f 100%);
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(255, 124, 31, 0.35);
 }
 
 .progress-bar.exceed {
@@ -469,7 +533,8 @@ watch(
   text-align: center;
   padding: 12px;
   border-radius: 12px;
-  background-color: #f9f9f9;
+  background-color: #fff8f0;
+  border: 1px solid #fde8cc;
 }
 
 .nutrient-value {
@@ -507,9 +572,16 @@ watch(
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background-color: #f9f9f9;
+  background-color: #fff8f0;
+  border: 1px solid #fde8cc;
   border-radius: 10px;
   font-family: 'Nunito Sans', sans-serif;
+  transition: background-color 0.2s;
+}
+
+.recent-food-item:hover,
+.exercise-item:hover {
+  background-color: #fff1e0;
 }
 
 .food-info,

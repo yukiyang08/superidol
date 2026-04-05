@@ -3,7 +3,7 @@
     <div class="footer-container">
       <div class="footer-content">
         <div class="footer-logo">
-          <span class="logo-text">速per Idol</span>
+          <span class="logo-text">Super Idol</span>
           <p class="slogan">從每一餐開始，養成更好的健康習慣</p>
         </div>
         
@@ -30,7 +30,7 @@
 
       <div class="footer-bottom">
         <div class="copyright">
-          &copy; {{ currentYear }} 速per Idol - DBMS Team 11302. All Rights Reserved.
+          &copy; {{ currentYear }} Super Idol - DBMS Team 11302. All Rights Reserved.
         </div>
       </div>
     </div>
@@ -141,7 +141,7 @@ const currentYear = computed(() => new Date().getFullYear())
 
 .footer-bottom {
   padding-top: 20px;
-  border-top: 1px solid #444;
+  border-top: 1px solid #4a2e18;
   display: flex;
   flex-direction: column;
   align-items: center;
