@@ -424,7 +424,7 @@
 
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 import api from '@/services/api'
@@ -439,9 +439,7 @@ export default {
     DateIcon, FoodIcon
   },
   setup() {
-    // const foodStore = useFoodStore()
     const router = useRouter()
-    const route = useRoute()
     
     // 當前選中的日期
     const selectedDate = ref(new Date())

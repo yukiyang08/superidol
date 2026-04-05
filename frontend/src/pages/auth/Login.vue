@@ -131,7 +131,6 @@ const authStore = useAuthStore()
 
 // Form refs and state
 const loginForm = ref(null)
-const isSubmitAttempted = ref(false)
 const rememberMe = ref(false)
 const connectionStatus = ref('waiting')
 
@@ -178,16 +177,8 @@ const rules = {
   ]
 }
 
-// 表單有效性狀態
-const formIsValid = computed(() => {
-  if (!form.email || !form.password) return false
-  if (!isValidEmail(form.email) || form.password.length < 8) return false
-  return true
-})
-
 // 提交表單
 const submitForm = () => {
-  isSubmitAttempted.value = true
   loginForm.value?.validate(async valid => {
     if (valid) {
       try {

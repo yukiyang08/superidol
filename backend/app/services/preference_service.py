@@ -1,8 +1,7 @@
+import functools
 from app.db import get_db_connection
 
 # 這裡只保留底層邏輯 function，不再定義 Blueprint 路由
-
-
 
 #取得
 def get_exercise_items():
@@ -15,23 +14,25 @@ def get_exercise_items():
     # 只回傳 name 欄位，id 不需要
     return [{"name": item["Exercise_Name"]} for item in items]
 
+@functools.lru_cache(maxsize=1)
 def get_food_types():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT Food_Type FROM Food")
+    cursor.execute("SELECT DISTINCT Food_Type FROM Food ORDER BY Food_Type")
     types = [row['Food_Type'] for row in cursor.fetchall()]
     cursor.close()
     conn.close()
-    return [{"id": i+1, "name": t} for i, t in enumerate(types)]
+    return tuple({"id": i+1, "name": t} for i, t in enumerate(types))
 
+@functools.lru_cache(maxsize=1)
 def get_restaurants():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Restaurant")
+    cursor.execute("SELECT RestaurantID, Name FROM Restaurant ORDER BY RestaurantID")
     restaurants = cursor.fetchall()
     cursor.close()
     conn.close()
-    return [{"id": r["RestaurantID"], "name": r["Name"]} for r in restaurants]
+    return tuple({"id": r["RestaurantID"], "name": r["Name"]} for r in restaurants)
 
 #存取偏好
 

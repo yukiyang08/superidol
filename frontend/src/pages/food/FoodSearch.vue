@@ -239,7 +239,6 @@
             class="food-card" 
             v-for="(food, index) in visibleResults" 
             :key="food.id || index"
-            v-intersection-observer="onIntersection"
             role="listitem"
             tabindex="0"
             :aria-label="`食物卡片 ${food.name}`"
@@ -520,7 +519,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
@@ -531,7 +530,33 @@ import api from '@/services/api'
 
 const DEFAULT_EXERCISES = ['跑步', '游泳', '騎腳踏車', '健走']
 
-// 新增：防抖函數
+const FOOD_IMAGE_PLACEHOLDERS = [
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=500&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=500&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1565958011703-44f9829ba187?q=80&w=500&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=500&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?q=80&w=500&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=500&auto=format&fit=crop'
+]
+
+const EXERCISE_ICON_MAP = {
+  '伏地挺身': '💪', '划船': '🚣', '太極': '🧘', '快走': '🚶', '慢走': '🚶‍♀️',
+  '攀岩': '🧗', '游泳': '🏊', '爬山': '🏔️', '瑜珈': '🧘‍♀️', '籃球': '🏀',
+  '足球': '⚽', '跑步(10km/hr)': '🏃', '跑步(8km/hr)': '🏃‍♀️', '騎腳踏車': '🚲'
+}
+const EXERCISE_FLAMES_MAP = {
+  '伏地挺身': '🔥🔥', '划船': '🔥🔥🔥', '太極': '🔥🔥', '快走': '🔥🔥', '慢走': '🔥',
+  '攀岩': '🔥🔥🔥', '游泳': '🔥🔥🔥', '爬山': '🔥🔥', '瑜珈': '🔥🔥', '籃球': '🔥🔥🔥',
+  '足球': '🔥🔥🔥', '跑步(10km/hr)': '🔥🔥🔥🔥', '跑步(8km/hr)': '🔥🔥🔥', '騎腳踏車': '🔥🔥'
+}
+const EXERCISE_INTENSITY_MAP = {
+  '伏地挺身': '中度', '划船': '高度', '太極': '中度', '快走': '中度', '慢走': '輕度',
+  '攀岩': '高度', '游泳': '高度', '爬山': '中度', '瑜珈': '中度', '籃球': '高度',
+  '足球': '高度', '跑步(10km/hr)': '高度', '跑步(8km/hr)': '高度', '騎腳踏車': '中度'
+}
+
+// 防抖函數
 function debounce(func, wait) {
   let timeout
   const debounced = function executedFunction(...args) {
@@ -549,20 +574,14 @@ function debounce(func, wait) {
   return debounced
 }
 
-export default {
-  name: 'FoodSearch',
-  components: { FoodRecordModal, InfoFilled, Food, Shop, DataLine, Menu, IceCream, MilkTea, Sugar, Coin, Coffee, Burger, DataAnalysis, Star, StarFilled, Plus, Search },
-  setup() {
-    const router = useRouter()
+const router = useRouter()
     const authStore = useAuthStore()
 
     const searchResults = ref([])
     const recommendedCategories = ref([])
     const isLoading = ref(false)
     const hasSearched = ref(false)
-    const userPreferences = ref(null)
     const favoriteFoodIds = ref(new Set())
-    const searchTimeout = ref(null)
 
     const filters = ref({
       priceMin: '',
@@ -699,7 +718,6 @@ export default {
     const infiniteSentinel = ref(null)
     const canLoadMore = computed(() => searchResults.value.length > itemsToShow.value)
 
-    // 防抖搜尋（單一 400ms 延遲，避免雙重 debounce 疊加至 800ms）
     const debouncedSearch = debounce(async () => {
       if (hasActiveFilters()) {
         itemsToShow.value = pageSize
@@ -725,7 +743,6 @@ export default {
       )
     }
 
-    // 正規化快取鍵
     const normalizeFilters = (raw) => {
       const f = { ...raw }
       if (Array.isArray(f.restaurants)) f.restaurants = [...f.restaurants].sort()
@@ -746,7 +763,6 @@ export default {
         return
       }
 
-      // 取消上一個尚未完成的請求
       if (currentAbortController) {
         currentAbortController.abort()
       }
@@ -789,7 +805,7 @@ export default {
           Caffeine: item.Caffeine
         }))
       } catch (error) {
-        if (error.code === 'ERR_CANCELED') return  // 被新請求取消，靜默忽略
+        if (error.code === 'ERR_CANCELED') return
         console.error('搜尋食物失敗:', error)
         ElMessage.error('搜尋食物失敗，請稍後再試')
         searchResults.value = []
@@ -828,10 +844,8 @@ export default {
       }
     }
 
-    // Exercise Calculator  
     const exerciseModal = ref(false)
     const exerciseResults = ref({})
-    const exerciseSearch = ref('')
 
     const showRecordModal = ref(false)
     const currentFood = ref(null)
@@ -889,22 +903,11 @@ export default {
     const closeExerciseModal = () => {
       exerciseModal.value = false
       exerciseResults.value = {}
-      exerciseSearch.value = ''
     }
 
-    const foodImagePlaceholderLibrary = [
-      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=500&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=500&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1565958011703-44f9829ba187?q=80&w=500&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=500&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?q=80&w=500&auto=format&fit=crop',
-      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=500&auto=format&fit=crop'
-    ];
-
     const setDefaultImageOnError = (event) => {
-      event.target.src = foodImagePlaceholderLibrary[Math.floor(Math.random() * foodImagePlaceholderLibrary.length)];
-    };
+      event.target.src = FOOD_IMAGE_PLACEHOLDERS[Math.floor(Math.random() * FOOD_IMAGE_PLACEHOLDERS.length)]
+    }
 
     const formatPrice = (value) => {
       const num = Number(value)
@@ -913,60 +916,44 @@ export default {
 
     const formatCalories = (value) => {
       const num = Number(value)
-      return Number.isFinite(num) && !isNaN(num) ? Math.round(num) : '--'
+      return Number.isFinite(num) ? Math.round(num) : '--'
     }
 
     const imageLoaded = ref({});
 
     const onImageLoad = (food) => {
       if (food && food.id !== undefined && food.id !== null) {
-        if (typeof imageLoaded.value !== 'object' || imageLoaded.value === null) {
-          imageLoaded.value = {};
-        }
-        imageLoaded.value = {
-          ...imageLoaded.value,
-          [String(food.id)]: true
-        };
+        imageLoaded.value[String(food.id)] = true
       }
     };
 
-    const hasNutritionInfo = (food) => {
-      return (
-        (food.Protein !== null && food.Protein !== undefined) ||
-        (food.Fat !== null && food.Fat !== undefined) ||
-        (food.Sugar !== null && food.Sugar !== undefined) ||
-        (food.Sodium !== null && food.Sodium !== undefined) ||
-        (food.Carb !== null && food.Carb !== undefined) ||
-        (food.Caffeine !== null && food.Caffeine !== undefined)
-      );
-    };
+    const hasNutritionInfo = (food) => (
+      food.Protein != null || food.Fat != null || food.Sugar != null ||
+      food.Sodium != null || food.Carb != null || food.Caffeine != null
+    )
 
-        const userId = localStorage.getItem('userId')
     const userExercisePreferences = ref([])
-    const exerciseOptions = ref([...DEFAULT_EXERCISES])
 
-    const fetchExercisePreferences = async () => {
-        if (!userId) {
+const fetchExercisePreferences = async () => {
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
         userExercisePreferences.value = [...DEFAULT_EXERCISES]
-        exerciseOptions.value = [...DEFAULT_EXERCISES]
-          return
-        }
+        return
+      }
       try {
         const res = await api.get('/api/preferences/user/exercise-preferences', { params: { user_id: userId } })
         if (res.data && Array.isArray(res.data.exercise_names) && res.data.exercise_names.length > 0) {
           userExercisePreferences.value = res.data.exercise_names
-          exerciseOptions.value = res.data.exercise_names
         } else {
           userExercisePreferences.value = []
-          exerciseOptions.value = [...DEFAULT_EXERCISES]
         }
       } catch (err) {
         userExercisePreferences.value = []
-        exerciseOptions.value = [...DEFAULT_EXERCISES]
       }
     }
 
     const saveExercisePreferences = async (newPrefs) => {
+      const userId = localStorage.getItem('userId')
       if (!userId) return
       try {
         await api.post('/api/preferences/user/exercise-preferences', {
@@ -974,21 +961,11 @@ export default {
           exercise_names: newPrefs
         })
         userExercisePreferences.value = [...newPrefs]
-        exerciseOptions.value = [...newPrefs]
         ElMessage.success('運動偏好已儲存')
       } catch (err) {
         ElMessage.error('儲存運動偏好失敗')
       }
     }
-
-    const filteredExerciseOptions = computed(() => {
-      if (userExercisePreferences.value.length > 0) {
-        if (!exerciseSearch.value) return userExercisePreferences.value
-        return userExercisePreferences.value.filter(e => e.includes(exerciseSearch.value))
-      }
-      if (!exerciseSearch.value) return exerciseOptions.value
-      return exerciseOptions.value.filter(e => e.includes(exerciseSearch.value))
-    })
 
     const fetchFavorites = async () => {
       const userId = localStorage.getItem('userId')
@@ -1011,6 +988,7 @@ export default {
 
     // 無限滾動 observer
     let sentinelObserver = null
+    let cacheCleanupTimer = null
     const setupInfiniteScroll = () => {
       if (!('IntersectionObserver' in window)) return
       sentinelObserver = new IntersectionObserver((entries) => {
@@ -1028,16 +1006,13 @@ export default {
     onMounted(async () => {
       isLoading.value = true
       hasSearched.value = false
-
-      // 定期清理過期快取
-      setInterval(cleanExpiredCache, 60000)
+      cacheCleanupTimer = setInterval(cleanExpiredCache, 60000)
 
       const userId = localStorage.getItem('userId')
 
       const bootstrapTasks = [
         fetchFavorites(),
         fetchExercisePreferences(),
-        loadUserPreferences(),
         (async () => {
           if (!userId) {
             recommendedCategories.value = []
@@ -1078,62 +1053,18 @@ export default {
 
       await Promise.allSettled(bootstrapTasks)
       isLoading.value = false
-
-      // 初始化熱量滑桿
       syncCalValuesFromFilters()
-     // 初始化價格滑桿
-     syncPriceValuesFromFilters()
+      syncPriceValuesFromFilters()
       setupInfiniteScroll()
     })
 
     onBeforeUnmount(() => {
-      if (sentinelObserver && infiniteSentinel.value) {
-        sentinelObserver.unobserve(infiniteSentinel.value)
-      }
-      if (sentinelObserver) {
-        sentinelObserver.disconnect()
-      }
+      debouncedSearch.cancel()
+      if (currentAbortController) currentAbortController.abort()
+      if (cacheCleanupTimer) clearInterval(cacheCleanupTimer)
+      if (sentinelObserver) sentinelObserver.disconnect()
     })
 
-    const loadUserPreferences = async () => {
-      try {
-        const userId = localStorage.getItem('userId')
-        if (!userId) {
-          userPreferences.value = {
-            Food_Preferences: { singleDish: true, setMeal: true },
-            dietaryRestrictions: {},
-            spicyLevel: 1,
-            priceRange: 3
-          }
-          return
-        }
-        const storedProfile = localStorage.getItem('userProfile')
-        if (storedProfile) {
-          const profileData = JSON.parse(storedProfile)
-          userPreferences.value = {
-            Food_Preferences: profileData.Food_Preferences || { singleDish: true, setMeal: true },
-            dietaryRestrictions: profileData.dietaryRestrictions || {},
-            spicyLevel: profileData.spicyLevel || 0,
-            priceRange: profileData.priceRange || 3
-          }
-        } else {
-          userPreferences.value = {
-            Food_Preferences: { singleDish: true, setMeal: true },
-            dietaryRestrictions: {},
-            spicyLevel: 1,
-            priceRange: 3
-          }
-        }
-      } catch (error) {
-        console.error('載入用戶偏好失敗:', error)
-        userPreferences.value = {
-          Food_Preferences: { singleDish: true, setMeal: true },
-          dietaryRestrictions: {},
-          spicyLevel: 1,
-          priceRange: 3
-        }
-      }
-    }
     
     const toggleRestaurant = (name) => {
       const idx = filters.value.restaurants.indexOf(name)
@@ -1165,67 +1096,15 @@ export default {
     })
 
     const addToPreference = async (exercise) => {
-      if (!userId) return
+      const uid = localStorage.getItem('userId')
+      if (!uid) return
       await saveExercisePreferences([...userExercisePreferences.value, exercise])
     }
 
-    const getExerciseIcon = (name) => exerciseIconMap[name] || '🏋️'
-    const getIntensityFlames = (name) => exerciseFlamesMap[name] || ''
-    const getExerciseIntensity = (name) => exerciseIntensityMap[name] || ''
+    const getExerciseIcon = (name) => EXERCISE_ICON_MAP[name] || '🏋️'
+    const getIntensityFlames = (name) => EXERCISE_FLAMES_MAP[name] || ''
+    const getExerciseIntensity = (name) => EXERCISE_INTENSITY_MAP[name] || ''
 
-    // 與 v-intersection-observer 相容的回呼（目前不做額外處理）
-    const onIntersection = () => {}
-
-    const exerciseIconMap = {
-      '伏地挺身': '💪',
-      '划船': '🚣',
-      '太極': '🧘',
-      '快走': '🚶',
-      '慢走': '🚶‍♀️',
-      '攀岩': '🧗',
-      '游泳': '🏊',
-      '爬山': '🏔️',
-      '瑜珈': '🧘‍♀️',
-      '籃球': '🏀',
-      '足球': '⚽',
-      '跑步(10km/hr)': '🏃',
-      '跑步(8km/hr)': '🏃‍♀️',
-      '騎腳踏車': '🚲'
-    }
-    const exerciseFlamesMap = {
-      '伏地挺身': '🔥🔥',
-      '划船': '🔥🔥🔥',
-      '太極': '🔥🔥',
-      '快走': '🔥🔥',
-      '慢走': '🔥',
-      '攀岩': '🔥🔥🔥',
-      '游泳': '🔥🔥🔥',
-      '爬山': '🔥🔥',
-      '瑜珈': '🔥🔥',
-      '籃球': '🔥🔥🔥',
-      '足球': '🔥🔥🔥',
-      '跑步(10km/hr)': '🔥🔥🔥🔥',
-      '跑步(8km/hr)': '🔥🔥🔥',
-      '騎腳踏車': '🔥🔥'
-    }
-    const exerciseIntensityMap = {
-      '伏地挺身': '中度',
-      '划船': '高度',
-      '太極': '中度',
-      '快走': '中度',
-      '慢走': '輕度',
-      '攀岩': '高度',
-      '游泳': '高度',
-      '爬山': '中度',
-      '瑜珈': '中度',
-      '籃球': '高度',
-      '足球': '高度',
-      '跑步(10km/hr)': '高度',
-      '跑步(8km/hr)': '高度',
-      '騎腳踏車': '中度'
-    }
-
-    // 圖片預載
     const preloadImages = (foods) => {
       if (!foods || foods.length === 0) return
       const imagesToPreload = foods.slice(0, 5)
@@ -1237,7 +1116,6 @@ export default {
       })
     }
 
-    // 搜尋結果快取
     const searchCache = ref(new Map())
     const getCachedResults = (filters) => {
       const cacheKey = JSON.stringify(filters)
@@ -1273,92 +1151,7 @@ export default {
       router.push('/login')
     }
 
-    return {
-      filters,
-      recommendedCategories,
-      searchResults,
-      isLoading,
-      hasSearched,
-      handleSearch,
-      handleFilterChange,
-      hasActiveFilters,
-      addToFavorites,
-      favoriteFoodIds,
-      // 熱量滑桿
-      calRangeMin,
-      calRangeMax,
-      calStep,
-      calMinValue,
-      calMaxValue,
-      calLeftPercent,
-      calRightPercent,
-      calRangeLabel,
-      calPresets,
-      handleCalMinInput,
-      handleCalMaxInput,
-      applyCalPreset,
-      // 價格滑桿
-      priceRangeMin,
-      priceRangeMax,
-      priceStep,
-      priceMinValue,
-      priceMaxValue,
-      priceLeftPercent,
-      priceRightPercent,
-      priceRangeLabel,
-      pricePresets,
-      handlePriceMinInput,
-      handlePriceMaxInput,
-      applyPricePreset,
-      // exercise
-      exerciseModal,
-      exerciseResults,
-      exerciseSearch,
-      openExerciseModal,
-      calculateExercise,
-      closeExerciseModal,
-      showRecordModal,
-      currentFood,
-      openFoodRecordModal,
-      onRecordSaved,
-      setDefaultImageOnError,
-      formatPrice,
-      formatCalories,
-      imageLoaded,
-      onImageLoad,
-      hasNutritionInfo,
-      userExercisePreferences,
-      exerciseOptions,
-      fetchExercisePreferences,
-      saveExercisePreferences,
-      filteredExerciseOptions,
-      foodTypes,
-      restaurants,
-      toggleRestaurant,
-      toggleFoodType,
-      allExerciseNames,
-      allExerciseMap,
-      selectedExercise,
-      getSelectedExerciseMinutes,
-      addToPreference,
-      getExerciseIcon,
-      getIntensityFlames,
-      getExerciseIntensity,
-      preloadImages,
-      searchCache,
-      getCachedResults,
-      setCachedResults,
-      cleanExpiredCache,
-      // infinite scroll
-      itemsToShow,
-      infiniteSentinel,
-      canLoadMore,
-      visibleResults,
-      isGuest,
-      goToLogin
-    }
-  }
-}
+
 </script>
 
 <style scoped>
@@ -1389,8 +1182,6 @@ export default {
 
 .infinite-sentinel { height: 1px; }
 
-/* 其餘樣式保持不變 */
-/* ----- 以下保留原樣式定義 ----- */
 .food-search-page {
   background: linear-gradient(180deg, #fafcff 0%, #f7fbff 35%, #fefcf8 100%);
 }

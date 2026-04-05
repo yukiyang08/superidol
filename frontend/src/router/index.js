@@ -61,12 +61,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/profile/myfavorite',
-    name: 'MyFavorite',
-    component: MyFavorite,
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/food/search',
     name: 'FoodSearch',
     component: FoodSearch,

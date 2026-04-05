@@ -612,7 +612,7 @@ def recommend_foods():
 @food_bp.route('/restaurants', methods=['GET'])
 def api_get_restaurants():
     try:
-        restaurants = get_restaurants()
+        restaurants = list(get_restaurants())
         return jsonify(restaurants)
     except Exception as e:
         print("發生錯誤:", e)

@@ -171,11 +171,11 @@
 
 <script>
 import { reactive, ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
-import axios from 'axios'
+import api from '../../services/api'
 import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
 export default {
@@ -186,7 +186,6 @@ export default {
   },
   setup() {
     const router = useRouter()
-    const route = useRoute()
     const authStore = useAuthStore()
     const preferencesForm = ref(null)
     const localError = ref('')
@@ -216,27 +215,21 @@ export default {
     // 從後端取得偏好選項
     const fetchData = async () => {
       try {
-        console.log('即將請求 API: /api/preferences/restaurants')
-        const restaurantsRes = await axios.get('/api/preferences/restaurants')
-        console.log('API 回傳餐廳資料:', restaurantsRes.data)
+        const restaurantsRes = await api.get('/api/preferences/restaurants')
         restaurants.value = restaurantsRes.data
         // 初始化餐廳偏好
         restaurants.value.forEach(r => {
           preferences.restaurantPreferences[r.id] = false
         })
 
-        console.log('即將請求 API: /api/preferences/food-types')
-        const foodTypesRes = await axios.get('/api/preferences/food-types')
-        console.log('API 回傳食物類型資料:', foodTypesRes.data)
+        const foodTypesRes = await api.get('/api/preferences/food-types')
         foodTypes.value = foodTypesRes.data
         // 初始化食物類型偏好（用 name）
         foodTypes.value.forEach(f => {
           preferences.foodTypePreferences[f.name] = false
         })
 
-        console.log('即將請求 API: /api/preferences/exercise-items')
-        const exerciseItemsRes = await axios.get('/api/preferences/exercise-items')
-        console.log('API 回傳運動類型資料:', exerciseItemsRes.data)
+        const exerciseItemsRes = await api.get('/api/preferences/exercise-items')
         exerciseItems.value = exerciseItemsRes.data
         // 初始化運動偏好（用 name）
         exerciseItems.value.forEach(e => {
@@ -315,7 +308,7 @@ export default {
         }
         let userId = null
         try {
-          const signupRes = await axios.post('/api/auth/signup', userPayload)
+          const signupRes = await api.post('/api/auth/signup', userPayload)
           userId = signupRes.data.user_id
           if (!userId) {
             ElMessage.error('註冊失敗，未取得 user_id，請稍後再試')
@@ -334,9 +327,9 @@ export default {
         }
         // 2. 送偏好（只要註冊成功且 user_id 存在才送）
         try {
-          await axios.post('/api/preferences/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList })
-          await axios.post('/api/preferences/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList })
-          await axios.post('/api/preferences/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
+          await api.post('/api/preferences/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList })
+          await api.post('/api/preferences/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList })
+          await api.post('/api/preferences/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
         } catch (error) {
           ElMessage.error('偏好設定失敗，請稍後再試')
           isLoading.value = false

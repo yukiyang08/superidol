@@ -4,7 +4,7 @@
       <div class="logo-container">
         <router-link to="/food/search" class="logo">
           <i class="fas fa-hamburger logo-icon pulse-animation"></i>
-          <span class="logo-text">速per Idol</span>
+          <span class="logo-text">Super Idol</span>
         </router-link>
       </div>
       
@@ -104,66 +104,54 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, watch } from 'vue'
+<script setup>
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 
-export default {
-  name: 'AppHeader',
-  setup() {
-    const authStore = useAuthStore()
-    const router = useRouter()
-    
-    const isMenuOpen = ref(false)
-    const isMobileMenuOpen = ref(false)
-    
-    const userName = computed(() => {
-      return authStore.user?.name || '使用者'
-    })
-    
-    const toggleMobileMenu = () => {
-      isMobileMenuOpen.value = !isMobileMenuOpen.value
-      if (isMobileMenuOpen.value) {
-        document.body.style.overflow = 'hidden' // Prevent background scrolling
-      } else {
-        document.body.style.overflow = '' // Restore background scrolling
-      }
-    }
-    
-    const closeMobileMenu = () => {
-      isMobileMenuOpen.value = false
-      document.body.style.overflow = '' // Restore background scrolling
-    }
-    
-    const logout = async () => {
-      isMenuOpen.value = false
-      await authStore.logout()
-      router.push('/login')
-    }
-    
-    const logoutMobile = async () => {
-      closeMobileMenu()
-      await authStore.logout()
-      router.push('/login')
-    }
-    
-    // Listen for route changes to close menu
-    watch(router.currentRoute, () => {
-      isMenuOpen.value = false
-    })
-    
-    return {
-      isMenuOpen,
-      isMobileMenuOpen,
-      userName,
-      toggleMobileMenu,
-      closeMobileMenu,
-      logout,
-      logoutMobile
-    }
+const authStore = useAuthStore()
+const router = useRouter()
+
+const isMenuOpen = ref(false)
+const isMobileMenuOpen = ref(false)
+
+const userName = computed(() => {
+  return authStore.user?.name || '使用者'
+})
+
+const toggleMobileMenu = () => {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value
+  if (isMobileMenuOpen.value) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
   }
 }
+
+const closeMobileMenu = () => {
+  isMobileMenuOpen.value = false
+  document.body.style.overflow = ''
+}
+
+const logout = async () => {
+  isMenuOpen.value = false
+  await authStore.logout()
+  router.push('/login')
+}
+
+const logoutMobile = async () => {
+  closeMobileMenu()
+  await authStore.logout()
+  router.push('/login')
+}
+
+watch(router.currentRoute, () => {
+  isMenuOpen.value = false
+})
+
+onBeforeUnmount(() => {
+  document.body.style.overflow = ''
+})
 </script>
 
 <style scoped>

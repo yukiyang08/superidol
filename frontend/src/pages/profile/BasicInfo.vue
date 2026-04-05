@@ -269,7 +269,7 @@
 
 <script>
 import { ref, reactive, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '@/services/api'
 
 export default {
   name: 'BasicInfo',
@@ -407,9 +407,9 @@ export default {
     const fetchOptions = async () => {
       try {
       const [foodRes, exerciseRes, restaurantRes] = await Promise.all([
-          axios.get('/api/preferences/food-types'),
-          axios.get('/api/preferences/exercise-items'),
-          axios.get('/api/preferences/restaurants')
+          api.get('/api/preferences/food-types'),
+          api.get('/api/preferences/exercise-items'),
+          api.get('/api/preferences/restaurants')
       ])
         foodTypes.value = foodRes.data || []
         exerciseItems.value = exerciseRes.data || []
@@ -425,9 +425,9 @@ export default {
     const fetchUserPreferences = async (userId) => {
       try {
         const [foodPref, exercisePref, restaurantPref] = await Promise.all([
-          axios.get('/api/preferences/user/food-preferences', { params: { user_id: userId } }),
-          axios.get('/api/preferences/user/exercise-preferences', { params: { user_id: userId } }),
-          axios.get('/api/preferences/user/restaurant-preferences', { params: { user_id: userId } })
+          api.get('/api/preferences/user/food-preferences', { params: { user_id: userId } }),
+          api.get('/api/preferences/user/exercise-preferences', { params: { user_id: userId } }),
+          api.get('/api/preferences/user/restaurant-preferences', { params: { user_id: userId } })
         ])
         selectedFoodTypes.value = foodPref.data.food_types || []
         selectedExerciseNames.value = exercisePref.data.exercise_names || []
@@ -448,10 +448,7 @@ export default {
       isLoading.value = true
       errorMsg.value = ''
       try {
-        const token = localStorage.getItem('token')
-        const res = await axios.get('/api/auth/user', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const res = await api.get('/api/auth/user')
         profile.value.name = res.data.name
         profile.value.email = res.data.email
         profile.value.budget = res.data.budget
@@ -482,7 +479,6 @@ export default {
       isLoading.value = true
       errorMsg.value = ''
       try {
-        const token = localStorage.getItem('token')
         const userId = Number(localStorage.getItem('userId'))
         if (!userId) {
           errorMsg.value = '找不到使用者 ID，請重新登入'
@@ -500,9 +496,7 @@ export default {
         console.log('更新基本資料:', payload)
         
         try {
-          const response = await axios.put('/api/auth/profile', payload, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+          const response = await api.put('/api/auth/profile', payload)
           console.log('基本資料更新結果:', response.data)
         } catch (profileError) {
           console.error('更新基本資料失敗:', profileError.response?.data || profileError.message)
@@ -512,7 +506,7 @@ export default {
         // 2. 儲存三種偏好（POST）
         console.log('更新食物偏好:', editSelectedFoodTypes.value)
         try {
-          const foodResponse = await axios.post('/api/preferences/user/food-preferences', { 
+          const foodResponse = await api.post('/api/preferences/user/food-preferences', { 
             user_id: userId, 
             food_types: editSelectedFoodTypes.value 
           })
@@ -524,7 +518,7 @@ export default {
         
         console.log('更新運動偏好:', editSelectedExerciseNames.value)
         try {
-          const exerciseResponse = await axios.post('/api/preferences/user/exercise-preferences', { 
+          const exerciseResponse = await api.post('/api/preferences/user/exercise-preferences', { 
             user_id: userId, 
             exercise_names: editSelectedExerciseNames.value 
           })
@@ -536,7 +530,7 @@ export default {
         
         console.log('更新餐廳偏好:', editSelectedRestaurantIds.value)
         try {
-          const restaurantResponse = await axios.post('/api/preferences/user/restaurant-preferences', { 
+          const restaurantResponse = await api.post('/api/preferences/user/restaurant-preferences', { 
             user_id: userId, 
             restaurant_ids: editSelectedRestaurantIds.value.map(id => 
               typeof id === 'string' ? parseInt(id) : id

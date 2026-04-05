@@ -225,14 +225,14 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { Chart } from 'chart.js/auto'
 import Datepicker from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
-import { ElMessage, ElIcon } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { 
-  DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, 
+  DataAnalysis, Calendar, Collection,
   Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, 
   Present, Tickets, Opportunity, Star, InfoFilled 
 } from '@element-plus/icons-vue'
@@ -240,16 +240,6 @@ import { formatDate } from '@/utils/date'
 import api from '@/services/api'
 
 
-export default {
-  name: 'SummaryReportPage',
-  components: {
-    Datepicker,
-    ElIcon, 
-    DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, 
-    Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, 
-    Present, Tickets, Opportunity, Star, InfoFilled
-  },
-  setup() {
     const currentReportType = ref('weekly')
     const selectedDateForPicker = ref(new Date())
     const targetDate = ref(new Date())
@@ -266,16 +256,13 @@ export default {
     const today = new Date();
     today.setHours(0,0,0,0);
     const thisYear = today.getFullYear();
-    const thisMonth = today.getMonth();
     const yearRange = [thisYear, thisYear]
-    // 本週週一
-    const thisWeekMonday = new Date(today);
-    thisWeekMonday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-    thisWeekMonday.setHours(0,0,0,0);
-    // 本週週日
-    const thisWeekSunday = new Date(thisWeekMonday);
-    thisWeekSunday.setDate(thisWeekMonday.getDate() + 6);
-    thisWeekSunday.setHours(0,0,0,0);
+
+    const getTodayStart = () => {
+      const d = new Date()
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
 
     // 日報告：只能查到今天
     const allowedDatesFn = (dateToCheck) => {
@@ -283,7 +270,7 @@ export default {
       d.setHours(0,0,0,0);
       const todayLocal = new Date();
       todayLocal.setHours(0,0,0,0);
-      return d <= todayLocal && d.getFullYear() === thisYear;
+      return d <= todayLocal && d.getFullYear() === todayLocal.getFullYear();
     };
     // 週報告：只能查本週且不超過今天
     const allowedWeekDatesFn = (dateToCheck) => {
@@ -295,7 +282,7 @@ export default {
       const monday = new Date(todayLocal);
       monday.setDate(todayLocal.getDate() - ((todayLocal.getDay() + 6) % 7));
       monday.setHours(0,0,0,0);
-      return d >= monday && d <= todayLocal && d.getFullYear() === thisYear;
+      return d >= monday && d <= todayLocal && d.getFullYear() === todayLocal.getFullYear();
     };
     // 月報告：只能查本月
     const allowedMonthsFn = (dateToCheck) => {
@@ -309,33 +296,22 @@ export default {
       d.setHours(0,0,0,0);
       const todayLocal = new Date();
       todayLocal.setHours(0,0,0,0);
-      return d <= todayLocal && d.getFullYear() === thisYear;
+      return d <= todayLocal && d.getFullYear() === todayLocal.getFullYear();
     };
 
     const initializeTargetDate = () => {
-      let initialDisplayDate = new Date(); 
+      let initialDisplayDate = getTodayStart()
       initialDisplayDate.setHours(0,0,0,0);
 
-      if (initialDisplayDate > today) {
-        initialDisplayDate = new Date(today)
+      const todayLocal = getTodayStart()
+      if (initialDisplayDate > todayLocal) {
+        initialDisplayDate = new Date(todayLocal)
       }
       
       targetDate.value = new Date(initialDisplayDate);
       selectedDateForPicker.value = new Date(initialDisplayDate);
     };
     
-    const canChangePeriod = (direction) => {
-      const newDate = new Date(targetDate.value);
-      if (currentReportType.value === 'daily') {
-        newDate.setDate(newDate.getDate() + direction);
-      } else if (currentReportType.value === 'weekly') {
-        newDate.setDate(newDate.getDate() + direction * 7);
-      }
-      // Ensure the new date is within the allowed range of this year and not in the future.
-      return allowedDatesFn(newDate);
-    };
-
-
     const fetchSummaryReport = async () => {
       isLoading.value = true
       reportData.value = null
@@ -391,44 +367,6 @@ export default {
       }
     })
 
-    const reportDateText = computed(() => {
-      if (!targetDate.value) return '選擇日期'; // Should not happen with proper init
-
-      const dateToDisplay = new Date(targetDate.value);
-
-      if (!reportData.value || !reportData.value.report_info || !reportData.value.report_info.actual_start_date) {
-         // Fallback display based on targetDate if reportData is not yet loaded or incomplete
-        if (currentReportType.value === 'daily') {
-            return dateToDisplay.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
-        } else if (currentReportType.value === 'weekly') {
-            const start = new Date(dateToDisplay);
-            const dayOfWeek = start.getDay() === 0 ? 6 : start.getDay() -1;
-            start.setDate(start.getDate() - dayOfWeek);
-            const end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            
-            const startText = start.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
-            const endText = end.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
-            return `${startText} - ${endText}`;
-        }
-        return '選擇日期';
-      }
-      
-      // Use actual dates from report if available
-      const { actual_start_date, actual_end_date } = reportData.value.report_info
-      const startDate = new Date(actual_start_date + 'T00:00:00')
-      const endDate = new Date(actual_end_date + 'T00:00:00')
-
-      if (currentReportType.value === 'daily') {
-        return startDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
-      } else if (currentReportType.value === 'weekly') {
-        const startText = startDate.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' })
-        const endText = endDate.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' })
-        return `${startText} - ${endText}`
-      }
-      return '日期範圍'
-    })
-
     const periodSummary = computed(() => {
       const summary = reportData.value?.period_summary
       const reportInfo = reportData.value?.report_info
@@ -453,8 +391,8 @@ export default {
         const now = new Date();
         selectedMonth.value = new Date(now.getFullYear(), now.getMonth(), 1);
       } else if (newType === 'custom') {
-        const end = new Date(today)
-        const start = new Date(today)
+        const end = getTodayStart()
+        const start = new Date(end)
         start.setDate(start.getDate() - 6)
         customRange.value = [start, end]
       } else if (newType === 'daily' || newType === 'weekly') {
@@ -463,26 +401,10 @@ export default {
       fetchSummaryReport();
     }
 
-    const changePeriod = (direction) => {
-      if (!canChangePeriod(direction)) return; // Prevent changing if new period is not allowed
-
-      const newDate = new Date(targetDate.value)
-      if (currentReportType.value === 'daily') {
-        newDate.setDate(newDate.getDate() + direction)
-      } else if (currentReportType.value === 'weekly') {
-        newDate.setDate(newDate.getDate() + direction * 7)
-      }
-      targetDate.value = newDate
-      selectedDateForPicker.value = new Date(newDate)
-      fetchSummaryReport()
-    }
-
     const onDatePicked = (date) => {
       if (!date) return;
-      // Datepicker should only allow valid dates due to :allowed-dates
-      // So, 'date' here should already be valid.
       targetDate.value = new Date(date) 
-      selectedDateForPicker.value = new Date(date) // Sync picker's model explicitly
+      selectedDateForPicker.value = new Date(date)
       fetchSummaryReport()
     }
 
@@ -503,9 +425,18 @@ export default {
     let expenseChartInstance = null
 
     const destroyCharts = () => {
-        if (calorieChartInstance) calorieChartInstance.destroy(); calorieChartInstance = null;
-        if (exerciseTrendChartInstance) exerciseTrendChartInstance.destroy(); exerciseTrendChartInstance = null;
-        if (expenseChartInstance) expenseChartInstance.destroy(); expenseChartInstance = null;
+      if (calorieChartInstance) {
+        calorieChartInstance.destroy()
+        calorieChartInstance = null
+      }
+      if (exerciseTrendChartInstance) {
+        exerciseTrendChartInstance.destroy()
+        exerciseTrendChartInstance = null
+      }
+      if (expenseChartInstance) {
+        expenseChartInstance.destroy()
+        expenseChartInstance = null
+      }
     }
 
     const initOrUpdateCharts = (dailyTrends) => {
@@ -599,6 +530,10 @@ export default {
       fetchSummaryReport()
     })
 
+    onBeforeUnmount(() => {
+      destroyCharts()
+    })
+
     watch(() => reportData.value, async (newData, oldData) => {
       if (newData && newData.daily_trends) {
          await nextTick();
@@ -606,37 +541,10 @@ export default {
       } else if (!newData && oldData) {
         destroyCharts()
       }
-    }, { deep: true })
+    })
 
 
-    return {
-      currentReportType,
-      selectedDateForPicker,
-      targetDate,
-      reportData,
-      isLoading,
-      userGoals,
-      reportDateText,
-      periodSummary,
-      changeReportType,
-      changePeriod,
-      onDatePicked,
-      allowedDatesFn, // Expose to template
-      canChangePeriod, // Expose to template
-      calorieChartEl,
-      exerciseTrendChartEl,
-      expenseChartEl,
-      selectedMonth,
-      customRange,
-      allowedMonthsFn,
-      onMonthPicked,
-      onCustomRangePicked,
-      yearRange,
-      dateRangeText,
-      weeklySummaries,
-    }
-  }
-}
+
 </script>
 
 <style scoped>

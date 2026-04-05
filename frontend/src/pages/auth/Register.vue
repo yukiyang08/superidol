@@ -9,7 +9,7 @@
       <el-alert v-if="authError" type="error" :title="authError" show-icon />
       
       <el-form 
-        @submit.native.prevent="handleRegister" 
+        @submit.prevent="submitForm" 
         class="auth-form" 
         :model="form" 
         :rules="rules"
@@ -173,30 +173,19 @@
 </template>
 
 <script>
-import { reactive, computed, ref, onMounted, watch } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
-import { User, Message, Lock, Star } from '@element-plus/icons-vue'
-import { isValidEmail, validatePassword, isValidName, doPasswordsMatch } from '../../utils/validation'
-import api from '../../services/api'
 import { ElMessage } from 'element-plus'
-import axios from 'axios'
 import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
 export default {
   name: 'RegisterPage',
-  components: { User, Message, Lock, Star, CalorieCalculator },
+  components: { CalorieCalculator },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
     const registerForm = ref(null)
-    const formIsValid = ref(true) // 設為true以允許提交
-    const isSubmitAttempted = ref(false)
-    const passwordResult = ref({
-      isValid: false,
-      message: '',
-      strength: 'weak'
-    })
     
     const form = reactive({
       name: '',           // 必填
@@ -209,8 +198,6 @@ export default {
       spicyLevel: 1,     // 預設微辣
       priceRange: 2,     // 預設中等價位
     })
-    
-    const localError = ref('')
     
     const rules = {
       name: [
@@ -266,28 +253,6 @@ export default {
       ]
     }
     
-    // 檢查密碼強度
-    const checkPasswordStrength = () => {
-      passwordResult.value = validatePassword(form.password)
-      if (form.confirmPassword) {
-        validateConfirmPassword()
-      }
-    }
-    
-    // 驗證確認密碼
-    const validateConfirmPassword = () => {
-      if (registerForm.value) {
-        registerForm.value.validateField('confirmPassword')
-      }
-    }
-    
-    // 驗證電子郵件
-    const validateEmail = () => {
-      if (registerForm.value) {
-        registerForm.value.validateField('email')
-      }
-    }
-    
     const submitForm = async () => {
       try {
         // 驗證表單
@@ -324,7 +289,6 @@ export default {
         setTimeout(() => {
           router.push('/login')
         }, 1500)
-        
       } catch (error) {
         console.error('註冊失敗:', error)
         if (error.response?.data?.detail) {
@@ -334,98 +298,14 @@ export default {
         }
       }
     }
-    
-    const checkEmailExists = async (email) => {
-      try {
-        const res = await axios.post('/api/auth/check-email', { email })
-        return res.data.exists
-      } catch (e) {
-        return false // 若 API 失敗，預設不阻擋
-      }
-    }
-    
-    const handleRegister = async () => {
-      if (form.password !== form.confirmPassword) {
-        localError.value = '兩次輸入的密碼不一致'
-        return
-      }
-      
-      // 驗證所有必填欄位
-      if (!form.name || !form.email || !form.password) {
-        localError.value = '請填寫基本資料（姓名、電子郵件、密碼）'
-        return
-      }
-      
-      // 特別檢查體重
-      if (form.weight === null || form.weight === '') {
-        localError.value = '請填寫您的體重'
-        if (registerForm.value) registerForm.value.validateField('weight')
-        return
-      }
-      
-      // 檢查 email 是否已註冊
-      const exists = await checkEmailExists(form.email)
-      if (exists) {
-        localError.value = '此電子郵件已經註冊，請使用其他電子郵件或直接登入'
-        return
-      }
-      
-      localError.value = ''
-      
-      // 創建包含必要註冊資訊的物件
-      const registrationData = {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        weight: form.weight,
-        weekcalorielimit: form.weekcalorielimit,
-        foodPreferences: form.foodPreferences,
-        spicyLevel: form.spicyLevel,
-        priceRange: form.priceRange,
-      }
-      
-      // 將註冊資料保存到會話存儲
-      sessionStorage.setItem('registrationData', JSON.stringify(registrationData))
-      
-      // 簡單導向偏好設置頁面，不通過路由參數傳遞數據
-      router.push('/preferences')
-    }
-    
-    const authError = computed(() => {
-      return localError.value || authStore.error
-    })
-    
-    // 監聽表單變化以更新表單有效性
-    const validateForm = () => {
-      if (registerForm.value) {
-        registerForm.value.validate((valid) => {
-          formIsValid.value = true; // 始終允許提交
-        })
-      }
-    }
-    
-    // 監聽密碼變化
-    watch(() => form.password, () => {
-      checkPasswordStrength()
-    })
-    
-    onMounted(() => {
-      // 初始驗證表單
-      validateForm()
-    })
+
+    const authError = computed(() => authStore.error)
     
     return {
       form,
       rules,
       registerForm,
-      handleRegister,
       submitForm,
-      validateEmail,
-      validateConfirmPassword,
-      checkPasswordStrength,
-      passwordResult,
-      isSubmitAttempted,
-      formIsValid,
       isLoading: computed(() => authStore.isLoading),
       authError
     }
