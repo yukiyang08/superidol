@@ -63,7 +63,13 @@ def create_app():
 
     # 設置 CORS：以 config.py 的 CORS_ORIGINS 為準（可由環境變數覆蓋）
     cors_origins = [origin.rstrip("/") for origin in app.config.get("CORS_ORIGINS", [])]
-    CORS(app, origins=cors_origins, supports_credentials=True)
+    CORS(
+        app,
+        resources={r"/*": {"origins": cors_origins}},
+        supports_credentials=True,
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+    )
 
     # 記錄每個請求的CORS信息
     @app.after_request
