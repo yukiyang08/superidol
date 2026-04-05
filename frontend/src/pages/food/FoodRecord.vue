@@ -1251,10 +1251,10 @@ onMounted(() => {
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
   box-shadow: var(--shadow-button);
   transition: background 0.2s;
-}
   transform: translateY(-2px);
   box-shadow: var(--shadow-button-hover);
 }
+
 
 .food-image-container {
   width: 120px;

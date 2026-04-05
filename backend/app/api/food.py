@@ -485,7 +485,7 @@ def recommend_foods():
                     high_score_foods.sort(key=lambda x: (-x['score'], -len(x['reasons'])))
                     top_foods = high_score_foods[:3]  # 只推薦3個
                     recommendation_strategies.append({
-                        "title": "🎯 專屬精選",
+                        "title": "專屬精選",
                         "reason": "根據你的喜好和習慣精心挑選",
                         "foods": [f["food"] for f in top_foods]
                     })
@@ -521,7 +521,7 @@ def recommend_foods():
                     top_restaurant_foods = [f["food"] for f in scored_restaurant_foods[:3]]
                     
                     recommendation_strategies.append({
-                        "title": f"🏪 {primary_restaurant} 精選",
+                        "title": f"{primary_restaurant} 精選",
                         "reason": f"你最愛的 {primary_restaurant} 優質推薦",
                         "foods": top_restaurant_foods
                     })
@@ -547,7 +547,7 @@ def recommend_foods():
                 
                 if balanced_foods:
                     recommendation_strategies.append({
-                        "title": "💪 健康精選",
+                        "title": "健康精選",
                         "reason": f"控制在 {int(calorie_limit * 0.8)} 大卡以內的健康選擇",
                         "foods": balanced_foods[:3]
                     })
@@ -578,7 +578,7 @@ def recommend_foods():
                     
                     scored_new_foods.sort(key=lambda x: -x['score'])
                     recommendation_strategies.append({
-                        "title": "🌟 發現新美味",
+                        "title": "發現新美味",
                         "reason": "為你推薦從未嘗試過的美食",
                         "foods": [f["food"] for f in scored_new_foods[:3]]
                     })
@@ -588,13 +588,13 @@ def recommend_foods():
                 # 降級推薦：直接推薦收藏或歷史記錄
                 if favorites:
                     recommendation_strategies.append({
-                        "title": "❤️ 經典回味",
+                        "title": "經典回味",
                         "reason": "你的收藏美食",
                         "foods": favorites[:3]
                     })
                 elif records:
                     recommendation_strategies.append({
-                        "title": "🕒 再次品嚐",
+                        "title": "再次品嚐",
                         "reason": "你最近吃過的美食",
                         "foods": records[:3]
                     })

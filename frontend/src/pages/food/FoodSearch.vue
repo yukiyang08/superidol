@@ -215,6 +215,9 @@
                 </div>
               </div>
               <div class="form-group search-btn-container col-12 align-right">
+                <button type="button" class="clear-btn" @click="clearFilters" aria-label="清除搜尋條件">
+                  清除條件
+                </button>
                 <button type="button" class="search-btn" @click="handleSearch" aria-label="執行搜尋">
                   <el-icon><Search /></el-icon>
                   搜尋
@@ -598,12 +601,7 @@ const router = useRouter()
     const calStep = 10
     const calMinValue = ref(calRangeMin)
     const calMaxValue = ref(800)
-    const calPresets = [
-      { label: '低卡 0-300', min: 0, max: 300 },
-      { label: '輕食 300-600', min: 300, max: 600 },
-      { label: '主餐 600-900', min: 600, max: 900 },
-      { label: '高熱量 900-1500', min: 900, max: 1500 }
-    ]
+
 
     const parseFilterNumber = (value) => {
       if (value === '' || value === null || value === undefined) return null
@@ -660,12 +658,7 @@ const router = useRouter()
     const priceStep = 10
     const priceMinValue = ref(priceRangeMin)
     const priceMaxValue = ref(300)
-    const pricePresets = [
-      { label: '銅板 0-100', min: 0, max: 100 },
-      { label: '平價 100-200', min: 100, max: 200 },
-      { label: '中價 200-350', min: 200, max: 350 },
-      { label: '不限 0-1000', min: 0, max: 1000 }
-    ]
+
 
     const syncPriceValuesFromFilters = () => {
       const min = parseFilterNumber(filters.value.priceMin)
@@ -725,6 +718,17 @@ const router = useRouter()
 
     const handleFilterChange = () => {
       debouncedSearch()
+    }
+
+    const clearFilters = () => {
+      filters.value = { priceMin: '', priceMax: '', calMin: '', calMax: '', name: '', restaurants: [], type: '', food_type: [] }
+      priceMinValue.value = priceRangeMin
+      priceMaxValue.value = 300
+      calMinValue.value = calRangeMin
+      calMaxValue.value = 800
+      searchResults.value = []
+      hasSearched.value = false
+      itemsToShow.value = 20
     }
 
     const hasActiveFilters = () => {
@@ -1228,7 +1232,7 @@ const fetchExercisePreferences = async () => {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: #fff;
   font-weight: 600;
-  padding: 8px 14px;
+  padding: 10px 18px;
   cursor: pointer;
   white-space: nowrap;
   box-shadow: var(--shadow-button);
@@ -1287,22 +1291,59 @@ const fetchExercisePreferences = async () => {
 .range-separator, .unit { color: var(--text-secondary); font-size: .9rem; }
 
 .foodtype-chip-list, .restaurant-logo-list { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
-.foodtype-chip-btn, .restaurant-logo-btn {
-  border: 1px solid #e4e7ed;
-  background: #fff;
-  border-radius: 9999px;
+.foodtype-chip-btn,
+.restaurant-logo-btn,
+.preset-chip {
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  border-radius: 999px;
   padding: 8px 14px;
-  font-size: .95rem;
-  color: #606266;
+  font-size: .82rem;
   cursor: pointer;
   transition: all .2s ease;
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
-.foodtype-chip-btn.active, .foodtype-chip-btn:hover,
-.restaurant-logo-btn.active, .restaurant-logo-btn:hover { border-color: #E6A23C; background: #fff7e6; color: #cf9236; box-shadow: 0 2px 10px rgba(230,162,60,.12); }
+
+.foodtype-chip-btn:hover,
+.restaurant-logo-btn:hover,
+.preset-chip:hover {
+  border-color: #e6a23c;
+  background: #fff8eb;
+  color: #b87915;
+  box-shadow: 0 2px 10px rgba(230, 162, 60, .12);
+}
+
+.foodtype-chip-btn.active,
+.restaurant-logo-btn.active,
+.preset-chip.active {
+  border-color: #e6a23c;
+  background: linear-gradient(135deg, #f8b84a 0%, #e6a23c 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(230, 162, 60, .2);
+}
 .restaurant-logo-img { width: 28px; height: 28px; object-fit: contain; border-radius: 50%; background: #f5f5f5; }
 
-.search-btn-container { display: flex; align-items: end; }
+.search-btn-container { display: flex; align-items: end; gap: 10px; }
+.clear-btn {
+  padding: 12px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #909399;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+  transition: all .2s ease;
+  white-space: nowrap;
+}
+.clear-btn:hover {
+  color: #606266;
+  border-color: #c0c4cc;
+  background: #f5f7fa;
+}
 .search-btn {
   width: 100%;
   padding: 12px 20px;
@@ -1353,7 +1394,7 @@ const fetchExercisePreferences = async () => {
 .calorie-on-image-button .calorie-unit { font-size: .7rem; opacity: .95; margin-top: 1px; }
 
 .food-card-content { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
-.food-name-price-line { display: flex; align-items: center; gap: 10px; }
+.food-name-price-line { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .food-name { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); line-height: 1.3; flex: 1; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: calc(1.2rem * 1.3 * 2); }
 .food-price-prominent { font-size: 1.15rem; font-weight: 800; color: #E6A23C; }
 
@@ -1450,28 +1491,7 @@ const fetchExercisePreferences = async () => {
   margin-top: 2px;
 }
 
-.preset-chip {
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #6b7280;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: .78rem;
-  cursor: pointer;
-  transition: all .2s ease;
-}
 
-.preset-chip:hover {
-  border-color: #f8b84a;
-  background: #fff8eb;
-  color: #b87915;
-}
-
-.preset-chip.active {
-  border-color: #e6a23c;
-  background: linear-gradient(135deg, #f8b84a 0%, #e6a23c 100%);
-  color: #fff;
-}
 
 /* 調整表單為 12 欄格線 */
 .search-form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
@@ -1646,7 +1666,7 @@ const fetchExercisePreferences = async () => {
 }
 
 .exercise-minutes strong {
-  color: #059669;
+  color: var(--primary-darker);
   font-weight: 700;
 }
 
@@ -1693,8 +1713,8 @@ const fetchExercisePreferences = async () => {
 }
 
 .add-pref-btn {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  padding: 10px 18px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -1707,7 +1727,7 @@ const fetchExercisePreferences = async () => {
 
 .add-pref-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 170, 85, 0.35);
 }
 
 /* 響應式設計 */
