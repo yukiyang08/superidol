@@ -98,103 +98,87 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 
-export default {
-  name: 'CalorieCalculator',
-  components: {
-    QuestionFilled
+const props = defineProps({
+  weight: {
+    type: Number,
+    required: true
   },
-  props: {
-    weight: {
-      type: Number,
-      required: true
-    },
-    modelValue: {
-      type: Number,
-      required: true
-    }
-  },
-  emits: ['update:modelValue'],
-  setup(props, { emit }) {
-    const calorieHelpVisible = ref(false)
-    const isLoading = ref(false)
-    const calorieCalc = reactive({
-      gender: 'male',
-      age: 25,
-      height: 170,
-      activityLevel: 'moderate',
-      goal: 'maintain'
-    })
+  modelValue: {
+    type: Number,
+    required: true
+  }
+})
 
-    const showCalorieHelp = () => {
-      calorieHelpVisible.value = true
-    }
+const emit = defineEmits(['update:modelValue'])
 
-    const calculateCalories = computed(() => {
-      // 使用Harris-Benedict公式計算BMR
-      let bmr = 0
-      if (calorieCalc.gender === 'male') {
-        bmr = 66 + (13.7 * props.weight) + (5 * calorieCalc.height) - (6.8 * calorieCalc.age)
-      } else {
-        bmr = 655 + (9.6 * props.weight) + (1.8 * calorieCalc.height) - (4.7 * calorieCalc.age)
-      }
-      
-      // 根據活動量調整
-      const activityMultipliers = {
-        sedentary: 1.2,
-        light: 1.375,
-        moderate: 1.55,
-        very: 1.725,
-        extra: 1.9
-      }
-      
-      let tdee = bmr * activityMultipliers[calorieCalc.activityLevel]
-      
-      // 根據目標調整
-      const goalAdjustments = {
-        lose: 0.85,
-        maintain: 1,
-        gain: 1.15
-      }
-      
-      tdee = tdee * goalAdjustments[calorieCalc.goal]
-      
-      // 轉換為每週熱量
-      return Math.round(tdee * 7)
-    })
+const calorieHelpVisible = ref(false)
+const isLoading = ref(false)
+const calorieCalc = reactive({
+  gender: 'male',
+  age: 25,
+  height: 170,
+  activityLevel: 'moderate',
+  goal: 'maintain'
+})
 
-    const bmr = computed(() => {
-      // 使用Harris-Benedict公式計算BMR
-      let bmr = 0
-      if (calorieCalc.gender === 'male') {
-        bmr = 66 + (13.7 * props.weight) + (5 * calorieCalc.height) - (6.8 * calorieCalc.age)
-      } else {
-        bmr = 655 + (9.6 * props.weight) + (1.8 * calorieCalc.height) - (4.7 * calorieCalc.age)
-      }
-      return Math.round(bmr)
-    })
+const showCalorieHelp = () => {
+  calorieHelpVisible.value = true
+}
 
-    const applyCalorieSuggestion = () => {
-      if (calculateCalories.value) {
-        emit('update:modelValue', calculateCalories.value)
-        ElMessage.success('已套用建議的熱量限制！')
-        calorieHelpVisible.value = false
-      }
-    }
+const calculateCalories = computed(() => {
+  // 使用Harris-Benedict公式計算BMR
+  let bmr = 0
+  if (calorieCalc.gender === 'male') {
+    bmr = 66 + (13.7 * props.weight) + (5 * calorieCalc.height) - (6.8 * calorieCalc.age)
+  } else {
+    bmr = 655 + (9.6 * props.weight) + (1.8 * calorieCalc.height) - (4.7 * calorieCalc.age)
+  }
 
-    return {
-      calorieHelpVisible,
-      calorieCalc,
-      isLoading,
-      showCalorieHelp,
-      calculateCalories,
-      bmr,
-      applyCalorieSuggestion
-    }
+  // 根據活動量調整
+  const activityMultipliers = {
+    sedentary: 1.2,
+    light: 1.375,
+    moderate: 1.55,
+    very: 1.725,
+    extra: 1.9
+  }
+
+  let tdee = bmr * activityMultipliers[calorieCalc.activityLevel]
+
+  // 根據目標調整
+  const goalAdjustments = {
+    lose: 0.85,
+    maintain: 1,
+    gain: 1.15
+  }
+
+  tdee = tdee * goalAdjustments[calorieCalc.goal]
+
+  // 轉換為每週熱量
+  return Math.round(tdee * 7)
+})
+
+const bmr = computed(() => {
+  // 使用Harris-Benedict公式計算BMR
+  let bmr = 0
+  if (calorieCalc.gender === 'male') {
+    bmr = 66 + (13.7 * props.weight) + (5 * calorieCalc.height) - (6.8 * calorieCalc.age)
+  } else {
+    bmr = 655 + (9.6 * props.weight) + (1.8 * calorieCalc.height) - (4.7 * calorieCalc.age)
+  }
+  return Math.round(bmr)
+})
+
+const applyCalorieSuggestion = () => {
+  if (calculateCalories.value) {
+    emit('update:modelValue', calculateCalories.value)
+    ElMessage.success('已套用建議的熱量限制！')
+    calorieHelpVisible.value = false
   }
 }
 </script>

@@ -172,22 +172,18 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { reactive, computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { ElMessage } from 'element-plus'
 import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
-export default {
-  name: 'RegisterPage',
-  components: { CalorieCalculator },
-  setup() {
-    const router = useRouter()
-    const authStore = useAuthStore()
-    const registerForm = ref(null)
+const router = useRouter()
+const authStore = useAuthStore()
+const registerForm = ref(null)
     
-    const form = reactive({
+  const form = reactive({
       name: '',           // 必填
       email: '',          // 必填
       password: '',       // 必填
@@ -197,9 +193,9 @@ export default {
       foodPreferences: ['singleDish', 'setMeal'], // 預設選擇單點和套餐
       spicyLevel: 1,     // 預設微辣
       priceRange: 2,     // 預設中等價位
-    })
+  })
     
-    const rules = {
+  const rules = {
       name: [
         { required: true, message: '請輸入姓名', trigger: 'blur' },
         { min: 2, message: '姓名至少需要2個字符', trigger: 'blur' }
@@ -251,9 +247,9 @@ export default {
           trigger: 'blur'
         }
       ]
-    }
+  }
     
-    const submitForm = async () => {
+  const submitForm = async () => {
       try {
         // 驗證表單
         await registerForm.value.validate()
@@ -297,20 +293,10 @@ export default {
           ElMessage.error('註冊失敗，請稍後再試')
         }
       }
-    }
-
-    const authError = computed(() => authStore.error)
-    
-    return {
-      form,
-      rules,
-      registerForm,
-      submitForm,
-      isLoading: computed(() => authStore.isLoading),
-      authError
-    }
-  }
 }
+
+const authError = computed(() => authStore.error)
+const isLoading = computed(() => authStore.isLoading)
 </script>
 
 <style scoped>

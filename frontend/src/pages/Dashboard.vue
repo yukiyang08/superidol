@@ -107,152 +107,134 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '../store/auth'
 import api from '../services/api'
 
-export default {
-  name: 'Dashboard',
-  setup() {
-    const authStore = useAuthStore()
-    const user = computed(() => authStore.user || {})
-    const isLoading = ref(false)
-    const hasLoaded = ref(false)
+const authStore = useAuthStore()
+const user = computed(() => authStore.user || {})
+const isLoading = ref(false)
+const hasLoaded = ref(false)
     
-    const userGoals = ref({
-      dailyCalories: 2000,
-      protein: 150,
-      carbs: 200,
-      fat: 65
-    })
+const userGoals = ref({
+  dailyCalories: 2000,
+  protein: 150,
+  carbs: 200,
+  fat: 65
+})
     
-    const todaySummary = ref({
-      caloriesConsumed: 0,
-      protein: null,
-      carbs: null,
-      fat: null,
-      sugar: null
-    })
+const todaySummary = ref({
+  caloriesConsumed: 0,
+  protein: null,
+  carbs: null,
+  fat: null,
+  sugar: null
+})
     
-    const recentFoods = ref([])
+  const recentFoods = ref([])
+
+  const todayExercises = ref([])
     
-    const todayExercises = ref([])
+// 計算剩餘卡路里
+const caloriesRemaining = computed(() => {
+  return Math.max(0, userGoals.value.dailyCalories - todaySummary.value.caloriesConsumed)
+})
     
-    // 計算剩餘卡路里
-    const caloriesRemaining = computed(() => {
-      return Math.max(0, userGoals.value.dailyCalories - todaySummary.value.caloriesConsumed)
-    })
+// 計算卡路里進度百分比
+const calorieProgressPercentage = computed(() => {
+  if (!userGoals.value.dailyCalories) return 0
+  return Math.min(100, (todaySummary.value.caloriesConsumed / userGoals.value.dailyCalories) * 100)
+})
     
-    // 計算卡路里進度百分比
-    const calorieProgressPercentage = computed(() => {
-      if (!userGoals.value.dailyCalories) return 0
-      return Math.min(100, (todaySummary.value.caloriesConsumed / userGoals.value.dailyCalories) * 100)
-    })
+// 格式化日期
+const currentDate = computed(() => {
+  const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
+  return new Date().toLocaleDateString('zh-TW', options)
+})
     
-    // 格式化日期
-    const currentDate = computed(() => {
-      const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }
-      return new Date().toLocaleDateString('zh-TW', options)
-    })
-    
-    const formatNutrient = (value) => {
-      if (value === null || value === undefined || Number.isNaN(Number(value))) return '--'
-      return `${Math.round(Number(value))}g`
+const formatNutrient = (value) => {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '--'
+  return `${Math.round(Number(value))}g`
+}
+
+const getTodayString = () => {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const getUserId = () => {
+  return user.value?.id || localStorage.getItem('userId')
+}
+
+const loadDashboardData = async () => {
+  const userId = getUserId()
+  if (!userId) return
+
+  isLoading.value = true
+  const today = getTodayString()
+
+  try {
+    const [summaryResult, foodResult, exerciseResult] = await Promise.allSettled([
+      api.get('/api/reports/summary', {
+        params: { user_id: userId, report_type: 'daily', start_date: today }
+      }),
+      api.get('/api/food/record', { params: { user_id: userId } }),
+      api.get('/api/exercise/records', {
+        params: { user_id: userId, start_date: today, end_date: today }
+      })
+    ])
+
+    if (summaryResult.status === 'fulfilled') {
+      const summaryData = summaryResult.value?.data || {}
+      userGoals.value.dailyCalories = summaryData.user_goals?.daily_calories || 2000
+      todaySummary.value.caloriesConsumed = summaryData.period_summary?.total_calories_intake || 0
     }
 
-    const getTodayString = () => {
-      const now = new Date()
-      const y = now.getFullYear()
-      const m = String(now.getMonth() + 1).padStart(2, '0')
-      const d = String(now.getDate()).padStart(2, '0')
-      return `${y}-${m}-${d}`
+    if (foodResult.status === 'fulfilled') {
+      const records = Array.isArray(foodResult.value?.data) ? foodResult.value.data : []
+      recentFoods.value = records.slice(0, 3).map((item) => ({
+        id: item.record_id,
+        name: item.name || '未命名食物',
+        calories: Math.round(Number(item.calories || 0)),
+        timeLabel: [item.date, item.mealtime].filter(Boolean).join(' ')
+      }))
     }
 
-    const getUserId = () => {
-      return user.value?.id || localStorage.getItem('userId')
+    if (exerciseResult.status === 'fulfilled') {
+      const records = Array.isArray(exerciseResult.value?.data?.records)
+        ? exerciseResult.value.data.records
+        : []
+      todayExercises.value = records.slice(0, 3).map((item) => ({
+        id: item.RecordID || item.record_id,
+        name: item.Exercise_Name || item.exercise_name || '未知運動',
+        duration: Math.round(Number(item.Duration || item.duration || 0)),
+        caloriesBurned: Math.round(Number(item.calories_burned || 0))
+      }))
     }
-
-    const loadDashboardData = async () => {
-      const userId = getUserId()
-      if (!userId) return
-
-      isLoading.value = true
-      const today = getTodayString()
-
-      try {
-        const [summaryResult, foodResult, exerciseResult] = await Promise.allSettled([
-          api.get('/api/reports/summary', {
-            params: { user_id: userId, report_type: 'daily', start_date: today }
-          }),
-          api.get('/api/food/record', { params: { user_id: userId } }),
-          api.get('/api/exercise/records', {
-            params: { user_id: userId, start_date: today, end_date: today }
-          })
-        ])
-
-        if (summaryResult.status === 'fulfilled') {
-          const summaryData = summaryResult.value?.data || {}
-          userGoals.value.dailyCalories = summaryData.user_goals?.daily_calories || 2000
-          todaySummary.value.caloriesConsumed = summaryData.period_summary?.total_calories_intake || 0
-        }
-
-        if (foodResult.status === 'fulfilled') {
-          const records = Array.isArray(foodResult.value?.data) ? foodResult.value.data : []
-          recentFoods.value = records.slice(0, 3).map((item) => ({
-            id: item.record_id,
-            name: item.name || '未命名食物',
-            calories: Math.round(Number(item.calories || 0)),
-            timeLabel: [item.date, item.mealtime].filter(Boolean).join(' ')
-          }))
-        }
-
-        if (exerciseResult.status === 'fulfilled') {
-          const records = Array.isArray(exerciseResult.value?.data?.records)
-            ? exerciseResult.value.data.records
-            : []
-          todayExercises.value = records.slice(0, 3).map((item) => ({
-            id: item.RecordID || item.record_id,
-            name: item.Exercise_Name || item.exercise_name || '未知運動',
-            duration: Math.round(Number(item.Duration || item.duration || 0)),
-            caloriesBurned: Math.round(Number(item.calories_burned || 0))
-          }))
-        }
-      } catch (error) {
-        console.error('載入 Dashboard 資料失敗:', error)
-      } finally {
-        isLoading.value = false
-        hasLoaded.value = true
-      }
-    }
-    
-    onMounted(() => {
-      loadDashboardData()
-    })
-
-    watch(
-      () => user.value?.id,
-      (newId) => {
-        if (newId && hasLoaded.value) {
-          loadDashboardData()
-        }
-      }
-    )
-    
-    return {
-      user,
-      userGoals,
-      todaySummary,
-      recentFoods,
-      todayExercises,
-      caloriesRemaining,
-      calorieProgressPercentage,
-      currentDate,
-      formatNutrient,
-      isLoading
-    }
+  } catch (error) {
+    console.error('載入 Dashboard 資料失敗:', error)
+  } finally {
+    isLoading.value = false
+    hasLoaded.value = true
   }
 }
+
+onMounted(() => {
+  loadDashboardData()
+})
+
+watch(
+  () => user.value?.id,
+  (newId) => {
+    if (newId && hasLoaded.value) {
+      loadDashboardData()
+    }
+  }
+)
 </script>
 
 <style scoped>

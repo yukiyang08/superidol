@@ -7,8 +7,5 @@
   </svg>
 </template>
 
-<script>
-export default {
-  name: 'IconSport'
-}
-</script> 
+<script setup>
+</script>

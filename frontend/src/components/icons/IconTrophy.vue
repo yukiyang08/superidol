@@ -9,8 +9,5 @@
   </svg>
 </template>
 
-<script>
-export default {
-  name: 'IconTrophy'
-}
-</script> 
+<script setup>
+</script>

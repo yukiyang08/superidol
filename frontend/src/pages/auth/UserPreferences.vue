@@ -169,7 +169,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
@@ -178,42 +178,35 @@ import { Loading } from '@element-plus/icons-vue'
 import api from '../../services/api'
 import CalorieCalculator from '../../components/CalorieCalculator.vue'
 
-export default {
-  name: 'UserPreferences',
-  components: { 
-    Loading,
-    CalorieCalculator
-  },
-  setup() {
-    const router = useRouter()
-    const authStore = useAuthStore()
-    const preferencesForm = ref(null)
-    const localError = ref('')
+const router = useRouter()
+const authStore = useAuthStore()
+const preferencesForm = ref(null)
+const localError = ref('')
     
     // 表單數據
-    const budget = ref(200) // 預設值
-    const calorieLimit = ref(12000) // 預設值
-    const dataLoaded = ref(false)
-    const registrationData = ref(null)
+  const budget = ref(200) // 預設值
+  const calorieLimit = ref(12000) // 預設值
+  const dataLoaded = ref(false)
+  const registrationData = ref(null)
     
     // 偏好選項
-    const restaurants = ref([])
-    const foodTypes = ref([])
-    const exerciseItems = ref([])
+  const restaurants = ref([])
+  const foodTypes = ref([])
+  const exerciseItems = ref([])
     
     // 偏好設置
-    const preferences = reactive({
-      storePreferences: {},
-      foodTypePreferences: {}, // key: name
-      exercisePreferences: {}, // key: name
-      restaurantPreferences: {} // key: id
-    })
+const preferences = reactive({
+  storePreferences: {},
+  foodTypePreferences: {}, // key: name
+  exercisePreferences: {}, // key: name
+  restaurantPreferences: {} // key: id
+})
 
     // loading 狀態
-    const isLoading = ref(false)
+  const isLoading = ref(false)
 
     // 從後端取得偏好選項
-    const fetchData = async () => {
+  const fetchData = async () => {
       try {
         const restaurantsRes = await api.get('/api/preferences/restaurants')
         restaurants.value = restaurantsRes.data
@@ -242,10 +235,10 @@ export default {
         dataLoaded.value = false
         ElMessage.error('載入偏好選項失敗，請稍後再試')
       }
-    }
+  }
     
     // 初始化數據
-    onMounted(async () => {
+  onMounted(async () => {
       try {
         // 檢查是否有註冊數據
         const storedData = sessionStorage.getItem('registrationData')
@@ -263,10 +256,10 @@ export default {
         ElMessage.error('載入數據失敗，請重新填寫基本資訊')
         router.push('/register')
       }
-    })
+  })
     
     // 提交表單
-    const submitForm = async () => {
+  const submitForm = async () => {
       if (isLoading.value) return
       isLoading.value = true
       try {
@@ -347,34 +340,15 @@ export default {
         isLoading.value = false
         ElMessage.error('註冊或偏好設定失敗，請稍後再試')
       }
-    }
+  }
     
     // 返回上一頁
-    const goBack = () => {
-      router.push('/register')
-    }
-    
-    // 返回模板需要的所有數據和方法
-    return {
-      budget,
-      calorieLimit,
-      preferences,
-      restaurants,
-      foodTypes,
-      exerciseItems,
-      dataLoaded,
-      submitForm,
-      goBack,
-      preferencesForm,
-      isLoading: computed({
-        get: () => isLoading.value,
-        set: v => { isLoading.value = v }
-      }),
-      authError: computed(() => localError.value || authStore.error),
-      registrationData: computed(() => registrationData.value)
-    }
-  }
+const goBack = () => {
+  router.push('/register')
 }
+
+const authError = computed(() => localError.value || authStore.error)
+const registrationDataComputed = computed(() => registrationData.value)
 </script>
 
 <style scoped>

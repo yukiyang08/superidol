@@ -267,15 +267,12 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import api from '@/services/api'
 
-export default {
-  name: 'BasicInfo',
-  setup() {
-    // 狀態
-    const profile = ref({
+// 狀態
+const profile = ref({
       name: '',
       email: '',
       budget: null,
@@ -722,55 +719,12 @@ export default {
       }
     }
 
-    onMounted(async () => {
-      await fetchOptions()
-      await fetchProfile()
-      const userId = Number(localStorage.getItem('userId'))
-      if (userId) await fetchUserPreferences(userId)
-    })
-    
-    return {
-      profile,
-      isLoading,
-      isEditing,
-      errorMsg,
-      foodTypes,
-      exerciseItems,
-      restaurants,
-      selectedFoodTypes,
-      selectedExerciseNames,
-      selectedRestaurantIds,
-      editProfile,
-      editSelectedFoodTypes,
-      editSelectedExerciseNames,
-      editSelectedRestaurantIds,
-      startEdit,
-      saveEdit,
-      cancelEdit,
-      dialogVisible,
-      dialogMsg,
-      getRestaurantName,
-      getExerciseIcon,
-      getExerciseIntensity,
-      getIntensityFlames,
-      toggleExercise,
-      getFoodIcon,
-      getRestaurantIcon,
-      toggleFood,
-      toggleRestaurant,
-      notification,
-      showNotification,
-      getRestaurantType,
-      getRestaurantImage,
-      hasRestaurantLogo,
-      calorieHelpVisible,
-      calorieCalc,
-      showCalorieHelp,
-      calculateCalories,
-      applyCalorieSuggestion
-    }
-  }
-}
+onMounted(async () => {
+  await fetchOptions()
+  await fetchProfile()
+  const userId = Number(localStorage.getItem('userId'))
+  if (userId) await fetchUserPreferences(userId)
+})
 </script>
 
 <style scoped>

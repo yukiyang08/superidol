@@ -12,45 +12,32 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from './store/auth'
 import Header from './components/layout/Header.vue'
 import Footer from './components/layout/Footer.vue'
 
-export default {
-  name: 'App',
-  components: {
-    Header,
-    Footer
-  },
-  setup() {
-    const route = useRoute()
-    const authStore = useAuthStore()
+const route = useRoute()
+const authStore = useAuthStore()
 
-    const isAuthenticated = computed(() => authStore.isAuthenticated)
-    const isAuthPage = computed(() => {
-      return route.path === '/login' || route.path === '/register'
-    })
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const isAuthPage = computed(() => {
+  return route.path === '/login' || route.path === '/register'
+})
 
-    // 初始化應用時嘗試載入用戶資料
-    onMounted(async () => {
-      if (authStore.token) {
-        try {
-          await authStore.fetchUserData()
-        } catch (error) {
-          console.error('初始化時載入用戶資料失敗:', error)
-        }
-      }
-    })
-
-    return {
-      isAuthenticated,
-      isAuthPage
+// 初始化應用時嘗試載入用戶資料
+onMounted(async () => {
+  if (authStore.token) {
+    try {
+      await authStore.fetchUserData()
+    } catch (error) {
+      console.error('初始化時載入用戶資料失敗:', error)
     }
   }
-}
+})
+
 </script>
 
 <style>

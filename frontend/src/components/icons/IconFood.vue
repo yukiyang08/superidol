@@ -8,8 +8,5 @@
   </svg>
 </template>
 
-<script>
-export default {
-  name: 'IconFood'
-}
-</script> 
+<script setup>
+</script>

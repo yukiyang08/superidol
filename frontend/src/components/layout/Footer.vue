@@ -37,15 +37,10 @@
   </footer>
 </template>
 
-<script>
-export default {
-  name: 'AppFooter',
-  computed: {
-    currentYear() {
-      return new Date().getFullYear();
-    }
-  }
-}
+<script setup>
+import { computed } from 'vue'
+
+const currentYear = computed(() => new Date().getFullYear())
 </script>
 
 <style scoped>

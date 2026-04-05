@@ -50,40 +50,35 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'FoodCard',
-  props: {
-    food: {
-      type: Object,
-      required: true,
-      default: () => ({
-        id: 0,
-        name: '',
-        calories: 0,
-        servingSize: '100g',
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        image: null
-      })
-    },
-    isSelected: {
-      type: Boolean,
-      default: false
-    },
-    selectable: {
-      type: Boolean,
-      default: false
-    }
+<script setup>
+defineProps({
+  food: {
+    type: Object,
+    required: true,
+    default: () => ({
+      id: 0,
+      name: '',
+      calories: 0,
+      servingSize: '100g',
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      image: null
+    })
   },
-  emits: ['select', 'view-details'],
-  data() {
-    return {
-      defaultImage: '/src/assets/images/default-food.jpg'
-    }
+  isSelected: {
+    type: Boolean,
+    default: false
+  },
+  selectable: {
+    type: Boolean,
+    default: false
   }
-}
+})
+
+defineEmits(['select', 'view-details'])
+
+const defaultImage = '/src/assets/images/default-food.jpg'
 </script>
 
 <style scoped>

@@ -88,26 +88,22 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 import api from '@/services/api'
 
-export default {
-  name: 'MyFavorite',
-  components: { FoodRecordModal },
-  setup() {
-    const favoriteFoods = ref([])
-    const isLoading = ref(false)
-    const isRemoving = ref(false)
-    const showConfirmModal = ref(false)
-    const selectedFood = ref(null)
-    const showRecordModal = ref(false)
-    const currentFood = ref(null)
+const favoriteFoods = ref([])
+const isLoading = ref(false)
+const isRemoving = ref(false)
+const showConfirmModal = ref(false)
+const selectedFood = ref(null)
+const showRecordModal = ref(false)
+const currentFood = ref(null)
 
     // 載入最愛資料
-    const fetchFavorites = async () => {
+  const fetchFavorites = async () => {
       const userId = localStorage.getItem('userId')
       if (!userId) {
         ElMessage.warning('請先登入')
@@ -136,22 +132,22 @@ export default {
       } finally {
         isLoading.value = false
       }
-    }
+  }
 
     // 確認移除最愛
-    const confirmRemoveFavorite = (food) => {
-      selectedFood.value = food
-      showConfirmModal.value = true
-    }
+const confirmRemoveFavorite = (food) => {
+  selectedFood.value = food
+  showConfirmModal.value = true
+}
 
     // 取消移除
-    const cancelRemove = () => {
-      showConfirmModal.value = false
-      selectedFood.value = null
-    }
+const cancelRemove = () => {
+  showConfirmModal.value = false
+  selectedFood.value = null
+}
 
     // 刪除最愛
-    const removeFavorite = async () => {
+  const removeFavorite = async () => {
       if (!selectedFood.value) return
       const userId = localStorage.getItem('userId')
       if (!userId) {
@@ -172,38 +168,21 @@ export default {
       } finally {
         isRemoving.value = false
       }
-    }
+  }
 
     // 加入紀錄功能
-    const openFoodRecordModal = (food) => {
-      currentFood.value = food
-      showRecordModal.value = true
-    }
-
-    const onRecordSaved = () => {
-      ElMessage.success('已成功添加到食物記錄')
-    }
-
-    onMounted(() => {
-      fetchFavorites()
-    })
-    
-    return {
-      favoriteFoods,
-      isLoading,
-      isRemoving,
-      showConfirmModal,
-      selectedFood,
-      confirmRemoveFavorite,
-      cancelRemove,
-      removeFavorite,
-      showRecordModal,
-      currentFood,
-      openFoodRecordModal,
-      onRecordSaved
-    }
-  }
+const openFoodRecordModal = (food) => {
+  currentFood.value = food
+  showRecordModal.value = true
 }
+
+const onRecordSaved = () => {
+  ElMessage.success('已成功添加到食物記錄')
+}
+
+onMounted(() => {
+  fetchFavorites()
+})
 </script>
 
 <style scoped>

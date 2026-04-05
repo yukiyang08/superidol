@@ -47,30 +47,27 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { reactive, ref } from 'vue';
 import axios from 'axios';
 
-export default {
-  name: 'ApiTest',
-  setup() {
-    const register = reactive({
-      name: 'Test User',
-      email: `test${Date.now()}@example.com`,
-      password: 'password123'
-    });
+const register = reactive({
+  name: 'Test User',
+  email: `test${Date.now()}@example.com`,
+  password: 'password123'
+});
 
-    const login = reactive({
-      email: '',
-      password: 'password123'
-    });
+const login = reactive({
+  email: '',
+  password: 'password123'
+});
 
-    const result = ref(null);
-    const error = ref(null);
-    const loading = ref(false);
+const result = ref(null);
+const error = ref(null);
+const loading = ref(false);
 
     // 直接使用axios而非現有api服務，以排除可能的配置問題
-    const testSignup = async () => {
+  const testSignup = async () => {
       loading.value = true;
       error.value = null;
       result.value = null;
@@ -78,9 +75,9 @@ export default {
       try {
         // 嘗試直接訪問，不使用api服務的baseURL
         const response = await axios.post('/api/auth/signup', {
-          name: register.value.name,
-          email: register.value.email,
-          password: register.value.password
+          name: register.name,
+          email: register.email,
+          password: register.password
         });
         
         result.value = response.data;
@@ -93,9 +90,9 @@ export default {
       } finally {
         loading.value = false;
       }
-    };
+  };
 
-    const testLogin = async () => {
+  const testLogin = async () => {
       loading.value = true;
       error.value = null;
       result.value = null;
@@ -115,19 +112,7 @@ export default {
       } finally {
         loading.value = false;
       }
-    };
-
-    return {
-      register,
-      login,
-      result,
-      error,
-      loading,
-      testSignup,
-      testLogin
-    };
-  }
-}
+};
 </script>
 
 <style scoped>

@@ -422,24 +422,16 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
+import axios from '@/utils/axios'
 import api from '@/services/api'
 import { ArrowLeft, ArrowRight, ArrowDown, Sunrise, Sunny, Sunset, Dessert, Notebook, Calendar as DateIcon, Food as FoodIcon } from '@element-plus/icons-vue'
 
-export default {
-  name: 'FoodRecord',
-  components: {
-    FoodRecordModal,
-    ArrowLeft, ArrowRight, ArrowDown,
-    Sunrise, Sunny, Sunset, Dessert, Notebook,
-    DateIcon, FoodIcon
-  },
-  setup() {
-    const router = useRouter()
+const router = useRouter()
     
     // 當前選中的日期
     const selectedDate = ref(new Date())
@@ -734,43 +726,12 @@ export default {
       }
     }
 
-    // 初始化
-    onMounted(() => {
-      // 加載當前日期的食物記錄
-      loadFoodRecords()
-      fetchCalorieGoal()
-    })
-
-    return {
-      selectedDate,
-      selectedDateString,
-      dateInputRef,
-      formattedDate,
-      todayString,
-      calorieGoal,
-      dailySummary,
-      calorieRemaining,
-      calorieProgressPercentage,
-      breakfastItems,
-      lunchItems,
-      dinnerItems,
-      snackItems,
-      changeDate,
-      addFood,
-      deleteRecord,
-      isLoading,
-      loadFoodRecords,
-      showEditModal,
-      editingRecord,
-      openEditRecord,
-      closeEditModal,
-      handleEditSaved,
-      onDateChange,
-      customForm,
-      submitCustomFood,
-    }
-  }
-}
+// 初始化
+onMounted(() => {
+  // 加載當前日期的食物記錄
+  loadFoodRecords()
+  fetchCalorieGoal()
+})
 </script>
 
 <style scoped>

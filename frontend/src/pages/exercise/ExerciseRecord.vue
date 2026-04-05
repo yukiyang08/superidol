@@ -330,22 +330,17 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, onMounted } from 'vue'
+<script setup>
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { api } from '@/services/api'
 import { useAuthStore } from '@/store/auth'
-import axios from 'axios'
 
-export default {
-  name: 'ExerciseRecord',
-  setup() {
-    const selectedDate = ref(new Date())
+const selectedDate = ref(new Date())
     const dateInput = ref(selectedDate.value.toISOString().substr(0, 10))
     const exercises = ref([])
     const isLoading = ref(false)
     const showAddExerciseModal = ref(false)
     const newExercise = ref({ type: '', duration: '', date: '' })
-    const filterType = ref('')
     const authStore = useAuthStore()
     const exerciseTypes = ref([]) // 從API獲取的運動類型名稱
     const exerciseItems = ref([]) // 包含完整運動項目資料（含MET值）
@@ -363,13 +358,19 @@ export default {
     
     // 添加通知訊息
     const notification = ref({ show: false, message: '', type: 'success' })
+    let notificationTimer = null
+    let materialIconsLink = null
     
     // 顯示通知
     const showNotification = (message, type = 'success') => {
       notification.value = { show: true, message, type }
-      const displayTime = type === 'error' ? 5000 : 3000; // 錯誤訊息顯示更久
-      setTimeout(() => {
+      const displayTime = type === 'error' ? 5000 : 3000 // 錯誤訊息顯示更久
+      if (notificationTimer) {
+        clearTimeout(notificationTimer)
+      }
+      notificationTimer = setTimeout(() => {
         notification.value.show = false
+        notificationTimer = null
       }, displayTime)
     }
     
@@ -775,11 +776,7 @@ export default {
       return Math.round(MET * 3.5 * weight.value / 200 * newExercise.value.duration)
     }
 
-    const filteredExercises = computed(() => {
-      return filterType.value
-        ? exercises.value.filter(e => e.type === filterType.value)
-        : exercises.value
-    })
+    const filteredExercises = computed(() => exercises.value)
 
     const dailySummary = computed(() => {
       const totalDuration = filteredExercises.value.reduce((sum, e) => sum + Number(e.duration), 0)
@@ -912,112 +909,42 @@ export default {
       loadExerciseRecords()
     }
 
-    // 初始化API服務時設定全局超時
-    const initializeApiService = () => {
-      // 預先設定API全局請求超時
-      axios.defaults.timeout = 20000; // 設定全局20秒超時
-      
-      // 也可以在這裡設定全局的請求攔截器，用於統一處理錯誤
-      axios.interceptors.response.use(
-        response => response,
-        error => {
-          // 處理超時錯誤
-          if (error.code === 'ECONNABORTED' && error.message && error.message.includes('timeout')) {
-            console.error('API請求超時');
-          }
-          return Promise.reject(error);
-        }
-      );
-    }
-
-    // 在onMounted前添加
-    initializeApiService();
-
-    onMounted(async () => {
-      // 若未登入或無用戶資料，先獲取用戶資料
-      if (!authStore.user && authStore.isAuthenticated) {
-        await authStore.fetchUserData()
-      }
-      
-      // 加載運動項目
-      await loadExerciseItems()
-      
-      // 設置初始日期為今天
-      selectedDate.value = new Date()
-      dateInput.value = selectedDate.value.toISOString().substr(0, 10)
-      
-      // 設置初始模式為單日模式
-      filterMode.value = 'day'
-      
-      // 加載運動記錄（當前日期）
-      loadExerciseRecords()
-      
-      // 添加Material Icons - 新增
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons'
-      document.head.appendChild(link)
-    })
-
-    return {
-      selectedDate,
-      dateInput,
-      formattedDate,
-      exerciseTypes,
-      filterType,
-      exercises,
-      filteredExercises,
-      isLoading,
-      isLoadingExerciseTypes,
-      dailySummary,
-      showAddExerciseModal,
-      newExercise,
-      calculateCalories,
-      calculateNewExerciseCalories,
-      closeModal,
-      submitExercise,
-      changeDate,
-      onDateChange,
-      editExercise,
-      deleteExercise,
-      getMET,
-      getIntensityLevel,
-      getFlameCount,
-      getFlameIconsHTML,
-      getExerciseIcon,
-      getExerciseEmoji,
-      getExerciseColor,
-      today,
-      isToday,
-      startDateFilter,
-      endDateFilter,
-      isDateRangeActive,
-      formatDateRangeText,
-      applyDateRangeFilter,
-      clearDateRangeFilter,
-      clearAllFilters,
-      formatShortDate,
-      showEditExerciseModal,
-      editingExercise,
-      submitEditExercise,
-      calculateEditingExerciseCalories,
-      closeEditModal,
-      isSubmitting,
-      isDeleting,
-      isEditing,
-      notification,
-      showNotification,
-      selectedMonth,
-      isCurrentMonthSelected,
-      availableMonths,
-      selectMonth,
-      applyMonthFilter,
-      openAddExerciseModal,
-      filterMode,
-      switchFilterMode
-    }
+onMounted(async () => {
+  // 若未登入或無用戶資料，先獲取用戶資料
+  if (!authStore.user && authStore.isAuthenticated) {
+    await authStore.fetchUserData()
   }
-}
+  
+  // 加載運動項目
+  await loadExerciseItems()
+  
+  // 設置初始日期為今天
+  selectedDate.value = new Date()
+  dateInput.value = selectedDate.value.toISOString().substr(0, 10)
+  
+  // 設置初始模式為單日模式
+  filterMode.value = 'day'
+  
+  // 加載運動記錄（當前日期）
+  loadExerciseRecords()
+  
+  // 添加Material Icons - 新增
+  materialIconsLink = document.createElement('link')
+  materialIconsLink.rel = 'stylesheet'
+  materialIconsLink.href = 'https://fonts.googleapis.com/icon?family=Material+Icons'
+  document.head.appendChild(materialIconsLink)
+})
+
+onBeforeUnmount(() => {
+  if (notificationTimer) {
+    clearTimeout(notificationTimer)
+    notificationTimer = null
+  }
+  if (materialIconsLink && materialIconsLink.parentNode) {
+    materialIconsLink.parentNode.removeChild(materialIconsLink)
+    materialIconsLink = null
+  }
+})
 </script>
 
 <style scoped>
