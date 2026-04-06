@@ -6,7 +6,7 @@
         <p>創建新帳戶</p>
       </div>
       
-      <el-alert v-if="authError" type="error" :title="authError" show-icon />
+      <el-alert v-if="authError" type="error" :title="authError" show-icon class="error-alert" />
       
       <el-form 
         @submit.prevent="submitForm" 
@@ -173,7 +173,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, ref } from 'vue'
+import { reactive, computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { ElMessage } from 'element-plus'
@@ -288,6 +288,9 @@ const registerForm = ref(null)
         }, 1500)
       } catch (error) {
         console.error('註冊失敗:', error)
+        if (authStore.error) {
+          return
+        }
         if (error.response?.data?.detail) {
           ElMessage.error(error.response.data.detail)
         } else {
@@ -298,6 +301,15 @@ const registerForm = ref(null)
 
 const authError = computed(() => authStore.error)
 const isLoading = computed(() => authStore.isLoading)
+
+watch(
+  () => [form.name, form.email, form.password, form.confirmPassword, form.weight],
+  () => {
+    if (authStore.error) {
+      authStore.clearError()
+    }
+  }
+)
 </script>
 
 <style scoped>
@@ -322,6 +334,15 @@ const isLoading = computed(() => authStore.isLoading)
   overflow: hidden;
   box-shadow: var(--shadow-card);
   border: none;
+}
+
+.error-alert {
+  margin-bottom: 16px;
+}
+
+.error-alert :deep(.el-alert__title),
+.error-alert :deep(.el-alert__description) {
+  font-family: var(--font-tc), var(--font-en);
 }
 
 .auth-header {

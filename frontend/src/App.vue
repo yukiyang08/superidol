@@ -69,6 +69,7 @@ onMounted(async () => {
   --shadow-button: 0 6px 16px rgba(255, 170, 85, 0.28);
   --shadow-button-hover: 0 10px 22px rgba(255, 170, 85, 0.36);
   --btn-radius: 10px;
+  --el-font-family: 'Noto Sans TC', 'Poppins', 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 /* Override Element Plus primary to match brand orange */
 :root {
@@ -86,6 +87,20 @@ body {
   box-sizing: border-box;
   background-color: var(--bg-light);
   color: var(--text-color);
+  font-family: var(--el-font-family);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.el-message,
+.el-message-box,
+.el-notification {
+  font-family: var(--el-font-family);
 }
 
 .main-container {

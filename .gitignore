@@ -44,3 +44,4 @@ DB_NAME=superidol_DB
 node_modules/
 dist/
 .DS_Store 
+.github

@@ -96,17 +96,9 @@
       </div>
       
       <div class="connection-status">
-        <span v-if="connectionStatus === 'waiting'" class="status waiting">
-          <el-icon class="status-icon"><Loading /></el-icon>
-          正在連接服務器...
-        </span>
-        <span v-else-if="connectionStatus === 'success'" class="status success">
-          <el-icon class="status-icon"><Check /></el-icon>
-          伺服器連接正常
-        </span>
-        <span v-else-if="connectionStatus === 'error'" class="status error">
-          <el-icon class="status-icon"><Warning /></el-icon>
-          伺服器連接失敗，請檢查網路連接或聯絡客服
+        <span v-if="connectionState" class="status" :class="connectionState.type">
+          <el-icon class="status-icon"><component :is="connectionState.icon" /></el-icon>
+          {{ connectionState.text }}
         </span>
       </div>
     </el-card>
@@ -117,7 +109,7 @@
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
-import { Message, Lock, Loading, Check, Warning } from '@element-plus/icons-vue'
+import { Loading, Check, Warning } from '@element-plus/icons-vue'
 import { isValidEmail } from '../../utils/validation'
 import api from '../../services/api'
 import { ElMessage } from 'element-plus'
@@ -150,10 +142,6 @@ const rules = {
     },
     {
       validator: (rule, value, callback) => {
-        if (!value) {
-          callback()
-          return
-        }
         if (!isValidEmail(value)) {
           callback(new Error('請輸入有效的電子郵件地址'))
         } else {
@@ -178,22 +166,13 @@ const rules = {
 }
 
 // 提交表單
-const submitForm = () => {
-  loginForm.value?.validate(async valid => {
-    if (valid) {
-      try {
-        await handleLogin()
-      } catch (error) {
-        console.error('表單驗證通過，但登入失敗:', error)
-      }
-    } else {
-      ElMessage.warning('請檢查表單填寫是否正確')
-    }
-  })
-}
+const submitForm = async () => {
+  const isValid = await loginForm.value?.validate().catch(() => false)
+  if (!isValid) {
+    ElMessage.warning('請檢查表單填寫是否正確')
+    return
+  }
 
-// 處理登入邏輯
-const handleLogin = async () => {
   try {
     await authStore.login({
       email: form.email,
@@ -208,13 +187,11 @@ const handleLogin = async () => {
     }
     
     ElMessage.success('登入成功！正在前往儀表板...')
-    // 使用 setTimeout 給用戶一個視覺反饋的時間
     setTimeout(() => {
       router.push('/dashboard')
     }, 500)
   } catch (error) {
     console.error('登入失敗:', error)
-    ElMessage.error('登入失敗，請檢查帳號密碼是否正確')
   }
 }
 
@@ -232,6 +209,36 @@ const testApiConnection = async () => {
 
 // 監聽 auth store 中的錯誤
 const authError = computed(() => authStore.error)
+const connectionState = computed(() => {
+  const states = {
+    waiting: {
+      icon: Loading,
+      text: '正在連接服務器...',
+      type: 'waiting'
+    },
+    success: {
+      icon: Check,
+      text: '伺服器連接正常',
+      type: 'success'
+    },
+    error: {
+      icon: Warning,
+      text: '伺服器連接失敗，請檢查網路連接或聯絡客服',
+      type: 'error'
+    }
+  }
+
+  return states[connectionStatus.value] || null
+})
+
+watch(
+  () => [form.email, form.password],
+  () => {
+    if (authStore.error) {
+      authStore.clearError()
+    }
+  }
+)
 
 // 自動填充記住的帳號
 onMounted(() => {
@@ -338,25 +345,13 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+.error-alert :deep(.el-alert__title),
+.error-alert :deep(.el-alert__description) {
+  font-family: var(--font-tc), var(--font-en);
+}
+
 .password-item {
   margin-bottom: 4px;
-}
-
-.forgot-password {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
-.forgot-link {
-  color: #f59e0b;
-  font-size: 0.875rem;
-  text-decoration: none;
-}
-
-.forgot-link:hover {
-  color: #d97706;
-  text-decoration: underline;
 }
 
 .login-btn {
