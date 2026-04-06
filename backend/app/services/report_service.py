@@ -7,6 +7,80 @@ from datetime import datetime, timedelta, date as dt_date
 import logging
 import calendar
 
+
+def build_actionable_suggestions(report_info: dict, user_goals: dict, period_summary: dict, daily_trends: list[dict]) -> list[dict]:
+    """Build ranked, actionable suggestion cards based on period data."""
+    num_days = max(1, report_info.get('num_days_in_period', 1))
+    goal_daily_calories = user_goals.get('daily_calories', 2000) or 2000
+    goal_period_calories = goal_daily_calories * num_days
+
+    intake = period_summary.get('total_calories_intake', 0) or 0
+    burned = period_summary.get('total_calories_burned', 0) or 0
+    expense = period_summary.get('total_food_expense', 0) or 0
+    daily_budget = user_goals.get('daily_budget', 0) or 0
+    budget_period_goal = daily_budget * num_days
+
+    net_diff = intake - burned - goal_period_calories
+    cards = []
+
+    if net_diff > 150:
+        cards.append({
+            'level': 'high',
+            'title': '熱量偏高，優先做一項修正',
+            'reason': f'此期間淨熱量約超出目標 {round(net_diff)} 大卡。',
+            'action': '下一餐先減少 1 份主食或含糖飲，優先保留蛋白質來源。',
+            'impact': f'若減少約 200 大卡，約可回收 {min(200, round(net_diff))} 大卡。'
+        })
+    elif net_diff < -200:
+        cards.append({
+            'level': 'medium',
+            'title': '熱量偏低，避免恢復不足',
+            'reason': f'此期間淨熱量約低於目標 {round(abs(net_diff))} 大卡。',
+            'action': '可增加一份高蛋白點心（如無糖豆漿、雞蛋、優格）。',
+            'impact': '每日補充 150~250 大卡可提升恢復與穩定度。'
+        })
+    else:
+        cards.append({
+            'level': 'good',
+            'title': '熱量控制穩定',
+            'reason': '此期間的熱量落在目標附近。',
+            'action': '維持目前節奏，持續記錄每餐份量與飲料。',
+            'impact': '穩定記錄可提升長期體重管理效果。'
+        })
+
+    if daily_budget > 0 and expense > budget_period_goal:
+        over_budget = round(expense - budget_period_goal)
+        cards.append({
+            'level': 'medium',
+            'title': '飲食支出略高於預算',
+            'reason': f'目前約超出預算 {over_budget} 元。',
+            'action': '本週可用「主食 + 蛋白質」組合取代高價套餐 1~2 次。',
+            'impact': f'預估可回收約 {min(200, over_budget)} 元。'
+        })
+
+    total_exercise_minutes = period_summary.get('total_exercise_duration_minutes', 0) or 0
+    if num_days >= 7 and total_exercise_minutes < 120:
+        cards.append({
+            'level': 'low',
+            'title': '運動量可再提高',
+            'reason': f'本期累積運動 {round(total_exercise_minutes)} 分鐘。',
+            'action': '每次 20~30 分鐘快走或阻力訓練，每週再補 2~3 次。',
+            'impact': '可提升熱量消耗與心肺健康。'
+        })
+
+    if not daily_trends:
+        cards.append({
+            'level': 'low',
+            'title': '紀錄資料不足',
+            'reason': '目前尚無足夠趨勢資料。',
+            'action': '先連續記錄 3 天飲食與運動，再看趨勢會更準確。',
+            'impact': '提升建議品質與可執行性。'
+        })
+
+    level_priority = {'high': 0, 'medium': 1, 'low': 2, 'good': 3}
+    cards.sort(key=lambda c: level_priority.get(c.get('level', 'low'), 9))
+    return cards[:3]
+
 def get_user_goals(user_id: int, cursor) -> dict:
     """獲取用戶目標"""
     cursor.execute("SELECT WeekCalorieLimit, Budget, weight FROM Users WHERE UserID = %s", (user_id,))
@@ -74,12 +148,12 @@ def get_food_summary_for_period(user_id: int, start_date: dt_date, end_date: dt_
     """獲取每週食物相關摘要"""
     sql = """
         SELECT 
-            SUM(f.Calories * fr.Quantity) AS total_calories_intake,
-            SUM(f.Price * fr.Quantity) AS total_food_expense,
+            SUM(COALESCE(f.Calories, fr.CustomCalories, 0) * fr.Quantity) AS total_calories_intake,
+            SUM(COALESCE(f.Price, fr.CustomPrice, 0) * fr.Quantity) AS total_food_expense,
             COUNT(DISTINCT fr.Date) AS food_days_logged
             -- TODO: SUM(f.Protein * fr.Quantity) AS total_protein, etc. (需 Food 表支援)
         FROM Food_Records fr
-        JOIN Food f ON fr.FoodID = f.FoodID
+        LEFT JOIN Food f ON fr.FoodID = f.FoodID
         WHERE fr.UserID = %s AND fr.Date BETWEEN %s AND %s
     """
     cursor.execute(sql, (user_id, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')))
@@ -127,10 +201,10 @@ def get_daily_trends_for_period(user_id: int, start_date_dt: dt_date, end_date_d
         # 每日食物數據
         food_sql = """
             SELECT 
-                SUM(f.Calories * fr.Quantity) AS daily_calories_intake,
-                SUM(f.Price * fr.Quantity) AS daily_food_expense
+                SUM(COALESCE(f.Calories, fr.CustomCalories, 0) * fr.Quantity) AS daily_calories_intake,
+                SUM(COALESCE(f.Price, fr.CustomPrice, 0) * fr.Quantity) AS daily_food_expense
             FROM Food_Records fr
-            JOIN Food f ON fr.FoodID = f.FoodID
+            LEFT JOIN Food f ON fr.FoodID = f.FoodID
             WHERE fr.UserID = %s AND fr.Date = %s
         """
         cursor.execute(food_sql, (user_id, date_str))
@@ -232,11 +306,18 @@ def get_summary_report(user_id: int, report_type: str, start_date_str: str | Non
                 },
                 "period_summary": period_summary,
                 "daily_trends": daily_trends,
-                "suggestions": [ # 初期固定建議
-                    "保持均衡飲食，多攝取蔬菜水果。",
-                    "建議每週至少150分鐘中等強度運動。"
-                ]
+                "suggestions": []
             }
+
+            suggestion_cards = build_actionable_suggestions(
+                report["report_info"],
+                report["user_goals"],
+                period_summary,
+                daily_trends,
+            )
+            report["suggestion_cards"] = suggestion_cards
+            report["suggestions"] = [card["title"] for card in suggestion_cards]
+
             if report_type == 'monthly':
                 report["weekly_summaries"] = weekly_summaries
             return report
