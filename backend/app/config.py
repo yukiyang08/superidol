@@ -39,6 +39,26 @@ class Config:
     # API settings
     API_TITLE = 'Super Idol API'
     API_VERSION = 'v1'
+
+    # Supabase Storage settings
+    SUPABASE_URL = os.getenv('SUPABASE_URL', '')
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
+    SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'food-records')
+    SUPABASE_STORAGE_PUBLIC = os.getenv('SUPABASE_STORAGE_PUBLIC', 'true').lower() == 'true'
+
+    # AI vision settings
+    AI_PROVIDER = os.getenv('AI_PROVIDER', 'gemini')
+
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+    GEMINI_BASE_URL = os.getenv('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')
+    GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+    OPENAI_BASE_URL = os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1')
+    OPENAI_VISION_MODEL = os.getenv('OPENAI_VISION_MODEL', 'gpt-4.1-mini')
+
+    # Upload validation
+    MAX_UPLOAD_IMAGE_BYTES = int(os.getenv('MAX_UPLOAD_IMAGE_BYTES', str(5 * 1024 * 1024)))
     
     # CORS 配置
     CORS_ORIGINS = parse_cors_origins(

@@ -183,120 +183,102 @@ import CalorieCalculator from '../../components/CalorieCalculator.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const registerForm = ref(null)
-    
-  const form = reactive({
-      name: '',           // 必填
-      email: '',          // 必填
-      password: '',       // 必填
-      confirmPassword: '',
-      weight: null,       // 必填
-      weekcalorielimit: 12000, // 設定預設值
-      foodPreferences: ['singleDish', 'setMeal'], // 預設選擇單點和套餐
-      spicyLevel: 1,     // 預設微辣
-      priceRange: 2,     // 預設中等價位
-  })
-    
-  const rules = {
-      name: [
-        { required: true, message: '請輸入姓名', trigger: 'blur' },
-        { min: 2, message: '姓名至少需要2個字符', trigger: 'blur' }
-      ],
-      weight: [
-        { required: true, message: '請輸入體重', trigger: 'blur' },
-        { 
-          validator: (rule, value, callback) => {
-            if (value < 30 || value > 200) {
-              callback(new Error('體重需在30-200kg範圍內'))
-            } else {
-              callback()
-            }
-          }, 
-          trigger: 'blur' 
-        }
-      ],
-      weekcalorielimit: [
-        { required: true, message: '請輸入每週熱量限制', trigger: 'blur' },
-        { 
-          validator: (rule, value, callback) => {
-            if (value <= 0) {
-              callback(new Error('熱量限制必須大於0'))
-            } else {
-              callback()
-            }
-          }, 
-          trigger: 'blur' 
-        }
-      ],
-      email: [
-        { required: true, message: '請輸入電子郵件', trigger: 'blur' },
-        { type: 'email', message: '請輸入有效的電子郵件地址', trigger: 'blur' }
-      ],
-      password: [
-        { required: true, message: '請輸入密碼', trigger: 'blur' },
-        { min: 6, message: '密碼至少需要6個字符', trigger: 'blur' }
-      ],
-      confirmPassword: [
-        { required: true, message: '請再次輸入密碼', trigger: 'blur' },
-        {
-          validator: (rule, value, callback) => {
-            if (value !== form.password) {
-              callback(new Error('兩次輸入的密碼不一致'))
-            } else {
-              callback()
-            }
-          },
-          trigger: 'blur'
-        }
-      ]
-  }
-    
-  const submitForm = async () => {
-      try {
-        // 驗證表單
-        await registerForm.value.validate()
-        
-        // 檢查密碼是否一致
-        if (form.password !== form.confirmPassword) {
-          ElMessage.error('兩次輸入的密碼不一致')
-          return
-        }
-        
-        // 檢查必填欄位
-        if (!form.name || !form.email || !form.password || form.weight === null) {
-          ElMessage.error('請填寫所有必填欄位')
-          return
-        }
-        
-        // 準備註冊資料
-        const registrationData = {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          weight: form.weight,
-          weekcalorielimit: form.weekcalorielimit,
-          foodPreferences: form.foodPreferences,
-          spicyLevel: form.spicyLevel,
-          priceRange: form.priceRange
-        }
-        
-        // 提交註冊
-        await authStore.register(registrationData)
-        
-        ElMessage.success('註冊成功！正在跳轉到登入頁面...')
-        setTimeout(() => {
-          router.push('/login')
-        }, 1500)
-      } catch (error) {
-        console.error('註冊失敗:', error)
-        if (authStore.error) {
-          return
-        }
-        if (error.response?.data?.detail) {
-          ElMessage.error(error.response.data.detail)
+
+const form = reactive({
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  weight: null,
+  weekcalorielimit: 12000,
+  foodPreferences: ['singleDish', 'setMeal'],
+  spicyLevel: 1,
+  priceRange: 2,
+})
+
+const rules = {
+  name: [
+    { required: true, message: '請輸入姓名', trigger: 'blur' },
+    { min: 2, message: '姓名至少需要2個字符', trigger: 'blur' }
+  ],
+  weight: [
+    { required: true, message: '請輸入體重', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value < 30 || value > 200) {
+          callback(new Error('體重需在30-200kg範圍內'))
         } else {
-          ElMessage.error('註冊失敗，請稍後再試')
+          callback()
         }
-      }
+      },
+      trigger: 'blur'
+    }
+  ],
+  weekcalorielimit: [
+    { required: true, message: '請輸入每週熱量限制', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value <= 0) {
+          callback(new Error('熱量限制必須大於0'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  email: [
+    { required: true, message: '請輸入電子郵件', trigger: 'blur' },
+    { type: 'email', message: '請輸入有效的電子郵件地址', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '請輸入密碼', trigger: 'blur' },
+    { min: 6, message: '密碼至少需要6個字符', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '請再次輸入密碼', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== form.password) {
+          callback(new Error('兩次輸入的密碼不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
+const submitForm = async () => {
+  const isValid = await registerForm.value?.validate().catch(() => false)
+  if (!isValid) {
+    return
+  }
+
+  try {
+    await authStore.register({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+      weight: form.weight,
+      weekcalorielimit: form.weekcalorielimit,
+      foodPreferences: form.foodPreferences,
+      spicyLevel: form.spicyLevel,
+      priceRange: form.priceRange
+    })
+
+    ElMessage.success('註冊成功！正在跳轉到登入頁面...')
+    setTimeout(() => {
+      router.push('/login')
+    }, 1500)
+  } catch (error) {
+    console.error('註冊失敗:', error)
+    if (authStore.error) {
+      return
+    }
+    ElMessage.error(error.response?.data?.detail || '註冊失敗，請稍後再試')
+  }
 }
 
 const authError = computed(() => authStore.error)
@@ -348,8 +330,7 @@ watch(
 .auth-header {
   text-align: center;
   margin-bottom: 24px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #f8f9fa;
+  padding-bottom: 8px;
 }
 
 .auth-header h1 {
@@ -367,117 +348,8 @@ watch(
   opacity: 0.9;
 }
 
-/* 新的步驟指示器樣式 */
-.progress-steps {
-  display: flex;
-  justify-content: space-between;
-  margin: 30px 0;
-  position: relative;
-}
-
-.progress-steps::before {
-  content: "";
-  position: absolute;
-  top: 20px;
-  left: 10%;
-  right: 10%;
-  height: 2px;
-  background-color: #e0e0e0;
-  z-index: 0;
-}
-
-.step {
-  position: relative;
-  width: 33.33%;
-  text-align: center;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.step-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: white;
-  border: 2px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
-}
-
-.step-label {
-  font-size: 14px;
-  color: #606266;
-  font-weight: 500;
-}
-
-.step.completed .step-icon {
-  background-color: #67c23a;
-  border-color: #67c23a;
-  color: white;
-}
-
-.step.completed .step-label {
-  color: #67c23a;
-}
-
-.step.active .step-icon {
-  background-color: #f08c00;
-  border-color: #f08c00;
-  color: white;
-  transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(240, 140, 0, 0.25);
-}
-
-.step.active .step-label {
-  color: #f08c00;
-  font-weight: 600;
-}
-
-/* 卡片式表單區塊 */
-.preference-card {
-  margin-bottom: 24px;
-  padding: 20px;
-  border-radius: var(--surface-radius-md);
-  background-color: #f9f9f9;
-  box-shadow: var(--shadow-card);
-  transition: all 0.3s ease;
-}
-
-.preference-card:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.card-header i {
-  font-size: 22px;
-  color: #f08c00;
-}
-
-.card-header h3 {
-  color: #303133;
-  font-size: 24px;
-  font-weight: 600;
-  margin: 0;
-}
-
-/* 表單元素樣式 */
 .auth-form {
-  margin-top: 20px;
+  margin-top: 12px;
 }
 
 .el-form-item {
@@ -491,32 +363,39 @@ watch(
 
 /* 表單區塊樣式 */
 .form-section {
-  background: #f8f9fa;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-  border: 1px solid #e9ecef;
+  background: transparent;
+  border-radius: 0;
+  padding: 18px 0;
+  margin-bottom: 12px;
+  border: none;
+  border-top: 1px solid #f1e7d7;
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e9ecef;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
-.section-header i {
-  font-size: 1.5rem;
-  color: #f08c00;
+.section-header :deep(.el-icon) {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: #d97706;
+  background: #fff4e8;
 }
 
 .section-header h3 {
   margin: 0;
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  color: #495057;
+  color: #374151;
 }
 
 /* 偏好設定樣式 */
@@ -531,11 +410,6 @@ watch(
   margin-right: 0;
 }
 
-.preference-chips .el-radio {
-  margin-right: 0;
-}
-
-/* 表單提示 */
 .form-hint {
   font-size: 0.9rem;
   color: #6c757d;
@@ -543,7 +417,6 @@ watch(
   font-style: italic;
 }
 
-/* 熱量輸入群組 */
 .calorie-input-group {
   display: flex;
   align-items: center;
@@ -555,61 +428,25 @@ watch(
   flex-shrink: 0;
 }
 
-/* 密碼強度提示 */
-.password-strength {
-  margin-top: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-.password-strength.weak {
-  background-color: #fff0f0;
-  color: #f56c6c;
-}
-
-.password-strength.medium {
-  background-color: #fdf6ec;
-  color: #e6a23c;
-}
-
-.password-strength.good {
-  background-color: #f0f9eb;
-  color: #67c23a;
-}
-
-.password-strength.strong {
-  background-color: #fff0d6;
-  color: #f08c00;
-}
-
-.password-strength.error {
-  background-color: #fff0f0;
-  color: #f56c6c;
-}
-
-/* 精緻備註樣式 */
 .note {
-  font-size: 14px;
-  color: #909399;
-  margin: 20px 0;
+  font-size: 13px;
+  color: #8a6b43;
+  margin: 12px 0 18px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
+  padding: 10px 12px;
+  background-color: #fff8ef;
+  border-radius: 10px;
+  border: 1px solid #f3dfbf;
 }
 
-.note i {
-  color: #f08c00;
+.note :deep(.el-icon) {
+  color: #d97706;
   font-size: 16px;
   margin-top: 2px;
 }
 
-/* 按鈕樣式改進 */
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -619,14 +456,14 @@ watch(
 .submit-button {
   background: linear-gradient(135deg, #f08c00 0%, #ffb347 100%);
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  padding: 12px 40px;
-  border-radius: 8px;
+  padding: 12px 30px;
+  border-radius: 10px;
   border: none;
   box-shadow: 0 4px 12px rgba(240, 140, 0, 0.25);
   transition: all 0.3s ease;
-  min-width: 180px;
+  min-width: 160px;
 }
 
 .submit-button:hover {
@@ -634,7 +471,7 @@ watch(
   transform: translateY(-2px);
 }
 
-.submit-button i {
+.submit-button .el-icon {
   margin-right: 6px;
 }
 
@@ -657,7 +494,6 @@ watch(
   text-decoration: underline;
 }
 
-/* 響應式調整 */
 @media (max-width: 600px) {
   .register-page {
     padding: 20px 10px;
@@ -667,15 +503,6 @@ watch(
     border-radius: 8px;
   }
   
-  .card-header h3 {
-    font-size: 18px;
-  }
-  
-  .preference-card {
-    padding: 15px;
-    margin-bottom: 16px;
-  }
-  
   .form-actions {
     justify-content: center;
   }
@@ -683,17 +510,11 @@ watch(
   .submit-button {
     width: 100%;
   }
-  
-  .progress-steps::before {
-    left: 15%;
-    right: 15%;
-  }
 }
 
-/* 響應式設計 */
 @media (max-width: 768px) {
   .form-section {
-    padding: 16px;
+    padding: 16px 0;
   }
   
   .preference-chips {

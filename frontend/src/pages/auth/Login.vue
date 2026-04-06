@@ -34,7 +34,7 @@
       />
       
       <el-form 
-        @submit.prevent="handleLogin" 
+        @submit.prevent="submitForm" 
         class="auth-form" 
         :model="form" 
         :rules="rules" 
@@ -78,10 +78,7 @@
             size="large"
           >
             <span v-if="!isLoading">登入</span>
-            <span v-else class="loading-text">
-              <el-icon class="loading-icon"><Loading /></el-icon>
-              驗證中...
-            </span>
+            <span v-else>驗證中...</span>
           </el-button>
         </el-form-item>
       </el-form>
@@ -209,6 +206,7 @@ const testApiConnection = async () => {
 
 // 監聽 auth store 中的錯誤
 const authError = computed(() => authStore.error)
+const isLoading = computed(() => authStore.isLoading)
 const connectionState = computed(() => {
   const states = {
     waiting: {
@@ -370,22 +368,6 @@ onMounted(() => {
 .login-btn:hover:not([disabled]) {
   box-shadow: var(--shadow-button-hover);
   transform: translateY(-2px);
-}
-
-.loading-text {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-icon {
-  margin-right: 8px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 .auth-footer {

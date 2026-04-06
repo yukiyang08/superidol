@@ -1,37 +1,30 @@
 <template>
   <div class="calorie-calculator-wrapper">
     <el-button 
-      type="warning"
+      text
       class="help-btn"
       @click="showCalorieHelp"
     >
       <el-icon><QuestionFilled /></el-icon>
-      計算說明
+      協助估算
     </el-button>
 
     <el-dialog
       v-model="calorieHelpVisible"
-      title="每週熱量限制計算說明"
-      width="500px"
+      title="每週熱量估算"
+      width="440px"
       class="calorie-help-dialog"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :show-close="false"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      :show-close="true"
       :modal="true"
       :append-to-body="true"
     >
       <div class="calorie-help-content">
-        <h4>如何計算您的每週熱量限制？</h4>
-        <p>我們建議您根據以下因素來設定：</p>
-        <ul>
-          <li>基礎代謝率 (BMR)</li>
-          <li>日常活動量</li>
-          <li>運動習慣</li>
-          <li>健康目標（減重/維持/增重）</li>
-        </ul>
+        <p class="calculator-lead">輸入幾個基本條件，我們會估算較合理的每週熱量上限，之後你仍可自行調整。</p>
         
         <div class="calorie-calculator">
-          <h4>快速計算器</h4>
+          <h4>快速估算</h4>
           <el-form :model="calorieCalc" label-width="80px">
             <el-form-item label="性別">
               <el-radio-group v-model="calorieCalc.gender">
@@ -64,17 +57,16 @@
           </el-form>
           
           <div class="calorie-result">
-            <h4>計算結果</h4>
-            <div class="result-grid">
-              <div class="result-item">
-                <div class="result-label">基礎代謝率 (BMR)</div>
-                <div class="result-value">{{ bmr }} 大卡/天</div>
-                <div class="result-desc">維持基本生命活動所需的熱量</div>
+            <div class="result-summary">
+              <div class="result-stat">
+                <span class="result-label">BMR</span>
+                <strong class="result-value">{{ bmr }}</strong>
+                <span class="result-unit">大卡/天</span>
               </div>
-              <div class="result-item highlight">
-                <div class="result-label">每週建議熱量限制</div>
-                <div class="result-value">{{ calculateCalories }} 大卡/週</div>
-                <div class="result-desc">建議的每週熱量攝取上限</div>
+              <div class="result-stat highlight">
+                <span class="result-label">建議上限</span>
+                <strong class="result-value">{{ calculateCalories }}</strong>
+                <span class="result-unit">大卡/週</span>
               </div>
             </div>
             <div class="action-buttons">
@@ -190,14 +182,13 @@ const applyCalorieSuggestion = () => {
 }
 
 .help-btn {
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%) !important;
-  border: none !important;
-  color: white !important;
-  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
-  transition: all 0.3s ease;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 999px;
+  color: #c06b00 !important;
+  background: rgba(255, 170, 85, 0.12) !important;
+  border: 1px solid rgba(255, 170, 85, 0.28) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -206,108 +197,109 @@ const applyCalorieSuggestion = () => {
 }
 
 .help-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+  transform: translateY(-1px);
+  background: rgba(255, 170, 85, 0.18) !important;
+  border-color: rgba(255, 170, 85, 0.4) !important;
 }
 
 .help-btn .el-icon {
-  font-size: 16px;
-  margin-right: 4px;
+  font-size: 14px;
 }
 
 .calorie-help-dialog :deep(.el-dialog__body) {
-  padding: 20px 24px;
+  padding: 18px 22px 20px;
 }
 
 .calorie-help-content {
   color: #333;
 }
 
+.calculator-lead {
+  margin: 0 0 16px;
+  line-height: 1.6;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
 .calorie-help-content h4 {
-  margin: 16px 0 12px;
+  margin: 0 0 12px;
   color: #4a4a4a;
 }
 
-.calorie-help-content p {
-  margin: 12px 0;
-  line-height: 1.6;
-}
-
-.calorie-help-content ul {
-  margin: 12px 0;
-  padding-left: 20px;
-}
-
-.calorie-help-content li {
-  margin: 8px 0;
-  line-height: 1.5;
-}
-
 .calorie-calculator {
-  background: #f5f5f5;
-  padding: 20px;
-  border-radius: 8px;
-  margin-top: 20px;
+  background: #faf7f2;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid #f2e3cf;
 }
 
 .calorie-result {
-  margin-top: 20px;
-  text-align: center;
-  padding: 16px;
+  margin-top: 16px;
+  padding: 14px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  border: 1px solid #f0e6d7;
 }
 
-.result-grid {
+.result-summary {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 16px 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.result-item {
-  background: white;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-.result-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.result-item.highlight {
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-  border: 1px solid #ffb74d;
+.result-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fcfaf7;
+  border: 1px solid #efe4d4;
 }
 
 .result-label {
-  font-size: 14px;
+  font-size: 12px;
   color: #606266;
-  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .result-value {
   font-size: 24px;
-  font-weight: bold;
+  font-weight: 700;
   color: #ff9800;
-  margin: 8px 0;
 }
 
-.result-desc {
+.result-unit {
   font-size: 12px;
-  color: #909399;
-  line-height: 1.4;
+  color: #8b93a1;
+}
+
+.result-stat.highlight {
+  background: linear-gradient(135deg, #fff8ef 0%, #ffefd6 100%);
+  border-color: #f4c486;
 }
 
 .action-buttons {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .result-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .action-buttons {
+    justify-content: stretch;
+  }
+
+  .action-buttons :deep(.el-button) {
+    flex: 1 1 auto;
+  }
 }
 </style> 
  

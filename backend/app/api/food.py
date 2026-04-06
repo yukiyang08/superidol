@@ -14,6 +14,11 @@ from ..services.food_service import (
     update_food_record as update_food_record_service,
     cached_search_food, cached_search_food_precise, filters_to_tuple
 )
+from ..services.food_photo_service import (
+    upload_and_estimate_food_photo,
+    upload_food_photo_only,
+    estimate_existing_food_photo,
+)
 from flask_cors import CORS
 from app.db import get_db_connection, return_db_connection
 from app.services.preference_service import get_restaurants, get_food_types
@@ -80,6 +85,58 @@ def create_food_record():
                 return jsonify({"error": str(e)}), 400
         except Exception as e:
                 return jsonify({"error": str(e)}), 500
+
+@food_bp.route('/record/photo-estimate', methods=['POST'])
+def estimate_food_photo():
+    """Estimate calories from a new upload or an already uploaded food photo."""
+    try:
+        user_id = request.form.get('user_id')
+        image = request.files.get('image')
+        photo_url = request.form.get('photo_url', '').strip()
+        photo_path = request.form.get('photo_path', '').strip()
+        photo_mime_type = request.form.get('photo_mime_type', '').strip()
+
+        if not user_id:
+            return jsonify({"error": "Missing required field: user_id"}), 400
+
+        if image:
+            result = upload_and_estimate_food_photo(user_id, image)
+        elif photo_url:
+            result = estimate_existing_food_photo(
+                photo_url=photo_url,
+                photo_path=photo_path,
+                photo_mime_type=photo_mime_type or None,
+            )
+        else:
+            return jsonify({"error": "Missing required field: image or photo_url"}), 400
+
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@food_bp.route('/record/photo-upload', methods=['POST'])
+def upload_food_photo():
+    """Upload a food photo only, without AI estimation."""
+    try:
+        user_id = request.form.get('user_id')
+        image = request.files.get('image')
+
+        if not user_id:
+            return jsonify({"error": "Missing required field: user_id"}), 400
+
+        result = upload_food_photo_only(user_id, image)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except RuntimeError as e:
+        return jsonify({"error": str(e)}), 503
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @food_bp.route('/record', methods=['GET'])
 def get_food_records():

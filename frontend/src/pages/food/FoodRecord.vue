@@ -63,6 +63,77 @@
       <div class="custom-food-form-card">
         <h3 class="custom-form-title">自訂飲食紀錄</h3>
         <form class="custom-food-form" @submit.prevent="submitCustomFood">
+          <div class="photo-estimate-panel">
+            <div class="photo-estimate-copy">
+              <h4>拍照估算熱量與營養</h4>
+              <p>選擇照片後會自動上傳，你可直接儲存，或再點 AI 估算熱量與蛋白質、碳水等營養資訊。</p>
+            </div>
+            <div class="photo-estimate-actions">
+              <label class="photo-picker-btn">
+                <input type="file" accept="image/*" capture="environment" class="photo-input" @change="handlePhotoFileChange" />
+                選擇照片
+              </label>
+              <button
+                type="button"
+                class="estimate-btn"
+                :disabled="(!photoFile && !customForm.photo_url) || photoUploadLoading || photoEstimateLoading"
+                @click="estimateCustomFoodFromPhoto"
+              >
+                {{ photoEstimateLoading ? '辨識中...' : 'AI 辨識營養' }}
+              </button>
+            </div>
+            <div v-if="photoPreviewUrl" class="photo-preview-block">
+              <div class="photo-preview-column">
+                <img :src="photoPreviewUrl" alt="預覽餐點照片" class="photo-preview-image" />
+              </div>
+
+              <div class="photo-estimate-column">
+                <div v-if="photoEstimateResult" class="photo-estimate-result">
+                  <div class="estimate-result-title">AI 建議（可手動調整）</div>
+                  <div class="estimate-result-row">
+                    <span>名稱</span>
+                    <strong>{{ photoEstimateResult.estimated_name || '未辨識' }}</strong>
+                  </div>
+                  <div class="estimate-result-row">
+                    <span>熱量</span>
+                    <strong>{{ photoEstimateResult.estimated_calories ?? '--' }} 大卡</strong>
+                  </div>
+                  <div class="estimate-nutrient-grid">
+                    <div class="estimate-result-row compact" v-if="photoEstimateResult.estimated_protein !== null && photoEstimateResult.estimated_protein !== undefined">
+                      <span>蛋白質</span>
+                      <strong>{{ photoEstimateResult.estimated_protein }} g</strong>
+                    </div>
+                    <div class="estimate-result-row compact" v-if="photoEstimateResult.estimated_fat !== null && photoEstimateResult.estimated_fat !== undefined">
+                      <span>脂肪</span>
+                      <strong>{{ photoEstimateResult.estimated_fat }} g</strong>
+                    </div>
+                    <div class="estimate-result-row compact" v-if="photoEstimateResult.estimated_carb !== null && photoEstimateResult.estimated_carb !== undefined">
+                      <span>碳水</span>
+                      <strong>{{ photoEstimateResult.estimated_carb }} g</strong>
+                    </div>
+                    <div class="estimate-result-row compact" v-if="photoEstimateResult.estimated_sugar !== null && photoEstimateResult.estimated_sugar !== undefined">
+                      <span>糖</span>
+                      <strong>{{ photoEstimateResult.estimated_sugar }} g</strong>
+                    </div>
+                    <div class="estimate-result-row compact" v-if="photoEstimateResult.estimated_sodium !== null && photoEstimateResult.estimated_sodium !== undefined">
+                      <span>鈉</span>
+                      <strong>{{ photoEstimateResult.estimated_sodium }} mg</strong>
+                    </div>
+                  </div>
+                  <div class="estimate-result-row" v-if="photoEstimateResult.estimation_confidence !== null && photoEstimateResult.estimation_confidence !== undefined">
+                    <span>信心值</span>
+                    <strong>{{ Math.round(photoEstimateResult.estimation_confidence * 100) }}%</strong>
+                  </div>
+                  <p v-if="photoEstimateResult.estimation_notes" class="estimate-notes">{{ photoEstimateResult.estimation_notes }}</p>
+                </div>
+
+                <div v-else class="photo-estimate-placeholder">
+                  <div class="estimate-result-title">等待 AI 辨識</div>
+                  <p class="estimate-notes">照片已準備完成，按下「AI 辨識營養」即可填入名稱、熱量與營養素。</p>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="form-row">
             <input v-model="customForm.custom_name" type="text" placeholder="食物名稱*" required />
             <input v-model.number="customForm.custom_calories" type="number" min="0" placeholder="熱量(大卡)*" required />
@@ -81,45 +152,46 @@
               <option value="晚餐">晚餐</option>
               <option value="點心">點心</option>
             </select>
-            <button class="submit-btn" type="submit">新增自訂紀錄</button>
+            <button class="submit-btn" type="submit" :disabled="photoUploadLoading || submitCustomLoading">
+              {{ submitCustomLoading ? '新增中...' : '新增自訂紀錄' }}
+            </button>
           </div>
         </form>
       </div>
 
-      <!-- 餐點記錄 -->
-      <div class="meals-container">
-        <!-- 早餐 -->
-        <div class="meal-card">
-          <div class="meal-header">
-            <div class="meal-icon-container">
-              <el-icon><Sunrise /></el-icon>
-            </div>
-            <h3 class="meal-title">早餐</h3>
-            <button class="add-food-btn" @click="addFood('breakfast')">
-              <el-icon><Plus /></el-icon>
-              添加食物
-            </button>
-          </div>
+      <!-- 餐點記錄（單一瀏覽區） -->
+      <div class="records-toolbar">
+        <h3 class="records-title">飲食紀錄</h3>
+        <button class="add-food-btn" @click="addFood()">
+          <el-icon><Plus /></el-icon>
+          添加食物
+        </button>
+      </div>
 
+      <div class="meals-container" v-if="sortedFoodRecords.length">
+        <div class="meal-card">
           <div class="meal-content">
-            <div v-if="isLoading" class="meal-loading">
-              <div class="loading-spinner"></div>
-            </div>
-            <div v-else-if="!breakfastItems.length" class="empty-meal">
-              <el-icon><FoodIcon /></el-icon>
-              <p>尚未添加早餐食物</p>
-            </div>
-            <div v-else class="food-items">
-              <div v-for="(item, index) in breakfastItems" :key="index" class="food-item-card">
+            <div class="food-items">
+              <div v-for="item in sortedFoodRecords" :key="item.record_id" class="food-item-card">
                 <div class="food-item-content">
-                  <div v-if="item.ImageUrl" class="food-image-container">
-                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
-                    <div class="calorie-on-image-button">
-                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
-                      <span class="calorie-unit">大卡</span>
+                  <div v-if="item.photo_url || item.image_url" class="food-image-container">
+                    <div class="food-image-primary">
+                      <img :src="item.photo_url || item.image_url" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
+                      <span v-if="item.photo_url" class="image-source-badge user-photo">我的照片</span>
+                      <div class="calorie-on-image-button">
+                        <span class="calorie-value">{{ Math.round(item.calories) }}</span>
+                        <span class="calorie-unit">大卡</span>
+                      </div>
+                    </div>
+                    <div v-if="item.photo_url && item.image_url" class="food-image-secondary">
+                      <img :src="item.image_url" :alt="item.name" class="food-image-thumb" @error="e => e.target.style.display='none'" />
+                      <span class="image-source-badge db-image">品項圖</span>
                     </div>
                   </div>
                   <div class="food-item-info">
+                    <div class="food-item-topline">
+                      <span class="mealtime-chip" :class="mealLabelClass(item.mealtime)">{{ item.mealtime || '未分類' }}</span>
+                    </div>
                     <h4 class="food-item-name">{{ item.name }}</h4>
                     <div class="food-item-details">
                       <div class="detail-row">
@@ -128,7 +200,7 @@
                       </div>
                       <div class="detail-row">
                         <span class="detail-label">價格:</span>
-                        <span class="detail-value">{{ item.price }} 元</span>
+                        <span class="detail-value">{{ item.price ?? '-' }} 元</span>
                       </div>
                       <div class="detail-row">
                         <span class="detail-label">熱量:</span>
@@ -136,259 +208,32 @@
                       </div>
                       <div class="detail-row">
                         <span class="detail-label">類型:</span>
-                        <span class="detail-value">{{ item.type }}</span>
+                        <span class="detail-value">{{ item.type || '-' }}</span>
                       </div>
                       <div class="detail-row">
                         <span class="detail-label">數量:</span>
                         <span class="detail-value">{{ item.quantity }}</span>
                       </div>
                     </div>
-                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
+                    <div v-if="item.protein || item.fat || item.sugar || item.sodium || item.carb || item.caffeine" class="nutrition-info-block">
                       <table class="nutrition-table">
-                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
-                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
-                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
-                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
-                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
-                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
+                        <tr v-if="item.protein"><td>蛋白質</td><td>{{ item.protein }}g</td></tr>
+                        <tr v-if="item.fat"><td>脂肪</td><td>{{ item.fat }}g</td></tr>
+                        <tr v-if="item.sugar"><td>糖</td><td>{{ item.sugar }}g</td></tr>
+                        <tr v-if="item.sodium"><td>鈉</td><td>{{ item.sodium }}mg</td></tr>
+                        <tr v-if="item.carb"><td>碳水</td><td>{{ item.carb }}g</td></tr>
+                        <tr v-if="item.caffeine"><td>咖啡因</td><td>{{ item.caffeine }}mg</td></tr>
                       </table>
                     </div>
                     <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
                   </div>
                   <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
-                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 午餐 -->
-        <div class="meal-card">
-          <div class="meal-header">
-            <div class="meal-icon-container">
-              <el-icon><Sunny /></el-icon>
-            </div>
-            <h3 class="meal-title">午餐</h3>
-            <button class="add-food-btn" @click="addFood('lunch')">
-              <el-icon><Plus /></el-icon>
-              添加食物
-            </button>
-          </div>
-
-          <div class="meal-content">
-            <div v-if="isLoading" class="meal-loading">
-              <div class="loading-spinner"></div>
-            </div>
-            <div v-else-if="!lunchItems.length" class="empty-meal">
-              <el-icon><FoodIcon /></el-icon>
-              <p>尚未添加午餐食物</p>
-            </div>
-            <div v-else class="food-items">
-              <div v-for="(item, index) in lunchItems" :key="index" class="food-item-card">
-                <div class="food-item-content">
-                  <div v-if="item.ImageUrl" class="food-image-container">
-                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
-                    <div class="calorie-on-image-button">
-                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
-                      <span class="calorie-unit">大卡</span>
-                    </div>
-                  </div>
-                  <div class="food-item-info">
-                    <h4 class="food-item-name">{{ item.name }}</h4>
-                    <div class="food-item-details">
-                      <div class="detail-row">
-                        <span class="detail-label">餐廳:</span>
-                        <span class="detail-value">{{ item.restaurant || '未知' }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">價格:</span>
-                        <span class="detail-value">{{ item.price }} 元</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">熱量:</span>
-                        <span class="detail-value">{{ item.calories }} 大卡</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">類型:</span>
-                        <span class="detail-value">{{ item.type }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">數量:</span>
-                        <span class="detail-value">{{ item.quantity }}</span>
-                      </div>
-                    </div>
-                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
-                      <table class="nutrition-table">
-                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
-                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
-                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
-                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
-                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
-                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
-                      </table>
-                    </div>
-                    <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
-                  </div>
-                  <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
-                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 晚餐 -->
-        <div class="meal-card">
-          <div class="meal-header">
-            <div class="meal-icon-container">
-              <el-icon><Sunset /></el-icon>
-            </div>
-            <h3 class="meal-title">晚餐</h3>
-            <button class="add-food-btn" @click="addFood('dinner')">
-              <el-icon><Plus /></el-icon>
-              添加食物
-            </button>
-          </div>
-
-          <div class="meal-content">
-            <div v-if="isLoading" class="meal-loading">
-              <div class="loading-spinner"></div>
-            </div>
-            <div v-else-if="!dinnerItems.length" class="empty-meal">
-              <el-icon><FoodIcon /></el-icon>
-              <p>尚未添加晚餐食物</p>
-            </div>
-            <div v-else class="food-items">
-              <div v-for="(item, index) in dinnerItems" :key="index" class="food-item-card">
-                <div class="food-item-content">
-                  <div v-if="item.ImageUrl" class="food-image-container">
-                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
-                    <div class="calorie-on-image-button">
-                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
-                      <span class="calorie-unit">大卡</span>
-                    </div>
-                  </div>
-                  <div class="food-item-info">
-                    <h4 class="food-item-name">{{ item.name }}</h4>
-                    <div class="food-item-details">
-                      <div class="detail-row">
-                        <span class="detail-label">餐廳:</span>
-                        <span class="detail-value">{{ item.restaurant || '未知' }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">價格:</span>
-                        <span class="detail-value">{{ item.price }} 元</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">熱量:</span>
-                        <span class="detail-value">{{ item.calories }} 大卡</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">類型:</span>
-                        <span class="detail-value">{{ item.type }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">數量:</span>
-                        <span class="detail-value">{{ item.quantity }}</span>
-                      </div>
-                    </div>
-                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
-                      <table class="nutrition-table">
-                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
-                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
-                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
-                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
-                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
-                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
-                      </table>
-                    </div>
-                    <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
-                  </div>
-                  <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
-                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 點心 -->
-        <div class="meal-card">
-          <div class="meal-header">
-            <div class="meal-icon-container">
-              <el-icon><Dessert /></el-icon>
-            </div>
-            <h3 class="meal-title">點心</h3>
-            <button class="add-food-btn" @click="addFood('snacks')">
-              <el-icon><Plus /></el-icon>
-              添加食物
-            </button>
-          </div>
-
-          <div class="meal-content">
-            <div v-if="isLoading" class="meal-loading">
-              <div class="loading-spinner"></div>
-            </div>
-            <div v-else-if="!snackItems.length" class="empty-meal">
-              <el-icon><FoodIcon /></el-icon>
-              <p>尚未添加點心食物</p>
-            </div>
-            <div v-else class="food-items">
-              <div v-for="(item, index) in snackItems" :key="index" class="food-item-card">
-                <div class="food-item-content">
-                  <div v-if="item.ImageUrl" class="food-image-container">
-                    <img :src="item.ImageUrl" :alt="item.name" class="food-image" @error="e => e.target.src = '/img/food-placeholder.png'" />
-                    <div class="calorie-on-image-button">
-                      <span class="calorie-value">{{ Math.round(item.calories) }}</span>
-                      <span class="calorie-unit">大卡</span>
-                    </div>
-                  </div>
-                  <div class="food-item-info">
-                    <h4 class="food-item-name">{{ item.name }}</h4>
-                    <div class="food-item-details">
-                      <div class="detail-row">
-                        <span class="detail-label">餐廳:</span>
-                        <span class="detail-value">{{ item.restaurant || '未知' }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">價格:</span>
-                        <span class="detail-value">{{ item.price }} 元</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">熱量:</span>
-                        <span class="detail-value">{{ item.calories }} 大卡</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">類型:</span>
-                        <span class="detail-value">{{ item.type }}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">數量:</span>
-                        <span class="detail-value">{{ item.quantity }}</span>
-                      </div>
-                    </div>
-                    <div v-if="item.Protein || item.Fat || item.Sugar || item.Sodium || item.Carb || item.Caffeine" class="nutrition-info-block">
-                      <table class="nutrition-table">
-                        <tr v-if="item.Protein"><td>蛋白質</td><td>{{ item.Protein }}g</td></tr>
-                        <tr v-if="item.Fat"><td>脂肪</td><td>{{ item.Fat }}g</td></tr>
-                        <tr v-if="item.Sugar"><td>糖</td><td>{{ item.Sugar }}g</td></tr>
-                        <tr v-if="item.Sodium"><td>鈉</td><td>{{ item.Sodium }}mg</td></tr>
-                        <tr v-if="item.Carb"><td>碳水</td><td>{{ item.Carb }}g</td></tr>
-                        <tr v-if="item.Caffeine"><td>咖啡因</td><td>{{ item.Caffeine }}mg</td></tr>
-                      </table>
-                    </div>
-                    <div v-else class="no-nutrition-data">暫無詳細營養數據</div>
-                  </div>
-                  <div class="food-item-actions">
-                    <button class="delete-btn" @click="deleteRecord(item.record_id)">刪除</button>
-                    <button class="edit-btn" @click="openEditRecord(item)">編輯</button>
+                    <button class="delete-btn icon-only" @click="deleteRecord(item.record_id)" :aria-label="`刪除 ${item.name}`" title="刪除">
+                      <el-icon><Delete /></el-icon>
+                    </button>
+                    <button class="edit-btn icon-only" @click="openEditRecord(item)" :aria-label="`編輯 ${item.name}`" title="編輯">
+                      <el-icon><EditPen /></el-icon>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -398,14 +243,14 @@
       </div>
 
       <!-- 無結果 -->
-      <div v-if="breakfastItems.length === 0 && lunchItems.length === 0 && dinnerItems.length === 0 && snackItems.length === 0 && !isLoading" class="no-records-card">
+      <div v-if="!hasAnyRecords && !isLoading" class="no-records-card">
         <el-icon><Notebook /></el-icon>
-        <h3>今日尚未添加任何食物記錄</h3>
-        <p>點擊各餐點區域的"添加食物"按鈕開始記錄您的飲食</p>
+        <h3>目前尚無飲食紀錄</h3>
+        <p>點擊上方「添加食物」開始記錄今日飲食</p>
       </div>
 
       <!-- 載入中 -->
-      <div v-if="isLoading && breakfastItems.length === 0 && lunchItems.length === 0 && dinnerItems.length === 0 && snackItems.length === 0" class="loading-state">
+      <div v-if="isLoading && !hasAnyRecords" class="loading-state">
         <div class="loading-spinner"></div>
         <p>載入中...</p>
       </div>
@@ -428,7 +273,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 import api from '@/services/api'
-import { ArrowLeft, ArrowRight, ArrowDown, Sunrise, Sunny, Sunset, Dessert, Notebook, Calendar as DateIcon, Food as FoodIcon } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, ArrowDown, Plus, Delete, EditPen, Notebook, Calendar as DateIcon } from '@element-plus/icons-vue'
 
 const router = useRouter()
     
@@ -478,15 +323,39 @@ const router = useRouter()
       return Math.min((dailySummary.value.calories / calorieGoal.value) * 100, 120)
     })
 
-    // 各餐食物數據
-    const breakfastItems = ref([])
-    const lunchItems = ref([])
-    const dinnerItems = ref([])
-    const snackItems = ref([])
+    // 食物紀錄（單一列表）
+    const foodRecords = ref([])
+    const mealOrder = { 早餐: 0, 午餐: 1, 晚餐: 2, 點心: 3 }
+
+    const sortedFoodRecords = computed(() => {
+      return [...foodRecords.value].sort((a, b) => {
+        const mealDiff = (mealOrder[a.mealtime] ?? 99) - (mealOrder[b.mealtime] ?? 99)
+        if (mealDiff !== 0) {
+          return mealDiff
+        }
+        return Number(b.record_id || 0) - Number(a.record_id || 0)
+      })
+    })
+
+    const hasAnyRecords = computed(() => sortedFoodRecords.value.length > 0)
+
+    const mealLabelClass = (mealtime) => {
+      if (mealtime === '早餐') return 'meal-breakfast'
+      if (mealtime === '午餐') return 'meal-lunch'
+      if (mealtime === '晚餐') return 'meal-dinner'
+      if (mealtime === '點心') return 'meal-snack'
+      return 'meal-unknown'
+    }
 
     // 編輯彈窗狀態
     const showEditModal = ref(false)
     const editingRecord = ref(null)
+    const photoFile = ref(null)
+    const photoPreviewUrl = ref('')
+    const photoUploadLoading = ref(false)
+    const photoEstimateLoading = ref(false)
+    const photoEstimateResult = ref(null)
+    const submitCustomLoading = ref(false)
 
     // 選擇日期時同步更新 selectedDate 並載入資料
     const onDateChange = (e) => {
@@ -535,39 +404,30 @@ const router = useRouter()
           params: { user_id: userId, start_date: selectedDateString.value, end_date: selectedDateString.value }
         })
         
-        // 重置所有餐點數組
-        breakfastItems.value = []
-        lunchItems.value = []
-        dinnerItems.value = []
-        snackItems.value = []
-        
-        // 按餐點類型分類記錄
-        if (Array.isArray(data)) {
-          data.forEach(record => {
-            const recordData = {
+        foodRecords.value = Array.isArray(data)
+          ? data.map(record => ({
               record_id: record.record_id,
               name: record.name,
               restaurant: record.restaurant,
               calories: record.calories,
               price: record.price,
+              photo_url: record.photo_url || null,   // Supabase user upload
+              image_url: record.image_url || null,   // DB food image
               type: record.type,
               food_type: record.food_type || '未分類',
               quantity: record.quantity,
+              estimated_calories: record.estimated_calories,
+              estimation_confidence: record.estimation_confidence,
+              protein: record.protein,
+              fat: record.fat,
+              sugar: record.sugar,
+              sodium: record.sodium,
+              carb: record.carb,
+              caffeine: record.caffeine,
               mealtime: record.mealtime,
               date: record.date
-            }
-            
-            if (record.mealtime === '早餐') {
-              breakfastItems.value.push(recordData)
-            } else if (record.mealtime === '午餐') {
-              lunchItems.value.push(recordData)
-            } else if (record.mealtime === '晚餐') {
-              dinnerItems.value.push(recordData)
-            } else if (record.mealtime === '點心') {
-              snackItems.value.push(recordData)
-            }
-          })
-        }
+            }))
+          : []
         
         // 計算每日摘要
         calculateDailySummary()
@@ -583,15 +443,7 @@ const router = useRouter()
     const calculateDailySummary = () => {
       let totalCalories = 0
       
-      // 計算所有餐點的卡路里總和
-      const allItems = [
-        ...breakfastItems.value, 
-        ...lunchItems.value, 
-        ...dinnerItems.value, 
-        ...snackItems.value
-      ]
-      
-      allItems.forEach(item => {
+      foodRecords.value.forEach(item => {
         totalCalories += (item.calories * item.quantity)
       })
       
@@ -599,13 +451,12 @@ const router = useRouter()
     }
 
     // 添加食物到指定餐點
-    const addFood = (mealType) => {
+    const addFood = () => {
       // TODO: 導航到食物搜尋頁面或打開食物選擇彈窗
       router.push({
         path: '/food/search',
         query: {
           returnTo: '/food/record',
-          mealType: mealType,
           date: selectedDateString.value
         }
       })
@@ -666,28 +517,209 @@ const router = useRouter()
       loadFoodRecords()
     }
 
-    // 全局自訂食物表單
-    const customForm = ref({
+    const getDefaultMealtime = () => {
+      const hour = new Date().getHours()
+      if (hour < 10) return '早餐'
+      if (hour < 15) return '午餐'
+      if (hour < 21) return '晚餐'
+      return '點心'
+    }
+
+    const createEmptyCustomForm = () => ({
       custom_name: '',
       custom_calories: '',
       custom_price: '',
       custom_type: '',
       custom_restaurant: '',
       quantity: 1,
-      mealtime: ''
+      mealtime: getDefaultMealtime(),
+      photo_url: '',
+      photo_path: '',
+      photo_mime_type: '',
+      estimated_name: '',
+      estimated_calories: null,
+      estimated_protein: null,
+      estimated_fat: null,
+      estimated_carb: null,
+      estimated_sugar: null,
+      estimated_sodium: null,
+      estimation_provider: '',
+      estimation_confidence: null,
+      estimation_notes: ''
     })
+
+    const resetPhotoEstimate = () => {
+      photoFile.value = null
+      photoUploadLoading.value = false
+      photoEstimateLoading.value = false
+      photoEstimateResult.value = null
+      if (photoPreviewUrl.value) {
+        URL.revokeObjectURL(photoPreviewUrl.value)
+      }
+      photoPreviewUrl.value = ''
+    }
+
+    const handlePhotoFileChange = async (event) => {
+      const [file] = event.target.files || []
+      if (!file) {
+        return
+      }
+
+      resetPhotoEstimate()
+      photoFile.value = file
+      photoPreviewUrl.value = URL.createObjectURL(file)
+      customForm.value.photo_url = ''
+      customForm.value.photo_path = ''
+      customForm.value.photo_mime_type = ''
+      customForm.value.estimated_name = ''
+      customForm.value.estimated_calories = null
+      customForm.value.estimated_protein = null
+      customForm.value.estimated_fat = null
+      customForm.value.estimated_carb = null
+      customForm.value.estimated_sugar = null
+      customForm.value.estimated_sodium = null
+      customForm.value.estimation_provider = ''
+      customForm.value.estimation_confidence = null
+      customForm.value.estimation_notes = ''
+      await uploadCustomFoodPhoto(file)
+    }
+
+    const applyPhotoEstimateToForm = (estimate) => {
+      customForm.value.custom_name = estimate.estimated_name || customForm.value.custom_name
+      customForm.value.custom_calories = estimate.estimated_calories ?? customForm.value.custom_calories
+      customForm.value.custom_type = estimate.estimated_type || customForm.value.custom_type
+      customForm.value.custom_restaurant = estimate.estimated_restaurant || customForm.value.custom_restaurant
+      customForm.value.custom_price = estimate.estimated_price ?? customForm.value.custom_price
+      customForm.value.photo_url = estimate.photo_url || ''
+      customForm.value.photo_path = estimate.photo_path || ''
+      customForm.value.photo_mime_type = estimate.photo_mime_type || ''
+      customForm.value.estimated_name = estimate.estimated_name || ''
+      customForm.value.estimated_calories = estimate.estimated_calories
+      customForm.value.estimated_protein = estimate.estimated_protein ?? null
+      customForm.value.estimated_fat = estimate.estimated_fat ?? null
+      customForm.value.estimated_carb = estimate.estimated_carb ?? null
+      customForm.value.estimated_sugar = estimate.estimated_sugar ?? null
+      customForm.value.estimated_sodium = estimate.estimated_sodium ?? null
+      customForm.value.estimation_provider = estimate.estimation_provider || ''
+      customForm.value.estimation_confidence = estimate.estimation_confidence
+      customForm.value.estimation_notes = estimate.estimation_notes || ''
+    }
+
+    const applyUploadedPhotoToForm = (uploadResult) => {
+      customForm.value.photo_url = uploadResult.photo_url || ''
+      customForm.value.photo_path = uploadResult.photo_path || ''
+      customForm.value.photo_mime_type = uploadResult.photo_mime_type || ''
+    }
+
+    const uploadCustomFoodPhoto = async (fileToUpload = null) => {
+      const uploadTarget = fileToUpload || photoFile.value
+      if (!uploadTarget) {
+        ElMessage.warning('請先選擇餐點照片')
+        return false
+      }
+
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        ElMessage.warning('請先登入')
+        return false
+      }
+
+      photoUploadLoading.value = true
+      try {
+        const formData = new FormData()
+        formData.append('user_id', userId)
+        formData.append('image', uploadTarget)
+
+        const { data } = await api.post('/api/food/record/photo-upload', formData)
+        applyUploadedPhotoToForm(data)
+        ElMessage.success('照片已自動上傳，可直接儲存或再做 AI 估算')
+        return true
+      } catch (error) {
+        console.error('照片上傳失敗:', error)
+        ElMessage.error(error.response?.data?.error || '照片上傳失敗，請稍後再試')
+        return false
+      } finally {
+        photoUploadLoading.value = false
+      }
+    }
+
+    const estimateCustomFoodFromPhoto = async () => {
+      if (!photoFile.value && !customForm.value.photo_url) {
+        ElMessage.warning('請先選擇或上傳餐點照片')
+        return
+      }
+
+      const userId = localStorage.getItem('userId')
+      if (!userId) {
+        ElMessage.warning('請先登入')
+        return
+      }
+
+      photoEstimateLoading.value = true
+      try {
+        const formData = new FormData()
+        formData.append('user_id', userId)
+        if (customForm.value.photo_url) {
+          formData.append('photo_url', customForm.value.photo_url)
+          if (customForm.value.photo_path) {
+            formData.append('photo_path', customForm.value.photo_path)
+          }
+          if (customForm.value.photo_mime_type) {
+            formData.append('photo_mime_type', customForm.value.photo_mime_type)
+          }
+        } else {
+          formData.append('image', photoFile.value)
+        }
+
+        const { data } = await api.post('/api/food/record/photo-estimate', formData, {
+          timeout: 70000
+        })
+        photoEstimateResult.value = data
+        applyPhotoEstimateToForm(data)
+        ElMessage.success('已完成照片辨識，請確認內容後再儲存')
+      } catch (error) {
+        console.error('照片辨識失敗:', error)
+        if (error.code === 'ECONNABORTED') {
+          ElMessage.error('照片辨識逾時，請稍後重試（AI 分析通常需要 10 到 60 秒）')
+        } else {
+          ElMessage.error(error.response?.data?.error || '照片辨識失敗，請稍後再試')
+        }
+      } finally {
+        photoEstimateLoading.value = false
+      }
+    }
+
+    // 全局自訂食物表單
+    const customForm = ref(createEmptyCustomForm())
     const submitCustomFood = async () => {
       // 驗證
       if (!customForm.value.custom_name || !customForm.value.custom_calories || !customForm.value.mealtime) {
         ElMessage.error('請填寫必填欄位')
         return
       }
+
+      if (photoUploadLoading.value) {
+        ElMessage.warning('照片仍在上傳中，請稍候再送出')
+        return
+      }
+
       try {
+        submitCustomLoading.value = true
         const userId = localStorage.getItem('userId')
         if (!userId) {
           ElMessage.warning('請先登入')
           return
         }
+
+        // If user selected a photo but auto-upload did not complete, retry before submit.
+        if (photoFile.value && !customForm.value.photo_url) {
+          const uploaded = await uploadCustomFoodPhoto(photoFile.value)
+          if (!uploaded || !customForm.value.photo_url) {
+            ElMessage.error('照片上傳尚未完成，請稍後再試')
+            return
+          }
+        }
+
         const payload = {
           user_id: userId,
           food_id: null,
@@ -698,24 +730,32 @@ const router = useRouter()
           custom_restaurant: customForm.value.custom_restaurant,
           quantity: customForm.value.quantity,
           mealtime: customForm.value.mealtime,
-          date: selectedDateString.value
+          date: selectedDateString.value,
+          photo_url: customForm.value.photo_url,
+          photo_path: customForm.value.photo_path,
+          photo_mime_type: customForm.value.photo_mime_type,
+          estimated_name: customForm.value.estimated_name,
+          estimated_calories: customForm.value.estimated_calories,
+          estimated_protein: customForm.value.estimated_protein,
+          estimated_fat: customForm.value.estimated_fat,
+          estimated_carb: customForm.value.estimated_carb,
+          estimated_sugar: customForm.value.estimated_sugar,
+          estimated_sodium: customForm.value.estimated_sodium,
+          estimation_provider: customForm.value.estimation_provider,
+          estimation_confidence: customForm.value.estimation_confidence,
+          estimation_notes: customForm.value.estimation_notes
         }
         await api.post('/api/food/record', payload)
         ElMessage.success('自訂飲食紀錄已新增')
         // 清空表單
-        customForm.value = {
-          custom_name: '',
-          custom_calories: '',
-          custom_price: '',
-          custom_type: '',
-          custom_restaurant: '',
-          quantity: 1,
-          mealtime: ''
-        }
+        customForm.value = createEmptyCustomForm()
+        resetPhotoEstimate()
         // 重新載入紀錄
         loadFoodRecords()
       } catch (err) {
-        ElMessage.error('新增失敗，請稍後再試')
+        ElMessage.error(err.response?.data?.error || '新增失敗，請稍後再試')
+      } finally {
+        submitCustomLoading.value = false
       }
     }
 
@@ -909,17 +949,30 @@ onMounted(() => {
 }
 
 /* 餐點卡片 */
+.records-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.records-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2b2b2b;
+}
+
 .meals-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 28px;
+  display: block;
   margin-bottom: 40px;
 }
 
 @media (max-width: 900px) {
-  .meals-container {
-    grid-template-columns: 1fr;
-    gap: 18px;
+  .records-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -928,37 +981,6 @@ onMounted(() => {
   border-radius: var(--surface-radius-md);
   box-shadow: var(--shadow-card);
   overflow: hidden;
-}
-
-.meal-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: #f9f9f9;
-}
-
-.meal-icon-container {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.meal-icon-container i {
-  font-size: 20px;
-  color: white;
-}
-
-.meal-title {
-  flex: 1;
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
 }
 
 .add-food-btn {
@@ -1050,6 +1072,46 @@ onMounted(() => {
   flex: 1;
 }
 
+.food-item-topline {
+  margin-bottom: 8px;
+}
+
+.mealtime-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.mealtime-chip.meal-breakfast {
+  background: #fff0dc;
+  color: #ab6a0f;
+}
+
+.mealtime-chip.meal-lunch {
+  background: #ffe8dd;
+  color: #b2531d;
+}
+
+.mealtime-chip.meal-dinner {
+  background: #e7eefc;
+  color: #2e5394;
+}
+
+.mealtime-chip.meal-snack {
+  background: #efe7ff;
+  color: #6642a8;
+}
+
+.mealtime-chip.meal-unknown {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 .food-item-name {
   margin: 0 0 12px;
   font-size: 16px;
@@ -1101,6 +1163,12 @@ onMounted(() => {
   font-size: 1rem;
   color: #ef4444;
   font-weight: 600;
+}
+.delete-btn.icon-only {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
 }
 .delete-btn:hover {
   background: #fee2e2;
@@ -1193,6 +1261,13 @@ onMounted(() => {
   justify-content: center;
   font-size: 1rem;
 }
+.edit-btn.icon-only {
+  width: 34px;
+  height: 34px;
+  margin-right: 0;
+  padding: 0;
+  border-radius: 8px;
+}
 .edit-btn i {
   color: #1976d2;
   font-size: 1.3em;
@@ -1220,6 +1295,141 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.photo-estimate-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px dashed #f0c78f;
+  border-radius: 14px;
+  background: #fff8ef;
+}
+.photo-estimate-copy h4 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #9a5a00;
+}
+.photo-estimate-copy p {
+  margin: 0;
+  color: #7a6a52;
+  line-height: 1.5;
+  font-size: 14px;
+}
+.photo-estimate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.photo-input {
+  display: none;
+}
+.photo-picker-btn,
+.estimate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid #efc78b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.photo-picker-btn {
+  background: #fff;
+  color: #b76b00;
+}
+.estimate-btn {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--shadow-button);
+}
+.estimate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.photo-picker-btn:hover,
+.estimate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.photo-preview-block {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  align-items: stretch;
+  padding: 4px 0;
+}
+.photo-preview-column {
+  display: grid;
+  gap: 10px;
+}
+.photo-preview-image {
+  width: 220px;
+  height: 168px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: 1px solid #ead9bd;
+}
+.photo-status-group {
+  display: grid;
+  gap: 6px;
+}
+.photo-estimate-column {
+  display: grid;
+  align-content: start;
+}
+.photo-estimate-result {
+  padding: 4px 2px;
+}
+.photo-estimate-placeholder {
+  padding: 4px 2px;
+  min-height: 116px;
+  display: grid;
+  align-content: center;
+}
+.estimate-result-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #a45f00;
+  margin-bottom: 10px;
+}
+.estimate-result-row {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: start;
+  column-gap: 10px;
+  margin-bottom: 8px;
+  color: #5b6472;
+  font-size: 14px;
+}
+.estimate-result-row.compact {
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.estimate-result-row strong {
+  color: #1f2937;
+  font-weight: 700;
+}
+.estimate-nutrient-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 12px;
+  margin-bottom: 6px;
+}
+.estimate-notes {
+  margin: 8px 0 0;
+  color: #7b7280;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.estimate-notes.status-ok {
+  margin: 0;
+  color: #27764f;
+  font-weight: 600;
 }
 .custom-food-form .form-row {
   display: flex;
@@ -1255,16 +1465,48 @@ onMounted(() => {
   box-shadow: var(--shadow-button-hover);
 }
 
+@media (max-width: 768px) {
+  .photo-preview-block,
+  .custom-food-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .photo-preview-image {
+    width: 100%;
+    max-width: 100%;
+    height: 180px;
+  }
+
+  .estimate-nutrient-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 .food-image-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-right: 18px;
+  flex-shrink: 0;
+  width: 120px;
+}
+.food-image-primary {
   width: 120px;
   height: 120px;
   background-color: #f5f5f5;
   border-radius: 10px;
   overflow: hidden;
-  margin-right: 18px;
   position: relative;
-  flex-shrink: 0;
+}
+.food-image-secondary {
+  width: 120px;
+  height: 64px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
 }
 .food-image {
   width: 100%;
@@ -1272,12 +1514,38 @@ onMounted(() => {
   object-fit: cover;
   border-radius: 10px;
 }
+.food-image-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.image-source-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  line-height: 1.4;
+  pointer-events: none;
+  z-index: 3;
+}
+.image-source-badge.user-photo {
+  background: rgba(230, 130, 0, 0.88);
+  color: #fff;
+}
+.image-source-badge.db-image {
+  background: rgba(60, 120, 210, 0.82);
+  color: #fff;
+}
 .calorie-on-image-button {
   position: absolute;
   top: 8px;
   right: 8px;
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   background-color: rgba(230, 162, 60, 0.9);
   color: white;
   border-radius: 50%;
@@ -1291,7 +1559,18 @@ onMounted(() => {
   cursor: default;
   text-align: center;
   line-height: 1.1;
-  font-size: 1rem;
+  font-size: 0.82rem;
+}
+
+.calorie-on-image-button .calorie-value {
+  margin-bottom: 0;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.calorie-on-image-button .calorie-unit {
+  font-size: 0.6rem;
+  opacity: 0.95;
 }
 .nutrition-info-block {
   margin-top: 10px;

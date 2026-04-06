@@ -9,6 +9,23 @@ import logging
 import decimal
 import functools
 
+
+OPTIONAL_FOOD_RECORD_COLUMNS = {
+    'photourl': 'photourl',
+    'photopath': 'photopath',
+    'photomimetype': 'photomimetype',
+    'estimatedname': 'estimatedname',
+    'estimatedcalories': 'estimatedcalories',
+    'estimationprovider': 'estimationprovider',
+    'estimationconfidence': 'estimationconfidence',
+    'estimationnotes': 'estimationnotes',
+    'estimatedprotein': 'estimatedprotein',
+    'estimatedfat': 'estimatedfat',
+    'estimatedcarb': 'estimatedcarb',
+    'estimatedsugar': 'estimatedsugar',
+    'estimatedsodium': 'estimatedsodium',
+}
+
 class FoodService:
     @staticmethod
     def get_food_by_id(food_id: int) -> Optional[FoodItem]:
@@ -206,6 +223,18 @@ def search_food(filters):
         cursor.close()
         return_db_connection(conn)
 
+
+def get_food_record_available_columns(conn):
+    with conn.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public' AND lower(table_name) = 'food_records'
+            """
+        )
+        return {row['column_name'].lower() for row in cursor.fetchall()}
+
 def add_food_record(user_id, food_data):
     """
     添加食物消費記錄
@@ -216,17 +245,67 @@ def add_food_record(user_id, food_data):
         dict: 包含操作結果和新增記錄的ID
     """
     conn = get_db_connection()
+
+    def _normalize_int(value, field_name, allow_none=False):
+        if value is None:
+            if allow_none:
+                return None
+            raise ValueError(f"{field_name} is required")
+        if isinstance(value, str) and not value.strip():
+            if allow_none:
+                return None
+            raise ValueError(f"{field_name} is required")
+        try:
+            return int(float(value))
+        except (TypeError, ValueError):
+            raise ValueError(f"Invalid {field_name}")
+
+    def _normalize_float(value, field_name, allow_none=False):
+        if value is None:
+            if allow_none:
+                return None
+            raise ValueError(f"{field_name} is required")
+        if isinstance(value, str) and not value.strip():
+            if allow_none:
+                return None
+            raise ValueError(f"{field_name} is required")
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            raise ValueError(f"Invalid {field_name}")
+
     try:
         food_id = food_data.get('food_id')
         mealtime = food_data.get('mealtime')
-        quantity = food_data.get('quantity', 1)
+        quantity = _normalize_int(food_data.get('quantity', 1), 'quantity')
         date = food_data.get('date')
         # 新增自訂欄位
         custom_name = food_data.get('custom_name')
-        custom_calories = food_data.get('custom_calories')
+        custom_calories = _normalize_int(food_data.get('custom_calories'), 'custom_calories', allow_none=True)
         custom_type = food_data.get('custom_type')
-        custom_price = food_data.get('custom_price')
+        custom_price = _normalize_float(food_data.get('custom_price'), 'custom_price', allow_none=True)
         custom_restaurant = food_data.get('custom_restaurant')
+        optional_columns = get_food_record_available_columns(conn)
+        optional_values = {
+            'photourl': food_data.get('photo_url'),
+            'photopath': food_data.get('photo_path'),
+            'photomimetype': food_data.get('photo_mime_type'),
+            'estimatedname': food_data.get('estimated_name'),
+            'estimatedcalories': _normalize_int(food_data.get('estimated_calories'), 'estimated_calories', allow_none=True),
+            'estimationprovider': food_data.get('estimation_provider'),
+            'estimationconfidence': _normalize_float(food_data.get('estimation_confidence'), 'estimation_confidence', allow_none=True),
+            'estimationnotes': food_data.get('estimation_notes'),
+            'estimatedprotein': _normalize_float(food_data.get('estimated_protein'), 'estimated_protein', allow_none=True),
+            'estimatedfat': _normalize_float(food_data.get('estimated_fat'), 'estimated_fat', allow_none=True),
+            'estimatedcarb': _normalize_float(food_data.get('estimated_carb'), 'estimated_carb', allow_none=True),
+            'estimatedsugar': _normalize_float(food_data.get('estimated_sugar'), 'estimated_sugar', allow_none=True),
+            'estimatedsodium': _normalize_float(food_data.get('estimated_sodium'), 'estimated_sodium', allow_none=True),
+        }
+        supported_optional_values = {
+            column: value
+            for key, column in OPTIONAL_FOOD_RECORD_COLUMNS.items()
+            if key in optional_columns and (value := optional_values[column]) is not None
+        }
         # 驗證必要參數
         if not all([mealtime, date, quantity]):
             raise ValueError("Missing required fields: mealtime, date, quantity")
@@ -246,12 +325,11 @@ def add_food_record(user_id, food_data):
                     raise ValueError(f"Food with ID {food_id} not found")
             # 插入關聯食物
             with conn.cursor() as cursor:
-                sql = """
-                    INSERT INTO Food_Records (UserID, FoodID, Mealtime, Quantity, Date)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING RecordID
-                """
-                cursor.execute(sql, (user_id, food_id, mealtime, quantity, date))
+                columns = ['UserID', 'FoodID', 'Mealtime', 'Quantity', 'Date', *supported_optional_values.keys()]
+                placeholders = ', '.join(['%s'] * len(columns))
+                values = [user_id, food_id, mealtime, quantity, date, *supported_optional_values.values()]
+                sql = f"INSERT INTO Food_Records ({', '.join(columns)}) VALUES ({placeholders}) RETURNING RecordID"
+                cursor.execute(sql, values)
                 record_id = cursor.fetchone()['RecordID']
                 conn.commit()
                 return {
@@ -263,12 +341,19 @@ def add_food_record(user_id, food_data):
             if not all([custom_name, custom_calories]):
                 raise ValueError("Custom food must have name and calories")
             with conn.cursor() as cursor:
-                sql = """
-                    INSERT INTO Food_Records (UserID, FoodID, CustomName, CustomCalories, CustomType, CustomPrice, CustomRestaurant, Mealtime, Quantity, Date)
-                    VALUES (%s, NULL, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING RecordID
-                """
-                cursor.execute(sql, (user_id, custom_name, custom_calories, custom_type, custom_price, custom_restaurant, mealtime, quantity, date))
+                columns = [
+                    'UserID', 'FoodID', 'CustomName', 'CustomCalories', 'CustomType',
+                    'CustomPrice', 'CustomRestaurant', 'Mealtime', 'Quantity', 'Date',
+                    *supported_optional_values.keys()
+                ]
+                placeholders = ', '.join(['%s'] * len(columns))
+                values = [
+                    user_id, None, custom_name, custom_calories, custom_type,
+                    custom_price, custom_restaurant, mealtime, quantity, date,
+                    *supported_optional_values.values()
+                ]
+                sql = f"INSERT INTO Food_Records ({', '.join(columns)}) VALUES ({placeholders}) RETURNING RecordID"
+                cursor.execute(sql, values)
                 record_id = cursor.fetchone()['RecordID']
                 conn.commit()
                 return {
@@ -277,6 +362,8 @@ def add_food_record(user_id, food_data):
                 }
     except Exception as e:
         conn.rollback()
+        if isinstance(e, ValueError):
+            raise
         raise Exception(f"Error adding food record: {str(e)}")
     finally:
         conn.close()
@@ -294,6 +381,26 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
     """
     conn = get_db_connection()
     try:
+        available_columns = get_food_record_available_columns(conn)
+        optional_selects = []
+        if 'photourl' in available_columns:
+            optional_selects.append('fr.photourl')
+        if 'estimatedcalories' in available_columns:
+            optional_selects.append('fr.estimatedcalories')
+        if 'estimatedname' in available_columns:
+            optional_selects.append('fr.estimatedname')
+        if 'estimationconfidence' in available_columns:
+            optional_selects.append('fr.estimationconfidence')
+        if 'estimatedprotein' in available_columns:
+            optional_selects.append('fr.estimatedprotein')
+        if 'estimatedfat' in available_columns:
+            optional_selects.append('fr.estimatedfat')
+        if 'estimatedcarb' in available_columns:
+            optional_selects.append('fr.estimatedcarb')
+        if 'estimatedsugar' in available_columns:
+            optional_selects.append('fr.estimatedsugar')
+        if 'estimatedsodium' in available_columns:
+            optional_selects.append('fr.estimatedsodium')
         with conn.cursor() as cursor:
             sql = """
                 SELECT 
@@ -308,6 +415,13 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
                     r.Name AS Restaurant,
                     f.Price,
                     f.Calories,
+                    f.ImageUrl,
+                    f.Protein,
+                    f.Fat,
+                    f.Sugar,
+                    f.Sodium,
+                    f.Carb,
+                    f.Caffeine,
                     f.Food_Type,
                     f.Set_Type,
                     fr.Mealtime,
@@ -318,6 +432,8 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
                 LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
                 WHERE fr.UserID = %s
             """
+            if optional_selects:
+                sql = sql.replace('fr.Date', f"fr.Date, {', '.join(optional_selects)}", 1)
             params = [user_id]
             if start_date:
                 sql += " AND fr.Date >= %s"
@@ -342,8 +458,19 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
                         'restaurant': record['Restaurant'],
                         'price': record['Price'],
                         'calories': record['Calories'],
+                        'image_url': record.get('ImageUrl'),          # DB food image
+                        'photo_url': record.get('PhotoUrl'),           # Supabase user upload
                         'food_type': record['Food_Type'],
                         'type': record['Set_Type'],
+                        'estimated_calories': record.get('EstimatedCalories'),
+                        'estimated_name': record.get('EstimatedName'),
+                        'estimation_confidence': record.get('EstimationConfidence'),
+                        'protein': record.get('Protein') if record.get('Protein') is not None else record.get('EstimatedProtein'),
+                        'fat': record.get('Fat') if record.get('Fat') is not None else record.get('EstimatedFat'),
+                        'sugar': record.get('Sugar') if record.get('Sugar') is not None else record.get('EstimatedSugar'),
+                        'sodium': record.get('Sodium') if record.get('Sodium') is not None else record.get('EstimatedSodium'),
+                        'carb': record.get('Carb') if record.get('Carb') is not None else record.get('EstimatedCarb'),
+                        'caffeine': record.get('Caffeine'),
                         'mealtime': record['Mealtime'],
                         'quantity': record['Quantity'],
                         'date': record['Date'].strftime('%Y-%m-%d') if record['Date'] else None
@@ -357,8 +484,19 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
                         'restaurant': record['CustomRestaurant'],
                         'price': record['CustomPrice'],
                         'calories': record['CustomCalories'],
+                        'image_url': None,                             # custom food has no DB image
+                        'photo_url': record.get('PhotoUrl'),           # Supabase user upload
                         'food_type': record['CustomType'],
                         'type': None,
+                        'estimated_calories': record.get('EstimatedCalories'),
+                        'estimated_name': record.get('EstimatedName'),
+                        'estimation_confidence': record.get('EstimationConfidence'),
+                        'protein': record.get('EstimatedProtein'),
+                        'fat': record.get('EstimatedFat'),
+                        'sugar': record.get('EstimatedSugar'),
+                        'sodium': record.get('EstimatedSodium'),
+                        'carb': record.get('EstimatedCarb'),
+                        'caffeine': None,
                         'mealtime': record['Mealtime'],
                         'quantity': record['Quantity'],
                         'date': record['Date'].strftime('%Y-%m-%d') if record['Date'] else None

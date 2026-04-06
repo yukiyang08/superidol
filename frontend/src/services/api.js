@@ -11,9 +11,8 @@ const baseURL = configuredBaseURL || (
 // 創建 axios 實例
 export const api = axios.create({
   baseURL,
-  timeout: 10000, // 請求超時時間 10 秒
+  timeout: 20000, // 預設請求超時時間 20 秒
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json'
   }
 })
@@ -22,6 +21,19 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log(`API請求: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`, config.data || {});
+
+    // Let the browser set multipart boundaries for FormData uploads.
+    if (config.data instanceof FormData) {
+      if (config.headers?.['Content-Type']) {
+        delete config.headers['Content-Type']
+      }
+      if (config.headers?.common?.['Content-Type']) {
+        delete config.headers.common['Content-Type']
+      }
+    } else if (!config.headers?.['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json'
+    }
+
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`

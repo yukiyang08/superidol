@@ -1200,35 +1200,8 @@ const fetchExercisePreferences = async () => {
 .infinite-sentinel { height: 1px; }
 
 .food-search-page {
-  background: linear-gradient(180deg, #fafcff 0%, #f7fbff 35%, #fefcf8 100%);
-  position: relative;
-  isolation: isolate;
-}
-
-.food-search-page::before,
-.food-search-page::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(10px);
-  z-index: -1;
-  pointer-events: none;
-}
-
-.food-search-page::before {
-  width: 320px;
-  height: 320px;
-  top: 24px;
-  right: -120px;
-  background: radial-gradient(circle, rgba(255, 170, 85, 0.28) 0%, rgba(255, 170, 85, 0) 70%);
-}
-
-.food-search-page::after {
-  width: 260px;
-  height: 260px;
-  bottom: 50px;
-  left: -100px;
-  background: radial-gradient(circle, rgba(255, 208, 160, 0.28) 0%, rgba(255, 208, 160, 0) 70%);
+  width: 100%;
+  background: transparent;
 }
 .food-search-page .container {
   max-width: 1200px;
