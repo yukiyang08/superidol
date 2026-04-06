@@ -69,10 +69,27 @@
               <p>選擇照片後會自動上傳，你可直接儲存，或再點 AI 估算熱量與蛋白質、碳水等營養資訊。</p>
             </div>
             <div class="photo-estimate-actions">
-              <label class="photo-picker-btn">
-                <input type="file" accept="image/*" capture="environment" class="photo-input" @change="handlePhotoFileChange" />
-                選擇照片
-              </label>
+              <input
+                ref="cameraInputRef"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                class="photo-input"
+                @change="handlePhotoFileChange"
+              />
+              <input
+                ref="galleryInputRef"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                class="photo-input"
+                @change="handlePhotoFileChange"
+              />
+
+              <div class="photo-pickers-row">
+                <button type="button" class="photo-picker-btn camera-btn" @click="openCameraPicker">拍照</button>
+                <button type="button" class="photo-picker-btn gallery-btn" @click="openGalleryPicker">選擇照片</button>
+              </div>
+
               <button
                 type="button"
                 class="estimate-btn"
@@ -284,6 +301,8 @@ const router = useRouter()
     const selectedDate = ref(new Date())
     const selectedDateString = ref('')
     const dateInputRef = ref(null)
+    const cameraInputRef = ref(null)
+    const galleryInputRef = ref(null)
     const today = new Date()
     const todayString = computed(() => {
       const year = today.getFullYear()
@@ -568,6 +587,9 @@ const router = useRouter()
         return
       }
 
+      // Reset input to allow picking the same file again next time.
+      event.target.value = ''
+
       resetPhotoEstimate()
       photoFile.value = file
       photoPreviewUrl.value = URL.createObjectURL(file)
@@ -585,6 +607,14 @@ const router = useRouter()
       customForm.value.estimation_confidence = null
       customForm.value.estimation_notes = ''
       await uploadCustomFoodPhoto(file)
+    }
+
+    const openCameraPicker = () => {
+      cameraInputRef.value?.click()
+    }
+
+    const openGalleryPicker = () => {
+      galleryInputRef.value?.click()
     }
 
     const applyPhotoEstimateToForm = (estimate) => {
@@ -1330,8 +1360,13 @@ onMounted(() => {
   font-size: 14px;
 }
 .photo-estimate-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.photo-pickers-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 .photo-input {
@@ -1353,6 +1388,14 @@ onMounted(() => {
 .photo-picker-btn {
   background: #fff;
   color: #b76b00;
+}
+.photo-picker-btn.camera-btn {
+  background: #fff4e4;
+  border-color: #e8b56b;
+}
+.photo-picker-btn.gallery-btn {
+  background: #fff;
+  border-color: #efc78b;
 }
 .estimate-btn {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-darker) 100%);
@@ -1715,10 +1758,18 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
+  .photo-pickers-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .photo-picker-btn,
-  .estimate-btn,
   .submit-btn,
   .add-food-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .estimate-btn {
     width: 100%;
     justify-content: center;
   }
