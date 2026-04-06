@@ -266,6 +266,16 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
+@media (min-width: 769px) {
+  .login-page {
+    background-image: linear-gradient(rgba(255, 249, 240, 0.7), rgba(255, 237, 212, 0.72)), url('/img/logos/background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+}
+
 .auth-container {
   width: 100%;
   max-width: 500px;
