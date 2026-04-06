@@ -459,8 +459,11 @@
 
       <!-- 載入中骨架 -->
       <div v-if="isLoading" class="loading-state">
-        <div class="loading-spinner"></div>
-        <p>載入中...</p>
+        <PlateSpiritLoader
+          size="sm"
+          message="餐盤小精靈正在找好吃的..."
+          submessage="馬上端上來。"
+        />
         <div class="food-grid">
           <div class="food-card skeleton" v-for="i in 6" :key="i">
             <div class="food-image-container skeleton-box"></div>
@@ -529,6 +532,7 @@ import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import { ElMessage } from 'element-plus'
+import PlateSpiritLoader from '@/components/common/PlateSpiritLoader.vue'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 import { InfoFilled, Food, Shop, DataLine, Menu, IceCream, MilkTea, Sugar, Coin, Coffee, Burger, DataAnalysis, Star, StarFilled, Plus, Search } from '@element-plus/icons-vue'
 import api from '@/services/api'

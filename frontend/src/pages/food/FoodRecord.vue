@@ -251,8 +251,10 @@
 
       <!-- 載入中 -->
       <div v-if="isLoading && !hasAnyRecords" class="loading-state">
-        <div class="loading-spinner"></div>
-        <p>載入中...</p>
+        <PlateSpiritLoader
+          message="餐盤小精靈整理今日飲食中..."
+          submessage="正在把今天的卡路里、餐別和營養資訊擺上餐盤。"
+        />
       </div>
 
       <FoodRecordModal
@@ -271,6 +273,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import PlateSpiritLoader from '@/components/common/PlateSpiritLoader.vue'
 import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 import api from '@/services/api'
 import { ArrowLeft, ArrowRight, ArrowDown, Plus, Delete, EditPen, Notebook, Calendar as DateIcon } from '@element-plus/icons-vue'
@@ -792,6 +795,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 30px;
 }
 
@@ -819,16 +824,18 @@ onMounted(() => {
 
 .date-picker-container {
   position: relative;
-  margin: 0 16px;
+  margin: 0;
 }
 
 .current-date {
+  min-width: min(100%, 320px);
   padding: 10px 20px;
   background: white;
   border-radius: var(--surface-radius-md);
   box-shadow: var(--shadow-card);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   cursor: pointer;
   transition: all 0.3s;
@@ -899,8 +906,8 @@ onMounted(() => {
 }
 
 .calorie-info {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 20px;
 }
 
@@ -1053,8 +1060,9 @@ onMounted(() => {
 }
 
 .food-item-card {
-  background: #f9f9f9;
-  border-radius: 8px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #edf1f5;
   overflow: hidden;
   transition: all 0.3s;
 }
@@ -1065,11 +1073,14 @@ onMounted(() => {
 
 .food-item-content {
   display: flex;
+  align-items: flex-start;
+  gap: 16px;
   padding: 16px;
 }
 
 .food-item-info {
   flex: 1;
+  min-width: 0;
 }
 
 .food-item-topline {
@@ -1143,8 +1154,10 @@ onMounted(() => {
 
 .food-item-actions {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .delete-btn {
@@ -1438,6 +1451,8 @@ onMounted(() => {
 .custom-food-form input,
 .custom-food-form select {
   flex: 1;
+  min-width: 0;
+  min-height: 44px;
   padding: 8px 12px;
   border: 1px solid #e4e7ed;
   border-radius: 6px;
@@ -1455,6 +1470,8 @@ onMounted(() => {
   color: #fff;
   border: none;
   border-radius: var(--btn-radius);
+  min-height: 44px;
+  white-space: nowrap;
   padding: 8px 18px;
   font-weight: 600;
   font-size: 15px;
@@ -1593,6 +1610,299 @@ onMounted(() => {
   color: #bbb;
   font-size: 0.95em;
   margin-top: 8px;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 18px 28px;
+  }
+
+  .photo-preview-block {
+    grid-template-columns: minmax(180px, 220px) 1fr;
+  }
+
+  .food-item-content {
+    gap: 14px;
+  }
+
+  .food-item-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 14px 24px;
+  }
+
+  .page-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  .date-navigation {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+
+  .date-picker-container {
+    width: 100%;
+  }
+
+  .current-date {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    font-size: 14px;
+  }
+
+  .nutrition-summary-card {
+    margin-bottom: 22px;
+  }
+
+  .summary-header {
+    padding: 14px 16px;
+  }
+
+  .summary-title {
+    font-size: 16px;
+  }
+
+  .calorie-summary {
+    padding: 16px;
+  }
+
+  .calorie-info {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .calorie-item {
+    padding: 0;
+  }
+
+  .calorie-divider {
+    display: none;
+  }
+
+  .calorie-value {
+    font-size: 24px;
+    margin-bottom: 6px;
+  }
+
+  .custom-food-form-card {
+    padding: 18px 16px 16px;
+    margin-bottom: 24px;
+  }
+
+  .custom-form-title {
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .photo-estimate-panel {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .photo-estimate-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .photo-picker-btn,
+  .estimate-btn,
+  .submit-btn,
+  .add-food-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .photo-preview-block,
+  .custom-food-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .photo-preview-image {
+    width: 100%;
+    max-width: 100%;
+    height: 200px;
+  }
+
+  .estimate-nutrient-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .records-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .records-title {
+    font-size: 18px;
+  }
+
+  .meal-content {
+    padding: 14px;
+  }
+
+  .food-items {
+    gap: 12px;
+  }
+
+  .food-item-content {
+    flex-direction: column;
+    padding: 14px;
+  }
+
+  .food-image-container {
+    width: 100%;
+    margin-right: 0;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .food-image-primary {
+    width: 100%;
+    height: 180px;
+    flex: 1;
+  }
+
+  .food-image-secondary {
+    width: 84px;
+    height: 84px;
+    align-self: flex-end;
+  }
+
+  .food-item-name {
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .food-item-details {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .detail-row {
+    justify-content: space-between;
+    gap: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #edf1f5;
+  }
+
+  .detail-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .detail-value {
+    text-align: right;
+  }
+
+  .nutrition-table td {
+    padding: 4px 6px 4px 0;
+  }
+
+  .food-item-actions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-end;
+    padding-top: 4px;
+  }
+
+  .delete-btn.icon-only,
+  .edit-btn.icon-only {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 560px) {
+  .food-record-page {
+    padding: 14px 0;
+  }
+
+  .date-navigation {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+  }
+
+  .date-nav-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .current-date {
+    gap: 6px;
+    padding: 11px 12px;
+    border-radius: 12px;
+  }
+
+  .current-date span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .photo-estimate-copy h4 {
+    font-size: 15px;
+  }
+
+  .photo-estimate-copy p,
+  .detail-label,
+  .detail-value,
+  .calorie-label {
+    font-size: 13px;
+  }
+
+  .photo-preview-image,
+  .food-image-primary {
+    height: 168px;
+  }
+
+  .food-image-container {
+    flex-direction: column;
+  }
+
+  .food-image-secondary {
+    width: 100%;
+    height: 68px;
+    align-self: auto;
+  }
+
+  .calorie-on-image-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .food-item-card {
+    border-radius: 12px;
+  }
+
+  .food-item-content {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .custom-food-form-card,
+  .meal-content,
+  .no-records-card,
+  .loading-state {
+    border-radius: 14px;
+  }
+
+  .no-records-card,
+  .loading-state {
+    margin: 28px 0;
+    padding: 28px 16px;
+  }
 }
 </style>
 

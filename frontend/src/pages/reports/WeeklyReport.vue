@@ -19,8 +19,16 @@
         </button>
       </div>
 
+      <div class="query-trigger-wrap" v-if="needsCalendarSelector">
+        <button class="query-trigger-btn" @click="toggleDateSelector">
+          <el-icon><Calendar /></el-icon>
+          <span>{{ queryTriggerText }}</span>
+          <el-icon class="query-trigger-arrow" :class="{ open: showDateSelector }"><ArrowDown /></el-icon>
+        </button>
+      </div>
+
       <!-- 日期/週次/月/自訂範圍選擇器 -->
-      <div class="calendar-selector-container" v-if="currentReportType === 'daily'">
+      <div class="calendar-selector-container" v-if="currentReportType === 'daily' && showDateSelector">
         <Datepicker
           v-model="selectedDateForPicker"
           :key="'daily-' + selectedDateForPicker"
@@ -34,7 +42,7 @@
           prevent-min-max-navigation
         />
       </div>
-      <div class="calendar-selector-container" v-if="currentReportType === 'weekly'">
+      <div class="calendar-selector-container" v-if="currentReportType === 'weekly' && showDateSelector">
         <Datepicker
           v-model="selectedDateForPicker"
           :key="'weekly-' + selectedDateForPicker"
@@ -48,7 +56,7 @@
           prevent-min-max-navigation
         />
       </div>
-      <div class="calendar-selector-container" v-if="currentReportType === 'monthly'">
+      <div class="calendar-selector-container" v-if="currentReportType === 'monthly' && showDateSelector">
         <div class="month-picker-label">
           <el-icon><Calendar /></el-icon>
           <span>請選擇要查詢的月份</span>
@@ -66,7 +74,7 @@
           prevent-min-max-navigation
         />
       </div>
-      <div class="calendar-selector-container" v-if="currentReportType === 'custom'">
+      <div class="calendar-selector-container" v-if="currentReportType === 'custom' && showDateSelector">
         <Datepicker
           v-model="customRange"
           :key="'custom-' + customRange"
@@ -203,22 +211,71 @@
         </div>
       </div>
 
-      <div class="report-section full-width-section" v-if="reportData">
-        <h2 class="section-title">
-          <el-icon><Opportunity /></el-icon> 建議與提示
-        </h2>
-        <div class="suggestion-card">
-          <p v-if="reportData.suggestions && reportData.suggestions.length > 0">
-            根據您這{{ currentReportType === 'daily' ? '日' : currentReportType === 'weekly' ? '週' : currentReportType === 'monthly' ? '月' : '自訂' }}的飲食和運動記錄，我們有以下建議：
+      <div class="report-section full-width-section suggestion-section" v-if="reportData">
+        <div class="suggestion-section-header">
+          <h2 class="section-title">
+            <el-icon><Opportunity /></el-icon> 建議與提示
+          </h2>
+          <p class="suggestion-period-label">{{ currentReportType === 'daily' ? '今日' : currentReportType === 'weekly' ? '本週' : currentReportType === 'monthly' ? '本月' : '自訂區間' }}分析</p>
+        </div>
+
+        <!-- KPI 數據列 -->
+        <div class="kpi-strip">
+          <div class="kpi-card" :class="{ 'kpi-over': netCaloriesDelta > 0, 'kpi-under': netCaloriesDelta < -200 }">
+            <span class="kpi-card-label">本期淨熱量</span>
+            <strong class="kpi-card-value">{{ netCaloriesDelta > 0 ? '+' : '' }}{{ netCaloriesDelta }}</strong>
+            <span class="kpi-card-unit">大卡</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-card-label">每日目標</span>
+            <strong class="kpi-card-value">{{ userGoals.daily_calories }}</strong>
+            <span class="kpi-card-unit">大卡/天</span>
+          </div>
+          <div class="kpi-card kpi-headline">
+            <span class="kpi-card-label">重點狀態</span>
+            <strong class="kpi-card-value kpi-status">{{ suggestionHeadline }}</strong>
+          </div>
+        </div>
+
+        <!-- 建議列表 -->
+        <div v-if="suggestionCards.length > 0">
+          <p class="suggestion-intro">
+            根據你這{{ currentReportType === 'daily' ? '日' : currentReportType === 'weekly' ? '週' : currentReportType === 'monthly' ? '月' : '自訂' }}的數據，優先處理標示「高優先」的項目效果最顯著。
           </p>
-          <ul class="suggestion-list" v-if="reportData.suggestions && reportData.suggestions.length > 0">
-            <li v-for="(suggestion, index) in reportData.suggestions" :key="index">
-             <el-icon><Star /></el-icon> {{ suggestion }}
-            </li>
-          </ul>
-           <p v-else>
-            <el-icon><InfoFilled /></el-icon> 暫無特別建議，請繼續保持記錄！
-           </p>
+          <div class="suggestion-list-grid">
+            <article
+              class="suggestion-item"
+              v-for="(item, index) in suggestionCards"
+              :key="index"
+              :class="`level-${item.level || 'low'}`"
+            >
+              <div class="suggestion-item-aside">
+                <span class="suggestion-rank-badge" :class="`rank-${item.level || 'low'}`">{{ index + 1 }}</span>
+              </div>
+              <div class="suggestion-item-body">
+                <div class="suggestion-header-row">
+                  <h3 class="suggestion-title">{{ item.title }}</h3>
+                  <span class="suggestion-level-pill" :class="`level-${item.level || 'low'}`">
+                    {{ suggestionLevelLabel(item.level) }}
+                  </span>
+                </div>
+                <p class="suggestion-reason">{{ item.reason }}</p>
+                <div class="suggestion-action-row">
+                  <span class="action-label">建議行動</span>
+                  <span class="action-text">{{ item.action }}</span>
+                </div>
+                <div class="suggestion-impact-row" v-if="item.impact">
+                  <span class="impact-label">預估影響</span>
+                  <span class="impact-text">{{ item.impact }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div v-else class="suggestion-empty">
+          <el-icon><InfoFilled /></el-icon>
+          <span>目前資料不足，持續記錄 2–3 天後即可看到精準建議。</span>
         </div>
       </div>
     </div>
@@ -234,7 +291,7 @@ import { ElMessage } from 'element-plus'
 import { 
   DataAnalysis, Calendar, Collection,
   Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, 
-  Present, Tickets, Opportunity, Star, InfoFilled 
+  Present, Tickets, Opportunity, Star, InfoFilled, ArrowDown 
 } from '@element-plus/icons-vue'
 import { formatDate } from '@/utils/date'
 import api from '@/services/api'
@@ -248,6 +305,18 @@ import api from '@/services/api'
     const selectedMonth = ref(new Date())
     const customRange = ref([new Date(), new Date()])
     const weeklySummaries = ref([])
+    const showDateSelector = ref(false)
+
+    const needsCalendarSelector = computed(() => {
+      return ['daily', 'weekly', 'monthly', 'custom'].includes(currentReportType.value)
+    })
+
+    const queryTriggerText = computed(() => {
+      if (currentReportType.value === 'daily') return '日期查詢'
+      if (currentReportType.value === 'weekly') return '週次查詢'
+      if (currentReportType.value === 'monthly') return '月份查詢'
+      return '區間查詢'
+    })
 
     const calorieChartEl = ref(null);
     const exerciseTrendChartEl = ref(null);
@@ -385,8 +454,34 @@ import api from '@/services/api'
       }
     })
 
+    const netCaloriesDelta = computed(() => {
+      const intake = periodSummary.value.totalCaloriesIntake || 0
+      const burned = periodSummary.value.totalCaloriesBurned || 0
+      const goalDaily = userGoals.value.daily_calories || 2000
+      const days = reportData.value?.report_info?.num_days_in_period || 1
+      return Math.round(intake - burned - goalDaily * days)
+    })
+
+    const suggestionHeadline = computed(() => {
+      if (netCaloriesDelta.value > 150) return '需優先控熱量'
+      if (netCaloriesDelta.value < -200) return '建議補足攝取'
+      return '整體表現穩定'
+    })
+
+    const suggestionCards = computed(() => {
+      return reportData.value?.suggestion_cards || []
+    })
+
+    const suggestionLevelLabel = (level) => {
+      if (level === 'high') return '高優先'
+      if (level === 'medium') return '中優先'
+      if (level === 'good') return '維持'
+      return '提醒'
+    }
+
     const changeReportType = (newType) => {
       currentReportType.value = newType;
+      showDateSelector.value = false
       if (newType === 'monthly') {
         const now = new Date();
         selectedMonth.value = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -401,23 +496,30 @@ import api from '@/services/api'
       fetchSummaryReport();
     }
 
+    const toggleDateSelector = () => {
+      showDateSelector.value = !showDateSelector.value
+    }
+
     const onDatePicked = (date) => {
       if (!date) return;
       targetDate.value = new Date(date) 
       selectedDateForPicker.value = new Date(date)
       fetchSummaryReport()
+      showDateSelector.value = false
     }
 
     const onMonthPicked = (date) => {
       if (!date) return
       selectedMonth.value = new Date(date)
       fetchSummaryReport()
+      showDateSelector.value = false
     }
 
     const onCustomRangePicked = (range) => {
       if (!range || !Array.isArray(range) || range.length !== 2) return
       customRange.value = [new Date(range[0]), new Date(range[1])]
       fetchSummaryReport()
+      showDateSelector.value = false
     }
 
     let calorieChartInstance = null
@@ -684,6 +786,41 @@ import api from '@/services/api'
   padding: 0;
 }
 
+.query-trigger-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.query-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dcdfe6;
+  background: #fff;
+  color: var(--text-primary);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.query-trigger-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+}
+
+.query-trigger-arrow {
+  transition: transform 0.2s ease;
+}
+
+.query-trigger-arrow.open {
+  transform: rotate(180deg);
+}
+
 /* ----- 摘要卡片 ----- */
 .summary-row {
   display: grid;
@@ -799,25 +936,266 @@ import api from '@/services/api'
 
 
 /* ----- 建議區塊 ----- */
-.suggestion-card {
-   background-color: var(--bg-color);
-   border-left: 4px solid var(--primary-color);
-   padding: 20px;
-   border-radius: 8px;
-   margin-top: 10px; 
+.suggestion-section {
+  padding: 28px 32px;
 }
-.suggestion-card p {
+
+.suggestion-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.suggestion-section-header .section-title {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.suggestion-period-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: #f0f2f5;
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* KPI strip redesign */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: #fff;
+  border: 1px solid var(--border-color-light);
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.kpi-card-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.kpi-card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.kpi-card-unit {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.kpi-card.kpi-over .kpi-card-value {
+  color: var(--danger-color);
+}
+
+.kpi-card.kpi-under .kpi-card-value {
+  color: #3a7bd5;
+}
+
+.kpi-card .kpi-status {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* intro */
+.suggestion-intro {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+  padding-left: 2px;
+}
+
+/* suggestion list */
+.suggestion-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.suggestion-item {
+  display: flex;
+  gap: 18px;
+  background: #fff;
+  border: 1px solid var(--border-color-light);
+  border-radius: 14px;
+  padding: 20px 22px;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+
+.suggestion-item:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+  transform: translateY(-2px);
+}
+
+.suggestion-item-aside {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.suggestion-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.suggestion-rank-badge.rank-high {
+  background: rgba(245, 108, 108, 0.12);
+  color: #c45656;
+  box-shadow: 0 0 0 2px rgba(245,108,108,0.25);
+}
+
+.suggestion-rank-badge.rank-medium {
+  background: rgba(230, 162, 60, 0.12);
+  color: #a57017;
+  box-shadow: 0 0 0 2px rgba(230,162,60,0.25);
+}
+
+.suggestion-rank-badge.rank-low,
+.suggestion-rank-badge.rank-good {
+  background: rgba(103, 194, 58, 0.12);
+  color: #4b8e2f;
+  box-shadow: 0 0 0 2px rgba(103,194,58,0.25);
+}
+
+.suggestion-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.suggestion-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.suggestion-level-pill {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 11px;
+  letter-spacing: 0.04em;
+}
+
+.suggestion-level-pill.level-high {
+  background: rgba(245, 108, 108, 0.12);
+  color: #c45656;
+}
+
+.suggestion-level-pill.level-medium {
+  background: rgba(230, 162, 60, 0.13);
+  color: #a57017;
+}
+
+.suggestion-level-pill.level-low,
+.suggestion-level-pill.level-good {
+  background: rgba(103, 194, 58, 0.12);
+  color: #4b8e2f;
+}
+
+.suggestion-reason {
+  margin: 0 0 10px;
   color: var(--text-regular);
-  line-height: 1.7;
-  margin-bottom: 12px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.suggestion-action-row,
+.suggestion-impact-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+.action-label,
+.impact-label {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 7px;
+  line-height: 1.8;
+}
+
+.action-label {
+  background: var(--primary-color);
+}
+
+.impact-label {
+  background: #909399;
+}
+
+.action-text,
+.impact-text {
+  color: var(--text-regular);
+}
+
+.suggestion-empty {
   display: flex;
   align-items: center;
+  gap: 10px;
+  padding: 24px 20px;
+  background: #f7f9fc;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
-.suggestion-card p .el-icon {
-  margin-right: 8px;
+
+.suggestion-empty .el-icon {
+  font-size: 1.3em;
   color: var(--info-color);
-  font-size: 1.2em;
 }
+
+/* old compat shims removed below */
 .suggestion-list {
   list-style: none;
   padding-left: 0;
@@ -831,7 +1209,7 @@ import api from '@/services/api'
 }
 .suggestion-list li .el-icon {
   margin-right: 8px;
-  color: var(--warning-color); 
+  color: var(--warning-color);
   font-size: 1.1em;
 }
 
@@ -858,6 +1236,10 @@ import api from '@/services/api'
 @media (max-width: 992px) {
   .report-sections-row-grid {
     grid-template-columns: 1fr; 
+  }
+
+  .suggestion-kpi-strip {
+    grid-template-columns: 1fr;
   }
 }
 

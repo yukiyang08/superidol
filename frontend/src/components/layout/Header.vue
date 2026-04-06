@@ -3,7 +3,9 @@
     <div class="container header-container">
       <div class="logo-container">
         <router-link to="/food/search" class="logo">
-          <el-icon class="logo-icon pulse-animation"><IconFood /></el-icon>
+          <span class="logo-icon-wrap">
+            <img src="/img/logos/superidol-icon.png" alt="Super Idol" class="logo-icon-image" />
+          </span>
           <span class="logo-text">Super Idol</span>
         </router-link>
       </div>
@@ -109,7 +111,6 @@
 import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
-import IconFood from '../icons/IconFood.vue'
 import IconSport from '../icons/IconSport.vue'
 
 const authStore = useAuthStore()
@@ -205,11 +206,22 @@ onBeforeUnmount(() => {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
-.logo-icon {
-  font-size: 26px;
+.logo-icon-wrap {
+  width: 62px;
+  height: 62px;
   margin-right: 10px;
-  color: white;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-icon-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.12));
 }
 
 .logo-text {
@@ -464,23 +476,6 @@ onBeforeUnmount(() => {
   color: #ff6b6b;
 }
 
-/* Animation Effects */
-.pulse-animation {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
 .swing-animation {
   animation: swing 0.5s ease;
 }
@@ -539,8 +534,18 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 480px) {
+  .logo {
+    padding: 5px 10px;
+  }
+
+  .logo-icon-wrap {
+    width: 42px;
+    height: 42px;
+    margin-right: 8px;
+  }
+
   .logo-text {
-    font-size: 20px;
+    font-size: 19px;
   }
 }
 </style> 
