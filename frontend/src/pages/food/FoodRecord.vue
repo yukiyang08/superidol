@@ -96,7 +96,7 @@
                 :disabled="(!photoFile && !customForm.photo_url) || photoUploadLoading || photoEstimateLoading"
                 @click="estimateCustomFoodFromPhoto"
               >
-                {{ photoEstimateLoading ? '辨識中...' : 'AI 辨識營養' }}
+                {{ photoEstimateLoading ? '辨識中...' : 'AI 辨識營養資訊' }}
               </button>
             </div>
             <div v-if="photoPreviewUrl" class="photo-preview-block">
@@ -1635,20 +1635,32 @@ onMounted(() => {
 }
 .nutrition-info-block {
   margin-top: 10px;
+  overflow-x: auto;
 }
 .nutrition-table {
-  width: 100%;
-  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
   font-size: 0.95em;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 14px;
+  align-items: center;
+}
+.nutrition-table tr {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
 }
 .nutrition-table td {
-  padding: 2px 8px 2px 0;
+  padding: 0;
   color: #666;
+  white-space: nowrap;
 }
 .nutrition-table td:first-child {
   color: #ffaa55;
   font-weight: 500;
-  width: 60px;
 }
 .no-nutrition-data {
   color: #bbb;

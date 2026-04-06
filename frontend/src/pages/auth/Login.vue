@@ -430,8 +430,22 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .login-page {
+    background: #ffffff;
+    padding: 16px 0 24px;
+  }
+
   .auth-container {
-    margin: 10px;
+    margin: 0;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    background: #ffffff;
+  }
+
+  .auth-container :deep(.el-card__body) {
+    padding: 24px 20px !important;
   }
   
   .features-overview {

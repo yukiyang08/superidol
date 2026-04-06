@@ -509,10 +509,6 @@ watch(
     padding: 20px 10px;
   }
   
-  .auth-container {
-    border-radius: 8px;
-  }
-  
   .form-actions {
     justify-content: center;
   }
@@ -523,6 +519,24 @@ watch(
 }
 
 @media (max-width: 768px) {
+  .register-page {
+    background: #ffffff;
+    padding: 16px 0 24px;
+  }
+
+  .auth-container {
+    margin: 0;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    background: #ffffff;
+  }
+
+  .auth-container :deep(.el-card__body) {
+    padding: 24px 20px !important;
+  }
+
   .form-section {
     padding: 16px 0;
   }
