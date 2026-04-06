@@ -906,8 +906,9 @@ onMounted(() => {
 }
 
 .calorie-info {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
   margin-bottom: 20px;
 }
 
@@ -1676,7 +1677,8 @@ onMounted(() => {
   }
 
   .calorie-info {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 14px;
   }
 
